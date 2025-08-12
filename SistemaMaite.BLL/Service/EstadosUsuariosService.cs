@@ -6,13 +6,13 @@ namespace SistemaMaite.BLL.Service
     public class EstadosUsuariosService : IEstadosUsuariosService
     {
 
-        private readonly IEstadosUsuariosRepository<UsuariosEstado> _contactRepo;
+        private readonly IEstadosUsuariosRepository<EstadosUsuario> _contactRepo;
 
-        public EstadosUsuariosService(IEstadosUsuariosRepository<UsuariosEstado> contactRepo)
+        public EstadosUsuariosService(IEstadosUsuariosRepository<EstadosUsuario> contactRepo)
         {
             _contactRepo = contactRepo;
         }
-        public async Task<bool> Actualizar(UsuariosEstado model)
+        public async Task<bool> Actualizar(EstadosUsuario model)
         {
             return await _contactRepo.Actualizar(model);
         }
@@ -22,18 +22,18 @@ namespace SistemaMaite.BLL.Service
             return await _contactRepo.Eliminar(id);
         }
 
-        public async Task<bool> Insertar(UsuariosEstado model)
+        public async Task<bool> Insertar(EstadosUsuario model)
         {
             return await _contactRepo.Insertar(model);
         }
 
-        public async Task<UsuariosEstado> Obtener(int id)
+        public async Task<EstadosUsuario> Obtener(int id)
         {
             return await _contactRepo.Obtener(id);
         }
 
 
-        public async Task<IQueryable<UsuariosEstado>> ObtenerTodos()
+        public async Task<IQueryable<EstadosUsuario>> ObtenerTodos()
         {
             return await _contactRepo.ObtenerTodos();
         }

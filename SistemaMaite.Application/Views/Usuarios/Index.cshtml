@@ -17,9 +17,11 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
     <link href="~/css/usuarios.css" rel="stylesheet" />
+
 }
 
 <div class="container-fluid mt-5">
+    <partial name="~/Views/Shared/Partials/BotonMenu.cshtml" />
     <div class="row">
         <div class="col-lg-10">
             <div class="card" style="width: 88%; position: absolute; left: 7vw; border: none;">
@@ -47,7 +49,7 @@
                                 <th>Direccion</th>
                                 <th>Rol</th>
                                 <th>Estado</th>
-
+                            </tr>
                         </thead>
                         <tbody>
                             <!-- Aquí va el contenido de tu datatable -->
@@ -65,83 +67,101 @@
 </div>
 
 
-<!-- HTML para el modal de edición -->
+
+
 <div class="modal fade" id="modalEdicion" tabindex="-1" role="dialog" aria-labelledby="modalEdicionLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-edicion" role="document">
         <div class="modal-content">
+
             <div class="modal-header colorEncabezado">
-                <h5 class="modal-title fw-bold" id="modalEdicionLabel">Editar Usuario</h5>
+                <h5 class="modal-title fw-bold" id="modalEdicionLabel">Nuevo Proveedor</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
 
             <div class="modal-body">
-                <form id="formEditarUsuario" class="row g-3">
-                    <input type="text" id="txtId" hidden readonly>
+                <form id="formProveedor" class="row g-3">
 
-                    <div class="col-md-6">
-                        <label for="txtUsuario" class="form-label" id="lblUsuario">Usuario (*)</label>
+                    <input type="text" class="input-nuevomodif" id="txtId" readonly hidden>
+
+                    <!-- Fila 1 -->
+                    <div class="col-md-4">
+                        <label id="lblUsuario" for="txtUsuario" class="form-label">Usuario</label>
                         <input type="text" class="form-control" id="txtUsuario" required>
+                        <div class="invalid-feedback">Campo obligatorio</div>
                     </div>
 
-                    <div class="col-md-6">
-                        <label for="txtNombre" class="form-label" id="lblNombre">Nombre (*)</label>
+                    <div class="col-md-4">
+                        <label id="lblNombre" for="txtNombre" class="form-label">Nombre</label>
                         <input type="text" class="form-control" id="txtNombre" required>
+                        <div class="invalid-feedback">Campo obligatorio</div>
                     </div>
 
-                    <div class="col-md-6">
-                        <label for="txtApellido" class="form-label" id="lblApellido">Apellido (*)</label>
-                        <input type="text" class="form-control" id="txtApellido" required>
+                    <div class="col-md-4">
+                        <label id="lblApellido" for="txtApellido" class="form-label">Apellido</label>
+                        <input type="text" class="form-control" id="txtApellido">
                     </div>
 
-                    <div class="col-md-6">
-                        <label for="txtDni" class="form-label" id="lblDni">DNI</label>
-                        <input type="text" class="form-control" id="txtDni">
+                    <div class="col-md-4">
+                        <label id="lblDni" for="txtDni" class="form-label">DNI</label>
+                        <input type="text" class="form-control" id="txtDni" >
                     </div>
 
-                    <div class="col-md-6">
-                        <label for="txtTelefono" class="form-label" id="lblTelefono">Teléfono</label>
-                        <input type="text" class="form-control" id="txtTelefono">
+
+                    <div class="col-md-4">
+                        <label id="lblDescripcion" for="txtTelefono" class="form-label">Telefono</label>
+                        <input type="text" class="form-control" id="txtTelefono" >
                     </div>
 
-                    <div class="col-md-6">
-                        <label for="txtDireccion" class="form-label" id="lblDireccion">Dirección</label>
-                        <input type="text" class="form-control" id="txtDireccion">
+
+                    <div class="col-md-4">
+                        <label id="lblDireccion" for="txtDireccion" class="form-label">Direcion</label>
+                        <input type="text" class="form-control" id="txtDireccion" >
                     </div>
 
-                    <div class="col-md-6">
-                        <label for="Roles" class="form-label" id="lblRol">Rol</label>
+                    <div class="col-md-4">
+                        <label id="lblRoles" for="Roles" class="form-label">Rol</label>
                         <select id="Roles" name="select" class="form-control">
                             <option value="" selected>Rol</option>
                         </select>
                     </div>
 
-                    <div class="col-md-6">
-                        <label for="Estados" class="form-label" id="lblEstado">Estado</label>
+                    <div class="col-md-4">
+                        <label id="lblEstado" for="Estados" class="form-label">Estado</label>
                         <select id="Estados" name="select" class="form-control">
-                            <option value="" selected>Estado</option>
+                            <option value="" selected>Rol</option>
                         </select>
                     </div>
 
-                    <div class="col-md-6" id="divContrasena">
-                        <label for="txtContrasena" class="form-label" id="lblContrasena">Contraseña</label>
-                        <input type="password" class="form-control" id="txtContrasena">
+                    <div class="col-md-4" id="divContrasena">
+                        <label id="lblContrasena" for="txtContrasena" class="form-label">Contrasena</label>
+                        <input type="text" class="form-control" id="txtContrasena" required>
+                        <div class="invalid-feedback">Campo obligatorio</div>
                     </div>
 
-                    <div class="col-md-6" id="divContrasenaNueva">
-                        <label for="txtContrasenaNueva" class="form-label" id="lblContrasenaNueva">Contraseña Nueva</label>
-                        <input type="password" class="form-control" id="txtContrasenaNueva">
+                    <div class="col-md-4" id="divContrasenaNueva">
+                        <label id="lblContrasenaNueva" for="txtContrasenaNueva" class="form-label">Contrasena Nueva</label>
+                        <input type="text" class="form-control" id="txtContrasenaNueva">
+                    </div>
+
+                    <!-- Validación -->
+                    <div id="errorCampos" class="alert alert-danger d-none">
+                        Debes completar los campos obligatorios.
                     </div>
                 </form>
             </div>
 
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                <button type="button" id="btnGuardar" class="btn btn-primary" onclick="guardarCambios()">Registrar</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fa fa-arrow-left"></i> Volver
+                </button>
+                <button type="button" id="btnGuardar" class="btn btn-primary" onclick="guardarCambios()">
+                    <i class="fa fa-check"></i> Registrar
+                </button>
             </div>
+
         </div>
     </div>
 </div>
-
 
 <partial name="~/Views/Utils/Modals.cshtml" />
 

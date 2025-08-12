@@ -23,8 +23,11 @@ $(document).ready(() => {
 
     listaUsuarios();
 
-    $('#txtNombre, #txtUsuario, #txtApellido, #txtContrasena').on('input', function () {
-        validarCampos();
+    document.querySelectorAll("#modalEdicion input, #modalEdicion select, #modalEdicion textarea").forEach(el => {
+        el.setAttribute("autocomplete", "off");
+        el.addEventListener("input", () => validarCampoIndividual(el));
+        el.addEventListener("change", () => validarCampoIndividual(el));
+        el.addEventListener("blur", () => validarCampoIndividual(el));
     });
 
 })
@@ -47,7 +50,7 @@ function guardarCambios() {
             "CambioAdmin": 1
         };
 
-        const url = idUsuario === "" ? "Usuarios/Insertar" : "Usuarios/Actualizar";
+        const url = idUsuario === "" ? "/Usuarios/Insertar" : "/Usuarios/Actualizar";
         const method = idUsuario === "" ? "POST" : "PUT";
 
         fetch(url, {
@@ -77,42 +80,10 @@ function guardarCambios() {
                 console.error('Error:', error);
             });
     } else {
-        errorModal('Debes completar los campos requeridos');
+        return false;
     }
 }
-function validarCampos() {
-    const idUsuario = $("#txtId").val();
-    const nombre = $("#txtNombre").val();
-    const usuario = $("#txtUsuario").val();
-    const apellido = $("#txtApellido").val();
-    const contrasena = $("#txtContrasena").val();
 
-
-    // Validación independiente para cada campo
-    const nombreValido = nombre !== "";
-    const usuarioValido = usuario !== "";
-    const apellidoValido = apellido !== "";
-    const contrasenaValido = contrasena !== "" || idUsuario !== "";
-
-    // Cambiar el color de texto y borde según la validez de los campos
-    $("#lblNombre").css("color", nombreValido ? "" : "red");
-    $("#txtNombre").css("border-color", nombreValido ? "" : "red");
-
-    $("#lblUsuario").css("color", usuarioValido ? "" : "red");
-    $("#txtUsuario").css("border-color", usuarioValido ? "" : "red");
-
-    $("#lblApellido").css("color", apellidoValido ? "" : "red");
-    $("#txtApellido").css("border-color", apellidoValido ? "" : "red");
-
-
-    $("#lblContrasena").css("color", contrasenaValido ? "" : "red");
-    $("#txtContrasena").css("border-color", contrasenaValido ? "" : "red");
-
-
-
-    // La función retorna 'true' si todos los campos son válidos, de lo contrario 'false'
-    return nombreValido && usuarioValido && apellidoValido && contrasenaValido;
-}
 
 
 function nuevoUsuario() {
@@ -123,23 +94,13 @@ function nuevoUsuario() {
     $("#btnGuardar").text("Registrar");
     $("#modalEdicionLabel").text("Nuevo Usuario");
 
-    $('#lblUsuario').css('color', 'red');
-    $('#txtUsuario').css('border-color', 'red');
-
-    $('#lblNombre').css('color', 'red');
-    $('#txtNombre').css('border-color', 'red');
-
-    $('#lblApellido').css('color', 'red');
-    $('#txtApellido').css('border-color', 'red');
-
-    $('#lblContrasena').css('color', 'red');
-    $('#txtContrasena').css('border-color', 'red');
-
-    document.getElementById("lblContrasena").hidden = false;
-    document.getElementById("txtContrasena").hidden = false;
+    document.getElementById("divContrasena").removeAttribute("hidden");
+    document.getElementById("divContrasenaNueva").setAttribute("hidden", "hidden");
 
 }
 async function mostrarModal(modelo) {
+
+    limpiarModal();
     const campos = ["Id", "Usuario", "Nombre", "Apellido", "Dni", "Telefono", "Direccion", "Contrasena", "ContrasenaNueva"];
     campos.forEach(campo => {
         $(`#txt${campo}`).val(modelo[campo]);
@@ -148,42 +109,29 @@ async function mostrarModal(modelo) {
     await listaEstados();
     await listaRoles();
 
-    document.getElementById("Roles").value = modelo.IdRol;
-
     $('#modalEdicion').modal('show');
     $("#btnGuardar").text("Guardar");
     $("#modalEdicionLabel").text("Editar Usuario");
 
-    document.getElementById("lblContrasena").hidden = true;
-    document.getElementById("txtContrasena").hidden = true;
-
-    $('#lblUsuario, #txtUsuario').css('color', '').css('border-color', '');
-    $('#lblNombre, #txtNombre').css('color', '').css('border-color', '');
-    $('#lblApellido, #txtApellido').css('color', '').css('border-color', '');
+    document.getElementById("divContrasena").setAttribute("hidden", "hidden");
+    document.getElementById("divContrasenaNueva").removeAttribute("hidden");
 
 
 
 }
-function limpiarModal() {
-    const campos = ["Id", "Usuario", "Nombre", "Apellido", "Dni", "Telefono", "Direccion", "Contrasena", "ContrasenaNueva"];
-    campos.forEach(campo => {
-        $(`#txt${campo}`).val("");
-    });
 
-    $("#lblUsuario, #txtUsuario").css("color", "").css("border-color", "");
-    $("#lblNombre, #txtNombre").css("color", "").css("border-color", "");
-    $("#lblApellido, #txtApellido").css("color", "").css("border-color", "");
-    $('#lblContrasena, #txtContrasena').css('color', '').css('border-color', "");
-}
 async function listaUsuarios() {
+    let paginaActual = gridUsuarios != null ? gridUsuarios.page() : 0;
     const url = `/Usuarios/Lista`;
     const response = await fetch(url);
     const data = await response.json();
     await configurarDataTable(data);
+    if (paginaActual > 0) gridUsuarios.page(paginaActual).draw('page');
 }
 
 const editarUsuario = id => {
-    fetch("Usuarios/EditarInfo?id=" + id)
+    $('.acciones-dropdown').hide(); // Cerrar todos los dropdowns
+    fetch("/Usuarios/EditarInfo?id=" + id)
         .then(response => {
             if (!response.ok) throw new Error("Ha ocurrido un error.");
             return response.json();
@@ -200,11 +148,13 @@ const editarUsuario = id => {
         });
 }
 async function eliminarUsuario(id) {
-    let resultado = window.confirm("¿Desea eliminar el Usuario?");
+    $('.acciones-dropdown').hide(); // Cerrar todos los dropdowns
+    const confirmado = await confirmarModal("¿Desea eliminar este usuario?");
+    if (!confirmado) return;
 
-    if (resultado) {
+    if (confirmado) {
         try {
-            const response = await fetch("Usuarios/Eliminar?id=" + id, {
+            const response = await fetch("/Usuarios/Eliminar?id=" + id, {
                 method: "DELETE"
             });
 
@@ -274,7 +224,6 @@ async function configurarDataTable(data) {
                         return data === "Bloqueado" ? `<span style="color: red">${data}</span>` : data;
                     }
                 },
-               
 
             ],
             dom: 'Bfrtip',
@@ -311,7 +260,7 @@ async function configurarDataTable(data) {
                 'pageLength'
             ],
             orderCellsTop: true,
-            fixedHeader: false,
+            fixedHeader: true,
 
             initComplete: async function () {
                 var api = this.api();
@@ -502,3 +451,91 @@ $(document).on('click', function (e) {
         $('.acciones-dropdown').hide(); // Cerrar todos los dropdowns
     }
 });
+
+
+function limpiarModal() {
+    const formulario = document.querySelector("#modalEdicion");
+    if (!formulario) return;
+
+    formulario.querySelectorAll("input, select, textarea").forEach(el => {
+        if (el.tagName === "SELECT") {
+            el.selectedIndex = 0;
+        } else {
+            el.value = "";
+        }
+        el.classList.remove("is-invalid", "is-valid");
+    });
+
+    // Ocultar mensaje general de error
+    const errorMsg = document.getElementById("errorCampos");
+    if (errorMsg) errorMsg.classList.add("d-none");
+}
+
+
+function validarCampoIndividual(el) {
+    const tag = el.tagName.toLowerCase();
+    const id = el.id;
+    const valor = el.value ? el.value.trim() : ""; // Para inputs/selects
+
+    const feedback = el.nextElementSibling;
+
+    if (id != "txtNombre" && id != "txtContrasena" && id != "txtUsuario") return //Solo valida el nombre
+
+
+    // Validación para inputs/selects normales
+    if (tag === "input" || tag === "select" || tag === "textarea") {
+        if (feedback && feedback.classList.contains("invalid-feedback")) {
+            feedback.textContent = "Campo obligatorio";
+        }
+
+        if (valor === "" || valor === "Seleccionar") {
+            el.classList.remove("is-valid");
+            el.classList.add("is-invalid");
+        } else {
+            el.classList.remove("is-invalid");
+            el.classList.add("is-valid");
+        }
+    }
+
+    verificarErroresGenerales();
+}
+
+function verificarErroresGenerales() {
+    const errorMsg = document.getElementById("errorCampos");
+    const hayInvalidos = document.querySelectorAll("#modalEdicion .is-invalid").length > 0;
+    if (!errorMsg) return;
+
+    if (!hayInvalidos) {
+        errorMsg.classList.add("d-none");
+    }
+}
+
+function validarCampos() {
+    const campos = [
+        "#txtNombre",
+        "#txtUsuario",
+        "#txtContrasena"
+    ];
+
+    let valido = true;
+
+    campos.forEach(selector => {
+        const campo = document.querySelector(selector);
+        const valor = campo?.value.trim();
+        const feedback = campo?.nextElementSibling;
+
+        if (!campo || !valor || valor === "Seleccionar") {
+            campo.classList.add("is-invalid");
+            campo.classList.remove("is-valid");
+            if (feedback) feedback.textContent = "Campo obligatorio";
+            valido = false;
+        } else {
+            campo.classList.remove("is-invalid");
+            campo.classList.add("is-valid");
+        }
+    });
+
+    document.getElementById("errorCampos").classList.toggle("d-none", valido);
+    return valido;
+}
+

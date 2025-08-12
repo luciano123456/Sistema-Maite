@@ -5,12 +5,12 @@ namespace SistemaMaite.BLL.Service
     public interface IEstadosUsuariosService
     {
         Task<bool> Eliminar(int id);
-        Task<bool> Actualizar(UsuariosEstado model);
-        Task<bool> Insertar(UsuariosEstado model);
+        Task<bool> Actualizar(EstadosUsuario model);
+        Task<bool> Insertar(EstadosUsuario model);
 
-        Task<UsuariosEstado> Obtener(int id);
+        Task<EstadosUsuario> Obtener(int id);
 
-        Task<IQueryable<UsuariosEstado>> ObtenerTodos();
+        Task<IQueryable<EstadosUsuario>> ObtenerTodos();
     }
 
 }

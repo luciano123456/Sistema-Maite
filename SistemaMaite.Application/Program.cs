@@ -25,8 +25,11 @@ builder.Services.AddRazorPages().AddRazorRuntimeCompilation();
 builder.Services.AddScoped<IUsuariosRepository<User>, UsuariosRepository>();
 builder.Services.AddScoped<IUsuariosService, UsuariosService>();
 
-builder.Services.AddScoped<IEstadosUsuariosRepository<UsuariosEstado>, EstadosUsuariosRepository>();
+builder.Services.AddScoped<IEstadosUsuariosRepository<EstadosUsuario>, EstadosUsuariosRepository>();
 builder.Services.AddScoped<IEstadosUsuariosService, EstadosUsuariosService>();
+
+builder.Services.AddScoped<IRolesRepository<Rol>, RolesRepository>();
+builder.Services.AddScoped<IRolesService, RolesService>();
 
 builder.Services.AddScoped<ILoginRepository<User>, LoginRepository>();
 builder.Services.AddScoped<ILoginService, LoginService>();

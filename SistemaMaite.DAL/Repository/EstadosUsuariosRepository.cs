@@ -11,7 +11,7 @@ using SistemaMaite.DAL.DataContext;
 
 namespace SistemaMaite.DAL.Repository
 {
-    public class EstadosUsuariosRepository : IEstadosUsuariosRepository<UsuariosEstado>
+    public class EstadosUsuariosRepository : IEstadosUsuariosRepository<EstadosUsuario>
     {
 
         private readonly SistemaMaiteContext _dbcontext;
@@ -20,36 +20,36 @@ namespace SistemaMaite.DAL.Repository
         {
             _dbcontext = context;
         }
-        public async Task<bool> Actualizar(UsuariosEstado model)
+        public async Task<bool> Actualizar(EstadosUsuario model)
         {
-            _dbcontext.UsuariosEstados.Update(model);
+            _dbcontext.EstadosUsuarios.Update(model);
             await _dbcontext.SaveChangesAsync();
             return true;
         }
 
         public async Task<bool> Eliminar(int id)
         {
-            UsuariosEstado model = _dbcontext.UsuariosEstados.First(c => c.Id == id);
-            _dbcontext.UsuariosEstados.Remove(model);
+            EstadosUsuario model = _dbcontext.EstadosUsuarios.First(c => c.Id == id);
+            _dbcontext.EstadosUsuarios.Remove(model);
             await _dbcontext.SaveChangesAsync();
             return true;
         }
 
-        public async Task<bool> Insertar(UsuariosEstado model)
+        public async Task<bool> Insertar(EstadosUsuario model)
         {
-            _dbcontext.UsuariosEstados.Add(model);
+            _dbcontext.EstadosUsuarios.Add(model);
             await _dbcontext.SaveChangesAsync();
             return true;
         }
 
-        public async Task<UsuariosEstado> Obtener(int id)
+        public async Task<EstadosUsuario> Obtener(int id)
         {
-            UsuariosEstado model = await _dbcontext.UsuariosEstados.FindAsync(id);
+            EstadosUsuario model = await _dbcontext.EstadosUsuarios.FindAsync(id);
             return model;
         }
-        public async Task<IQueryable<UsuariosEstado>> ObtenerTodos()
+        public async Task<IQueryable<EstadosUsuario>> ObtenerTodos()
         {
-            IQueryable<UsuariosEstado> query = _dbcontext.UsuariosEstados;
+            IQueryable<EstadosUsuario> query = _dbcontext.EstadosUsuarios;
             return await Task.FromResult(query);
         }
 
