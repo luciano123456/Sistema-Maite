@@ -7,6 +7,9 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.Extensions.FileProviders;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,6 +37,8 @@ builder.Services.AddScoped<IRolesService, RolesService>();
 builder.Services.AddScoped<ILoginRepository<User>, LoginRepository>();
 builder.Services.AddScoped<ILoginService, LoginService>();
 
+
+
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(o =>
     {
@@ -41,13 +46,32 @@ builder.Services.AddControllersWithViews()
         o.JsonSerializerOptions.PropertyNamingPolicy = null;
     });
 
-// Configurar autenticación con cookies
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
+
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
     {
-        options.LoginPath = "/Login/Index";  // Ruta para redirigir al login si no está autenticado
-        options.LogoutPath = "/Login/Logout"; // Ruta para cerrar sesión
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+            ValidAudience = builder.Configuration["JwtSettings:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SecretKey"]))
+        };
     });
+
+// Definir el esquema de autenticación predeterminado
+builder.Services.AddAuthorization(options =>
+{
+    options.DefaultPolicy = new AuthorizationPolicyBuilder()
+        .AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme)
+        .RequireAuthenticatedUser()
+        .Build();
+});
+
 
 
 var app = builder.Build();
@@ -55,29 +79,22 @@ var app = builder.Build();
 // Configurar el pipeline de middleware
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Usuarios/Error");
+    app.UseExceptionHandler("/Clientes/Error");
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
-
-app.UseStaticFiles(new StaticFileOptions
-{
-    ServeUnknownFileTypes = true,
-    FileProvider = new PhysicalFileProvider(
-        Path.Combine(Directory.GetCurrentDirectory(), "wwwroot")),
-    RequestPath = ""
-});
-
+app.UseStaticFiles();
 
 app.UseRouting();
 
-app.UseAuthentication(); // Habilitar la autenticación con cookies
-app.UseAuthorization();  // Habilitar la autorización
+app.UseAuthentication();
+app.UseAuthorization();
+
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Usuarios}/{action=Index}/{id?}");
+    pattern: "{controller=Login}/{action=Index}/{id?}");
 
 // Asegúrate de que las rutas de login estén excluidas del middleware de autenticación
 app.MapControllerRoute(
@@ -85,3 +102,4 @@ app.MapControllerRoute(
     pattern: "Login/{action=Index}",
     defaults: new { controller = "Login", action = "Index" });
 app.Run();
+    

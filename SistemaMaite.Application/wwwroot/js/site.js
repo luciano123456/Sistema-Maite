@@ -1,4 +1,6 @@
-﻿async function MakeAjax(options) {
+﻿const token = localStorage.getItem('JwtToken');
+
+async function MakeAjax(options) {
     return $.ajax({
         type: options.type,
         url: options.url,

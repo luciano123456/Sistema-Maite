@@ -53,9 +53,11 @@ function guardarCambios() {
         const url = idUsuario === "" ? "/Usuarios/Insertar" : "/Usuarios/Actualizar";
         const method = idUsuario === "" ? "POST" : "PUT";
 
+
         fetch(url, {
             method: method,
             headers: {
+                'Authorization': 'Bearer ' + token,
                 'Content-Type': 'application/json;charset=utf-8'
             },
             body: JSON.stringify(nuevoModelo)
@@ -123,15 +125,37 @@ async function mostrarModal(modelo) {
 async function listaUsuarios() {
     let paginaActual = gridUsuarios != null ? gridUsuarios.page() : 0;
     const url = `/Usuarios/Lista`;
-    const response = await fetch(url);
+
+    const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json'
+        }
+    });
+
+    if (!response.ok) {
+        throw new Error(`Error en la solicitud: ${response.statusText}`);
+    }
+
     const data = await response.json();
     await configurarDataTable(data);
-    if (paginaActual > 0) gridUsuarios.page(paginaActual).draw('page');
+
+    if (paginaActual > 0) {
+        gridUsuarios.page(paginaActual).draw('page');
+    }
 }
 
 const editarUsuario = id => {
     $('.acciones-dropdown').hide(); // Cerrar todos los dropdowns
-    fetch("/Usuarios/EditarInfo?id=" + id)
+
+    fetch("/Usuarios/EditarInfo?id=" + id, {
+        method: 'GET',
+        headers: {
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json'
+        }
+    })
         .then(response => {
             if (!response.ok) throw new Error("Ha ocurrido un error.");
             return response.json();
@@ -146,7 +170,9 @@ const editarUsuario = id => {
         .catch(error => {
             errorModal("Ha ocurrido un error.");
         });
-}
+};
+
+
 async function eliminarUsuario(id) {
     $('.acciones-dropdown').hide(); // Cerrar todos los dropdowns
     const confirmado = await confirmarModal("¿Desea eliminar este usuario?");
@@ -154,8 +180,13 @@ async function eliminarUsuario(id) {
 
     if (confirmado) {
         try {
+
             const response = await fetch("/Usuarios/Eliminar?id=" + id, {
-                method: "DELETE"
+                method: "DELETE",
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                }
             });
 
             if (!response.ok) {
@@ -166,7 +197,7 @@ async function eliminarUsuario(id) {
 
             if (dataJson.valor) {
                 listaUsuarios();
-                exitoModal("Usuario eliminado correctamente")
+                exitoModal("Usuario eliminado correctamente");
             }
         } catch (error) {
             console.error("Ha ocurrido un error:", error);
