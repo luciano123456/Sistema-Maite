@@ -10,6 +10,7 @@ body {
     align-items: center;
 }
 
+
 .login-container {
     display: flex;
     width: 80%;
@@ -19,19 +20,18 @@ body {
     box-shadow: 0 8px 15px rgba(238, 48, 12, 1);
 }
 
-/* Parte izquierda (azul oscuro) */
 .left-side {
-    background-color: #1B2631;
-    width: 75%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    flex: 1;
     position: relative;
+    min-height: 100%;
 }
 
     .left-side img {
-        max-width: 80%;
-        height: auto;
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: fill; /* llena el recuadro, recorta si sobra */
     }
 
 /* Parte derecha (blanco) */
@@ -98,3 +98,30 @@ body {
         color: #333;
         cursor: pointer;
     }
+
+
+
+
+.left-side {
+    flex: 1; /* que ocupe todo el espacio disponible en el contenedor */
+    position: relative; /* necesario para que la img absoluta se posicione bien */
+    min-height: 100%; /* asegura altura completa */
+}
+
+    .left-side img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        o
+        /* derecha */
+        .right-side {
+    width: 25%;
+    background: #fff;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
