@@ -1,4 +1,12 @@
-﻿@model SistemaMaite.Models.User
+﻿@using Microsoft.Extensions.Configuration
+
+@inject IConfiguration Configuration
+
+@{
+    var ambienteTest = Configuration.GetValue<int>("AmbienteTest");
+}
+
+@model SistemaMaite.Models.User
 @{
     ViewData["Title"] = "Configuración";
 }
@@ -18,7 +26,9 @@
 </head>
 
 
-<div class="container d-flex justify-content-center align-items-center mt-5" style="min-height: 1vh;">
+ <partial name="~/Views/Shared/Partials/BotonMenu.cshtml" />
+
+<div class="container d-flex justify-content-center align-items-center " style="min-height: 1vh;">
     <div class="card p-4" style="background-color: rgba(230, 240, 240, 2); box-shadow: 0 4px 10px rgba(40, 138, 237, 1); width: 100%; max-width: 700px;">
         <h2 class="text-center mb-4 text-white">Configuración</h2>
 
@@ -32,11 +42,9 @@
 
 
 
-        <form id="formularioActualizar"  method="put">
-            <input type="hidden" id="Id" name="Id" value="@Model.Id" readonly />
-            <input type="hidden" id="IdRol" name="IdRol" value="@Model.IdRol" readonly />
-            <input type="hidden" id="IdEstado" name="IdEstado" value="@Model.IdEstado" readonly />
-            <input type="hidden" id="Usuario" name="Usuario" value="@Model.Usuario" readonly />
+        <form method="put" asp-action="Actualizar">
+
+            <input type="hidden" id="Id" name="Id" value="@Model.Id" />
 
             <div class="mb-3">
                 <label for="Nombre" class="form-label text-danger">Nombre (*)</label>
@@ -63,6 +71,12 @@
                 <input type="text" class="form-control form-control-sm" id="Direccion" name="Direccion" value="@Model.Direccion" />
             </div>
 
+
+            <div class="mb-3">
+                <label for="Correo" class="form-label">Correo</label>
+                <input type="text" class="form-control form-control-sm" id="Correo" name="Correo" value="@Model.Correo" />
+            </div>
+
             <div class="mb-3">
                 <label for="Contrasena" class="form-label text-danger">Contraseña Actual (*)</label>
                 <input type="password" class="form-control form-control-sm" id="Contrasena" name="Contrasena" required />
@@ -74,11 +88,10 @@
             </div>
             <label for="msjerror" class="form-label" id="msjerror" hidden></label>
             <div class="d-flex justify-content-end">
-                <button type="submit" id="btnGuardar" class="btn btn-primary btn-sm">Guardar Cambios</button>
+                <button type="submit"  id="btnGuardar" class="btn btn-primary btn-sm">Guardar Cambios</button>
             </div>
         </form>
-
     </div>
 </div>
 
-<script src="~/js/UsuariosConfiguracion.js?v=1.0"></script>
+<script src="~/js/usuariosconfiguracion.js"></script>

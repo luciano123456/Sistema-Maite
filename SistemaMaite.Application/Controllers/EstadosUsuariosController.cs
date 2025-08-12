@@ -36,7 +36,7 @@ namespace SistemaMaite.Application.Controllers
         [HttpPost]
         public async Task<IActionResult> Insertar([FromBody] VMEstadosUsuarios model)
         {
-            var EstadosUsuario = new UsuariosEstado
+            var EstadosUsuario = new EstadosUsuario
             {
                 Id = model.Id,
                 Nombre = model.Nombre,
@@ -50,7 +50,7 @@ namespace SistemaMaite.Application.Controllers
         [HttpPut]
         public async Task<IActionResult> Actualizar([FromBody] VMEstadosUsuarios model)
         {
-            var EstadosUsuario = new UsuariosEstado
+            var EstadosUsuario = new EstadosUsuario
             {
                 Id = model.Id,
                 Nombre = model.Nombre,

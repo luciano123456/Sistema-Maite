@@ -23,13 +23,23 @@ async function MakeAjaxFormData(options) {
     });
 }
 
-function formatNumber(valor) {
-    const num = Number(valor);
-    return isNaN(num) ? "" : `$ ${num.toLocaleString("es-AR", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    })}`;
+
+// Formatear el número de manera correcta
+function formatNumber(number) {
+    if (typeof number !== 'number' || isNaN(number)) {
+        return "$ 0,00"; // Si el número no es válido, retornar un valor por defecto
+    }
+
+    // Asegurarse de que el número tenga dos decimales
+    const parts = number.toFixed(2).split("."); // Dividir en parte entera y decimal
+
+    // Formatear la parte entera con puntos como separadores de miles
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, "."); // Usar punto para miles
+
+    // Devolver el número con la coma como separador decimal
+    return "$ " + parts.join(",");
 }
+
 
 
 function mostrarModalConContador(modal, texto, tiempo) {
@@ -53,31 +63,47 @@ function advertenciaModal(texto) {
     mostrarModalConContador('AdvertenciaModal', texto, 3000);
 }
 
-function aplicarFormatoMoneda(input, callback) {
-    input.addEventListener("blur", function () {
-        let rawValue = this.value.trim();
+function confirmarModal(mensaje) {
+    return new Promise((resolve) => {
+        const modalEl = document.getElementById('modalConfirmar');
+        const mensajeEl = document.getElementById('modalConfirmarMensaje');
+        const btnAceptar = document.getElementById('btnModalConfirmarAceptar');
 
-        // Eliminar cualquier símbolo no numérico, excepto , y .
-        rawValue = rawValue.replace(/[^\d.,-]/g, '');
+        mensajeEl.innerText = mensaje;
 
-        // Reemplazar separadores (puntos por nada, comas por punto)
-        let parsedValue = parseFloat(rawValue.replace(/\./g, '').replace(',', '.'));
+        const modal = new bootstrap.Modal(modalEl, {
+            backdrop: 'static',
+            keyboard: false
+        });
 
-        // Validamos valor antes de formatear
-        if (!isNaN(parsedValue)) {
-            this.value = formatNumber(parsedValue);
-        }
+        // Flag para que no resuelva dos veces
+        let resuelto = false;
 
-        // Callback opcional
-        if (typeof callback === 'function') {
-            callback();
-        }
-    });
+        // Limpia todos los listeners anteriores
+        modalEl.replaceWith(modalEl.cloneNode(true));
+        // Re-obtener referencias luego de clonar
+        const nuevoModalEl = document.getElementById('modalConfirmar');
+        const nuevoBtnAceptar = document.getElementById('btnModalConfirmarAceptar');
 
-    input.addEventListener("focus", function () {
-        let cleanValue = this.value.replace(/[^\d.,-]/g, '');
-        let parsed = parseFloat(cleanValue.replace(/\./g, '').replace(',', '.'));
-        this.value = isNaN(parsed) ? "" : parsed;
+        const nuevoModal = new bootstrap.Modal(nuevoModalEl, {
+            backdrop: 'static',
+            keyboard: false
+        });
+
+        nuevoBtnAceptar.onclick = function () {
+            if (resuelto) return;
+            resuelto = true;
+            resolve(true);
+            nuevoModal.hide();
+        };
+
+        nuevoModalEl.addEventListener('hidden.bs.modal', () => {
+            if (resuelto) return;
+            resuelto = true;
+            resolve(false);
+        }, { once: true });
+
+        nuevoModal.show();
     });
 }
 
@@ -88,19 +114,19 @@ const formatoMoneda = new Intl.NumberFormat('es-AR', {
     minimumFractionDigits: 2
 });
 
-function convertirMonedaAfloat(valor) {
-    if (!valor) return 0;
+function convertirMonedaAFloat(moneda) {
+    // Eliminar el símbolo de la moneda y otros caracteres no numéricos
+    const soloNumeros = moneda.replace(/[^0-9,.-]/g, '');
 
-    // Eliminar cualquier carácter que no sea número, punto, coma o signo menos
-    valor = valor.replace(/[^\d.,-]/g, '');
+    // Eliminar separadores de miles y convertir la coma en punto
+    const numeroFormateado = soloNumeros.replace(/\./g, '').replace(',', '.');
 
-    // Reemplazar separadores (puntos de mil a nada, coma decimal a punto)
-    valor = valor.replace(/\./g, '').replace(',', '.');
+    // Convertir a flotante
+    const numero = parseFloat(numeroFormateado);
 
-    return parseFloat(valor);
+    // Devolver el número formateado como cadena, asegurando los decimales
+    return numero.toFixed(2); // Asegura siempre dos decimales en la salida
 }
-
-
 function convertirAMonedaDecimal(valor) {
     // Reemplazar coma por punto
     if (typeof valor === 'string') {
@@ -119,15 +145,6 @@ function parseDecimal(value) {
     return parseFloat(value.replace(',', '.'));
 }
 
-function formatearMoneda(valor) {
-    const numero = Number(valor.toString().replace(/\./g, "").replace(",", "."));
-    if (isNaN(numero)) return "";
-    return `$ ${numero.toLocaleString('es-AR', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    })}`;
-}
-
 
 function formatMoneda(valor) {
     // Convertir a string, cambiar el punto decimal a coma y agregar separadores de miles
@@ -137,7 +154,7 @@ function formatMoneda(valor) {
         .replace(/\B(?=(\d{3})+(?!\d))/g, "."); // Agregar separadores de miles
 
     // Agregar el símbolo $ al inicio
-    return `$${formateado}`;
+    return `$ ${formateado}`;
 }
 
 
@@ -173,3 +190,33 @@ function toggleAcciones(id) {
 }
 
 
+
+function formatearFechaParaInput(fecha) {
+    const m = moment(fecha, [moment.ISO_8601, 'YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD']);
+    return m.isValid() ? m.format('YYYY-MM-DD') : '';
+}
+
+function formatearFechaParaVista(fecha) {
+    const m = moment(fecha, [moment.ISO_8601, 'YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD']);
+    return m.isValid() ? m.format('DD/MM/YYYY') : '';
+}
+
+function formatearMiles(valor) {
+    let num = String(valor).replace(/\D/g, '');
+    return num.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+function formatearSinMiles(valor) {
+    if (!valor) return 0;
+
+    // Si no tiene puntos, devolvés directamente el número original
+    if (!valor.includes('.')) return parseFloat(valor) || 0;
+
+    const limpio = valor.replace(/\./g, '').replace(',', '.');
+    const num = parseFloat(limpio);
+    return isNaN(num) ? 0 : num;
+}
+
+
+let audioContext = null;
+let audioBuffer = null;

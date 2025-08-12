@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace SistemaMaite.Models;
+namespace SistemaMaite.Models {
 
 public partial class User
 {
@@ -12,6 +12,7 @@ public partial class User
     public string? Nombre { get; set; }
 
     public string? Apellido { get; set; }
+    public string? Correo { get; set; }
 
     public string? Dni { get; set; }
 
@@ -25,7 +26,9 @@ public partial class User
 
     public int IdEstado { get; set; }
 
-    public virtual UsuariosEstado IdEstadoNavigation { get; set; } = null!;
+    public virtual EstadosUsuario IdEstadoNavigation { get; set; } = null!;
 
-    public virtual UsuariosRoles IdRolNavigation { get; set; } = null!;
+    public virtual Rol IdRolNavigation { get; set; } = null!;
 }
+}
+
