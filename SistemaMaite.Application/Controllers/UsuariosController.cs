@@ -20,6 +20,7 @@ namespace SistemaMaite.Application.Controllers
             _Usuarioservice = Usuarioservice;
         }
 
+        [AllowAnonymous]
         public IActionResult Index()
         {
             return View();

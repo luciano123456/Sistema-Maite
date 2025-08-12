@@ -269,14 +269,7 @@ async function listaConfiguracion() {
         });
     });
 
-    //// Configurar el dropdown para que funcione con un solo clic (si aún no funciona)
-    //document.querySelectorAll('.nav-item.dropdown a').forEach(dropdownLink => {
-    //    dropdownLink.addEventListener('click', function (event) {
-    //        const dropdownMenu = this.nextElementSibling; // Obtener el menú desplegable
-    //        if (dropdownMenu.classList.contains('show')) {
-    //            dropdownMenu.classList.remove('show');
-    //        } else {
-    //            dropdownMenu.classList.add('show');
-    //        }
-    //    });
-    //});
+function cerrarSesion() {
+    localStorage.removeItem('JwtToken'); // Borrar token
+    window.location.href = '/Login/Logout'; // Ir al login
+}

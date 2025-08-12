@@ -40,8 +40,10 @@
                 return response.json(); // Parsear la respuesta JSON
             })
             .then(data => {
-                console.log(data); // Verificar los datos recibidos
+                
+                
                 if (data.success) {
+                    localStorage.setItem("JwtToken", data.token)
                     // Si "Recordar credenciales" está seleccionado, guarda las credenciales
                     if (rememberMe) {
                         localStorage.setItem('username', username);
@@ -58,13 +60,7 @@
 
                     // Redirigir a la página principal
                     localStorage.setItem('userSession', JSON.stringify(data.user)); // Guardar el usuario
-
-                    if (data.user.IdRol == 1 || data.user.IdRol == 3) {
-                        window.location.href = data.redirectUrl + 'Usuarios/Index';
-                    } else {
-                        window.location.href = data.redirectUrl + 'Usuarios/Index';
-                    }
-
+                    window.location.href = 'Usuarios';
                 } else {
                     // Mostrar el mensaje de error
                     $(document).ready(function () {
