@@ -118,16 +118,18 @@ async function llenarConfiguraciones() {
         });
     }
 }
-
 async function eliminarConfiguracion(id) {
-    let resultado = window.confirm("¿Desea eliminar la " + nombreConfiguracion + "?");
+    const confirmado = await confirmarModal("¿Desea eliminar este usuario?");
+    if (!confirmado) return;
 
-    if (resultado) {
+    if (confirmado) {
         try {
-            const controller = controllerConfiguracion.replace(/^\/+/, "");
-
-            const response = await fetch("/" + controller + "/Eliminar?id=" + id, {
-                method: "DELETE"
+            const response = await fetch(controllerConfiguracion + "/Eliminar?id=" + id, {
+                method: "DELETE",
+                headers: {
+                    'Authorization': 'Bearer ' + token, // <-- JWT aquí
+                    'Content-Type': 'application/json;charset=utf-8'
+                }
             });
 
             if (!response.ok) {
@@ -147,9 +149,13 @@ async function eliminarConfiguracion(id) {
 }
 
 const editarConfiguracion = id => {
-    const controller = controllerConfiguracion.replace(/^\/+/, ""); // limpia posibles barras
-
-    fetch("/" + controller + "/EditarInfo?id=" + id)
+    fetch(controllerConfiguracion + "/EditarInfo?id=" + id, {
+        method: "GET",
+        headers: {
+            'Authorization': 'Bearer ' + token, // <-- agrega el token
+            'Content-Type': 'application/json;charset=utf-8'
+        }
+    })
         .then(response => {
             if (!response.ok) throw new Error("Ha ocurrido un error.");
             return response.json();
@@ -170,16 +176,6 @@ const editarConfiguracion = id => {
         });
 }
 
-function validarCamposConfiguracion() {
-    const nombre = $("#txtNombreConfiguracion").val();
-    const camposValidos = nombre !== "";
-
-    $("#lblNombreConfiguracion").css("color", camposValidos ? "" : "red");
-    $("#txtNombreConfiguracion").css("border-color", camposValidos ? "" : "red");
-
-    return camposValidos;
-}
-
 function guardarCambiosConfiguracion() {
     if (validarCamposConfiguracion()) {
         const idConfiguracion = $("#txtIdConfiguracion").val();
@@ -188,13 +184,13 @@ function guardarCambiosConfiguracion() {
             "Nombre": $("#txtNombreConfiguracion").val(),
         };
 
-        const controller = controllerConfiguracion.replace(/^\/+/, ""); // quita barras si las tiene
-        const url = "/" + controller + (idConfiguracion === "" ? "/Insertar" : "/Actualizar");
+        const url = idConfiguracion === "" ? controllerConfiguracion + "/Insertar" : controllerConfiguracion + "/Actualizar";
         const method = idConfiguracion === "" ? "POST" : "PUT";
 
         fetch(url, {
             method: method,
             headers: {
+                'Authorization': 'Bearer ' + token, // <-- agrega el token
                 'Content-Type': 'application/json;charset=utf-8'
             },
             body: JSON.stringify(nuevoModelo)
@@ -216,6 +212,19 @@ function guardarCambiosConfiguracion() {
         errorModal('Debes completar los campos requeridos');
     }
 }
+
+
+
+function validarCamposConfiguracion() {
+    const nombre = $("#txtNombreConfiguracion").val();
+    const camposValidos = nombre !== "";
+
+    $("#lblNombreConfiguracion").css("color", camposValidos ? "" : "red");
+    $("#txtNombreConfiguracion").css("border-color", camposValidos ? "" : "red");
+
+    return camposValidos;
+}
+
 
 
 function cancelarModificarConfiguracion() {

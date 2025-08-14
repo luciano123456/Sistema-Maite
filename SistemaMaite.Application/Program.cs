@@ -37,7 +37,17 @@ builder.Services.AddScoped<IRolesService, RolesService>();
 builder.Services.AddScoped<ILoginRepository<User>, LoginRepository>();
 builder.Services.AddScoped<ILoginService, LoginService>();
 
+builder.Services.AddScoped<IProvinciasRepository<Provincia>, ProvinciasRepository>();
+builder.Services.AddScoped<IProvinciasService, ProvinciasService>();
 
+builder.Services.AddScoped<ICondicionesIVARepository<CondicionesIva>, CondicionesIVARepository>();
+builder.Services.AddScoped<ICondicionesIVAService, CondicionesIVAService>();
+
+builder.Services.AddScoped<IClientesRepository<Cliente>, ClientesRepository>();
+builder.Services.AddScoped<IClientesService, ClientesService>();
+
+builder.Services.AddScoped<IListaPreciosRepository<ListasPrecio>, ListaPreciosRepository>();
+builder.Services.AddScoped<IListasPreciosService, ListasPreciosService>();
 
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(o =>
