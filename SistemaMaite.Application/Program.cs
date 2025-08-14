@@ -59,19 +59,34 @@ builder.Services.AddControllersWithViews()
 
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
-    {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
-            ValidAudience = builder.Configuration["JwtSettings:Audience"],
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SecretKey"]))
-        };
-    });
+   .AddJwtBearer(options =>
+   {
+       options.TokenValidationParameters = new TokenValidationParameters
+       {
+           ValidateIssuer = true,
+           ValidateAudience = true,
+           ValidateLifetime = true,
+           ValidateIssuerSigningKey = true,
+           ValidIssuer = builder.Configuration["JwtSettings:Issuer"],
+           ValidAudience = builder.Configuration["JwtSettings:Audience"],
+           IssuerSigningKey = new SymmetricSecurityKey(
+               Encoding.UTF8.GetBytes(builder.Configuration["JwtSettings:SecretKey"]))
+       };
+
+       // Leer token desde la cookie
+       options.Events = new JwtBearerEvents
+       {
+           OnMessageReceived = context =>
+           {
+               if (context.Request.Cookies.TryGetValue("JwtToken", out var token))
+               {
+                   context.Token = token;
+               }
+               return Task.CompletedTask;
+           }
+       };
+   });
+
 
 // Definir el esquema de autenticación predeterminado
 builder.Services.AddAuthorization(options =>
@@ -82,6 +97,13 @@ builder.Services.AddAuthorization(options =>
         .Build();
 });
 
+
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromHours(2); // mismo tiempo que el token
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+});
 
 
 var app = builder.Build();
@@ -98,8 +120,11 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseSession();       // <-- AGREGAR AQUÍ
+
 app.UseAuthentication();
 app.UseAuthorization();
+
 
 
 app.MapControllerRoute(

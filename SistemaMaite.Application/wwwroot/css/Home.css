@@ -1,0 +1,455 @@
+﻿
+html {
+    font-size: 14px;
+}
+
+.btnConfiguraciones {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    color: white;
+    width: 100%;
+    outline: none;
+    border: none;
+    background: linear-gradient(135deg, #b0bec5, #546e7a); /* gris claro → gris oscuro */
+    border-radius: 10px;
+    padding: 12px;
+    cursor: pointer;
+    margin-bottom: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    transition: all 0.3s ease;
+}
+
+    .btnConfiguraciones:hover {
+        background: linear-gradient(135deg, #90a4ae, #37474f); /* oscurecer en hover */
+        transform: translateY(-2px); /* pequeño efecto de elevación */
+        box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+    }
+
+    .btnConfiguraciones:active {
+        transform: translateY(0); /* vuelve a su lugar al hacer click */
+        box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+    }
+
+.list-item {
+    background: linear-gradient(135deg, #b0bec5, #546e7a); /* gris claro → gris oscuro */
+    background-color: gray;
+    margin-bottom: 5px;
+    text-align: center;
+    width: 95%;
+    height: 30px;
+    position: relative;
+    left: 2%;
+    border-radius: 3px;
+}
+
+    .list-item:hover {
+        background-color: dimgray;
+    }
+
+.btnModificarConfiguracion {
+    border: none;
+    background-color: blue;
+    color: white;
+    width: 35%;
+    margin-left: 2px;
+    height: 50px;
+    font-size: 30px;
+    text-align: center;
+    border-radius: 12px;
+    padding: 0px 5px 5px 5px;
+}
+
+
+
+    .btnModificarConfiguracion:hover {
+        background-color: darkblue;
+    }
+
+
+.btnCancelarConfiguracion {
+    border: none;
+    background-color: brown;
+    color: white;
+    width: 35%;
+    margin-left: 2px;
+    height: 50px;
+    font-size: 30px;
+    text-align: center;
+    border-radius: 12px;
+    padding: 0px 5px 5px 5px;
+}
+
+
+    .btnCancelarConfiguracion:hover {
+        background-color: darkred;
+    }
+
+    .btnModificarConfiguracion-container {
+    display: flex;
+    justify-content: center; /* Centra el botón horizontalmente */
+    align-items: center; /* Centra el botón verticalmente (si es necesario) */
+    width: 100%; /* Asegúrate de que el contenedor tome el ancho completo del modal */
+    margin-bottom: 10px;
+}
+
+.btnAgregarConfiguracion-container {
+    display: flex;
+    justify-content: right; /* Centra el botón horizontalmente */
+    align-items: center; /* Centra el botón verticalmente (si es necesario) */
+    width: 100%; /* Asegúrate de que el contenedor tome el ancho completo del modal */
+    margin-bottom: 10px;
+    margin-top: 30px;
+    
+}
+
+.btnAgregarConfiguracion {
+    border: none;
+    background-color: green;
+    color: white;
+    width: 30%;
+    margin-left: 2px;
+    height: 50px;
+    font-size: 30px;
+    text-align: center;
+    border-radius: 12px;
+    margin-right: 30px;
+}
+
+
+.edit-icon {
+    font-size: 20px;
+    color: white;
+    position: absolute;
+    bottom: 5px;
+    left: 10px;
+    cursor: pointer;
+}
+
+
+.eliminar-icon {
+    font-size: 20px;
+    color: white;
+    position: absolute;
+    bottom: 5px;
+    right: 20px;
+    cursor: pointer;
+}
+
+
+.list-container {
+    background: linear-gradient(10deg, #546e7a, #000000) !important;
+    margin-top: 10px;
+    max-height: 300px;
+    overflow-y: auto;
+    border-radius: 8px;
+    padding: 10px;
+    box-shadow: inset 0 1px 2px rgba(255,255,255,0.05), inset 0 -1px 2px rgba(0,0,0,0.4);
+}
+.btnConfiguraciones:hover {
+    background-color: dimgray;
+}
+
+    .btnConfiguraciones img {
+        margin-right: 10px; /* Espacio entre la imagen y el texto */
+        width: 60px;
+        height: 60px;
+    }
+
+    .btnConfiguraciones span {
+        flex-grow: 1; /* Permite que el texto ocupe el espacio restante */
+        text-align: center; /* Centra el texto */
+    }
+@media (min-width: 768px) {
+    html {
+        font-size: 16px;
+    }
+}
+
+html {
+    position: relative;
+    min-height: 100%;
+}
+
+body {
+    padding-top: 10px;
+    padding-bottom: 10px;
+    background-attachment: fixed;
+    background-position: center center;
+    background-color: #1B2631;
+    background-repeat: no-repeat no-repeat;
+    background-size: cover;
+    width: 99%;
+    height: 98%;
+    margin-left: 5px;
+}
+
+.card-body,
+.card-header {
+    border-radius: 20px;
+    box-shadow: 4px 4px 20px rgba(238, 48, 12, 1);
+    
+}
+
+.card-body, .card-header {
+    background: #1B2631 !important;
+    color: white;
+}
+
+.card-container {
+    width: 70%;
+}
+
+.max-img-size {
+    max-width: 70px !important;
+    max-height: 70px !important;
+}
+
+.divLogo {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+}
+
+.imageLogo {
+    max-width: 100% !important;
+}
+
+.btnMenu {
+    width: 10vw;
+    height: 8vh;
+    max-width: 700px;
+    min-width: 200px;
+    max-height: 110px;
+    min-height: 80px;
+    background: #061A9C;
+    border-radius: 20px;
+    border-color: blue;
+    color: white;
+    font-size: 1.1vw;
+    font-weight: bold;
+}
+
+.btnMenu:hover {
+color: bisque;
+background: #240370;
+}
+
+
+@media (max-width: 1300px) {
+    .row-cols-lg-6 > .col {
+        flex: 0 0 33%;
+        max-width: 33%;
+    }
+
+    .btnMenu {
+        font-size: 1.7vw;
+    }
+
+
+}
+
+@media (max-width: 800.98px) {
+    .row-cols-lg-6 > .col {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+
+    .btnMenu {
+        font-size: 3vw;
+    }
+
+    .btnModificarConfiguracion {
+        font-size: 28px;
+    }
+
+
+
+    .btnCancelarConfiguracion {
+        font-size: 28px;
+    }
+
+}
+
+
+@media (max-width: 600.98px) {
+    .btnMenu {
+        font-size: 4vw;
+    }
+
+    .btnModificarConfiguracion {
+        font-size: 26px;
+    }
+
+
+
+    .btnCancelarConfiguracion {
+        font-size: 26px;
+    }
+}
+
+@media (max-width: 500.98px) {
+    .btnMenu {
+        min-width: 130px;
+        min-height: 60px;
+        font-size: 2.9vw;
+    }
+
+    .btnModificarConfiguracion {
+        font-size: 24px;
+    }
+
+
+
+    .btnCancelarConfiguracion {
+        font-size: 24px;
+    }
+}
+
+@media (max-width: 400.98px) {
+    .btnMenu {
+        font-size: 2.7vw;
+    }
+
+    .btnModificarConfiguracion {
+        font-size: 22px;
+    }
+
+
+
+    .btnCancelarConfiguracion {
+        font-size: 22px;
+    }
+}
+
+@media (max-width: 350.98px) {
+    .btnMenu {
+        font-size: 2.9vw;
+    }
+
+    .btnModificarConfiguracion {
+        font-size: 20px;
+    }
+
+
+
+    .btnCancelarConfiguracion {
+        font-size: 20px;
+    }
+}
+
+
+
+
+.marca-agua-svg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 9999;
+    background-image: url("data:image/svg+xml;utf8, <svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'> <text x='150' y='150' font-size='20' fill='yellow' text-anchor='middle' transform='rotate(-45 150 150)'> ⚠ AMBIENTE TEST ⚠ </text> </svg>");
+    background-repeat: repeat;
+    opacity: 0.1;
+    animation: respirar 4s ease-in-out infinite;
+}
+
+@keyframes respirar {
+    0%, 100% {
+        opacity: 0.1;
+    }
+
+    50% {
+        opacity: 0.3;
+    }
+}
+
+
+.list-container {
+    background-color: #f8f9fa; /* Fondo claro */
+    border-radius: 8px;
+    padding: 10px;
+}
+
+.config-item {
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    margin-bottom: 6px;
+    transition: background-color 0.2s ease-in-out, box-shadow 0.2s;
+}
+
+    .config-item:hover {
+        background-color: #e9f2ff; /* Azul suave en hover */
+        box-shadow: 0px 2px 5px rgba(0,0,0,0.05);
+    }
+
+    .config-item button {
+        border: none;
+        background: none;
+        cursor: pointer;
+        padding: 4px;
+        transition: transform 0.1s ease;
+    }
+
+        .config-item button:hover {
+            transform: scale(1.1);
+        }
+
+.btn-edit {
+    color: #007bff; /* Azul para editar */
+}
+
+.btn-delete {
+    color: #dc3545; /* Rojo para eliminar */
+}
+
+
+
+.config-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, #9eb1bb, #546e7a);
+    border-radius: 10px;
+    padding: 10px 15px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    color: white;
+    font-size: 1rem;
+    font-weight: 500;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+    .config-item:hover {
+        background: linear-gradient(135deg, #90a4ae, #37474f);
+        transform: translateY(-1px);
+    }
+
+    .config-item .left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .config-item i {
+        font-size: 1.2rem;
+    }
+
+    .config-item .edit-icon {
+        color: #ffc107;
+        cursor: pointer;
+    }
+
+    .config-item .delete-icon {
+        color: #ff6b6b;
+        cursor: pointer;
+    }

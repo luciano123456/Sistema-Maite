@@ -26,30 +26,46 @@ namespace SistemaMaite.Application.Controllers
             return View();
         }
 
-
+       
         public async Task<IActionResult> Configuracion()
         {
-            // Obtener el usuario actual desde la sesión usando el helper inyectado
-            var userSession = await SessionHelper.GetUsuarioSesion(HttpContext);
+            int idUsuario;
+            string usuario;
 
-            // Si no se pudo obtener el usuario de la sesión
-            if (userSession == null)
+            // 1. Intentar recuperar de la sesión
+            var idUsuarioStr = HttpContext.Session.GetString("IdUsuario");
+            usuario = HttpContext.Session.GetString("Usuario");
+
+            if (!string.IsNullOrEmpty(idUsuarioStr) && int.TryParse(idUsuarioStr, out var idSesion))
             {
-                return RedirectToAction("Login", "Index");
+                idUsuario = idSesion;
+            }
+            else
+            {
+                // 2. Si no hay sesión, recuperar desde los claims del token JWT
+                var idClaim = User.FindFirst("Id")?.Value;
+                usuario = usuario ?? User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
+
+                if (string.IsNullOrEmpty(idClaim) || !int.TryParse(idClaim, out idUsuario))
+                {
+                    // No hay sesión ni token válido
+                    return RedirectToAction("Index", "Login");
+                }
             }
 
-            // Obtener los detalles del usuario desde la base de datos
-            var user = await _Usuarioservice.Obtener(userSession.Id);
-
-            // Si el usuario no existe, redirigir al login
+            // 3. Buscar usuario en base de datos
+            var user = await _Usuarioservice.Obtener(idUsuario);
             if (user == null)
             {
-                return RedirectToAction("Login", "Index");
+                return RedirectToAction("Index", "Login");
             }
 
-            // Pasar los datos del usuario a la vista
+            // 4. Pasar usuario a la vista
+            ViewBag.Usuario = usuario;
             return View(user);
         }
+
+
 
         [HttpGet]
         public async Task<IActionResult> Lista()

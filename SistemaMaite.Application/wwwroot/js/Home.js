@@ -511,16 +511,41 @@ function nuevoProducto() {
     document.getElementById("txtDescripcionProducto").removeAttribute("disabled");
     document.getElementById("CategoriasProducto").removeAttribute("disabled");
     document.getElementById("MonedasProducto").removeAttribute("disabled");
-    document.getElementById("Imagen").removeAttribute("disabled");
     document.getElementById("UnidadesDeMedidasProducto").removeAttribute("disabled");
     document.getElementById("txtPrecioCostoProducto").classList.remove("txtEdicion");
     document.getElementById("txtPorcentajeGananciaProducto").classList.remove("txtEdicion");
     document.getElementById("txtPrecioVentaProducto").classList.remove("txtEdicion");
+    document.getElementById('txtTotalProducto').setAttribute('hidden', 'hidden');
+    document.getElementById('lblTotalProducto').setAttribute('hidden', 'hidden');
     $('#modalEdicionProductos').modal('show');
     $("#btnGuardarProducto").text("Registrar");
     $("#modalEdicionProductoLabel").text("Nuevo Producto");
     asignarCamposObligatoriosProducto()
 }
+
+function actualizarProductoCantidad() {
+    const selectedText = $('#UnidadesDeMedidasProducto option:selected').text(); // Obtiene el texto seleccionado
+
+    if (selectedText === 'Pallet') {
+        // Muestra el label y el input
+        document.getElementById('txtProductoCantidad').removeAttribute('hidden');
+        document.getElementById('lblProductoCantidad').removeAttribute('hidden');
+        document.getElementById('txtTotalProducto').removeAttribute('hidden');
+        document.getElementById('lblTotalProducto').removeAttribute('hidden');
+            document.getElementById('txtProductoCantidad').removeAttribute('readonly');
+        
+    } else {
+        // Oculta el label y el input
+        document.getElementById('txtTotalProducto').setAttribute('hidden', 'hidden');
+        document.getElementById('lblTotalProducto').setAttribute('hidden', 'hidden');
+        document.getElementById('txtProductoCantidad').setAttribute('hidden', 'hidden');
+        document.getElementById('lblProductoCantidad').setAttribute('hidden', 'hidden'); 
+    }
+}
+
+$('#txtProductoCantidad').on('input blur', function () {
+    calcularTotalProducto();
+});
 
 
 function asignarCamposObligatoriosProducto() {
@@ -586,6 +611,11 @@ async function listaMonedasProducto() {
     }
 }
 
+$('#UnidadesDeMedidasProducto').on('change', function () {
+    document.getElementById('txtProductoCantidad').value = 1;
+    actualizarProductoCantidad();
+});
+
 async function listaUnidadesDeMedidaProducto() {
     const url = `/UnidadesDeMedidas/Lista`;
     const response = await fetch(url);
@@ -618,6 +648,7 @@ function limpiarModalProducto() {
 function registrarProducto() {
     if (validarCamposProducto()) {
         sumarPorcentajeProducto(); //Por si las dudas
+        let productoCantidad = $("#txtProductoCantidad").val();
         const idProducto = $("#txtIdProducto").val();
         const nuevoModelo = {
             IdCliente: -1,
@@ -631,7 +662,8 @@ function registrarProducto() {
             "PCosto": parseDecimal($("#txtPrecioCostoProducto").val()),
             "PVenta": parseDecimal($("#txtPrecioVentaProducto").val()),
             "PorcGanancia": parseDecimal($("#txtPorcentajeGananciaProducto").val()),
-            "Image": document.getElementById("imgProd").value,
+            "ProductoCantidad": (isNaN(productoCantidad) || productoCantidad === null || productoCantidad.trim() === "") ? 1 : parseFloat(productoCantidad),
+            "Image": null,
         };
 
         const url = "Productos/Insertar";
@@ -692,6 +724,7 @@ async function listaConfiguracion() {
 
 }
 
+
 $('#txtDescripcionProducto, #txtPorcentajeGananciaProducto').on('input', function () {
     validarCamposProducto()
 });
@@ -709,50 +742,33 @@ $('#txtPrecioVentaProducto').on('input', function () {
     calcularPorcentajeProducto()
 });
 
-const fileInput = document.getElementById("Imagen");
-
-fileInput.addEventListener("change", (e) => {
-    var files = e.target.files
-    let base64String = "";
-    let baseTotal = "";
-
-    // get a reference to the file
-    const file = e.target.files[0];
-
-
-
-    // encode the file using the FileReader API
-    const reader = new FileReader();
-    reader.onloadend = () => {
-        // use a regex to remove data url part
-
-        base64String = reader.result
-            .replace("data:", "")
-            .replace(/^.+,/, "");
-
-
-        var inputImg = document.getElementById("imgProd");
-        inputImg.value = base64String;
-
-        $("#imgProducto").removeAttr('hidden');
-        $("#imgProducto").attr("src", "data:image/png;base64," + base64String);
-
-    };
-
-    reader.readAsDataURL(file);
-
-}
-);
 
 function sumarPorcentajeProducto() {
     let precioCosto = Number($("#txtPrecioCostoProducto").val());
     let porcentajeGanancia = Number($("#txtPorcentajeGananciaProducto").val());
+    let productoCantidad = Number($("#txtProductoCantidad").val());
 
     if (!isNaN(precioCosto) && !isNaN(porcentajeGanancia)) {
         let precioVenta = precioCosto + (precioCosto * (porcentajeGanancia / 100));
+        let total = precioVenta * productoCantidad
         // Limitar el precio de venta a 2 decimales
         precioVenta = precioVenta.toFixed(2);
         $("#txtPrecioVentaProducto").val(precioVenta);
+        $("#txtTotalProducto").val(total);
+        calcularTotalProducto();
+    }
+}
+
+function calcularTotalProducto() {
+    let precioCosto = Number($("#txtPrecioCostoProducto").val());
+    let porcentajeGanancia = Number($("#txtPorcentajeGananciaProducto").val());
+    let productoCantidad = Number($("#txtProductoCantidad").val());
+
+    if (!isNaN(precioCosto) && !isNaN(porcentajeGanancia)) {
+        let precioVenta = precioCosto + (precioCosto * (porcentajeGanancia / 100));
+        let total = precioVenta * productoCantidad
+        // Limitar el precio de venta a 2 decimales
+        $("#txtTotalProducto").val(total);
     }
 }
 
@@ -760,6 +776,8 @@ function sumarPorcentajeProducto() {
 function calcularPorcentajeProducto() {
     let precioCosto = Number($("#txtPrecioCostoProducto").val());
     let precioVenta = Number($("#txtPrecioVentaProducto").val());
+
+
 
     if (!isNaN(precioCosto) && !isNaN(precioVenta) && precioCosto !== 0) {
         let porcentajeGanancia = ((precioVenta - precioCosto) / precioCosto) * 100;
@@ -846,7 +864,10 @@ async function llenarConfiguraciones() {
 
 
 async function eliminarConfiguracion(id) {
-    let resultado = window.confirm("¿Desea eliminar la " + nombreConfiguracion + "?");
+
+
+    let resultado = await confirmarModal("¿Desea eliminar la " + nombreConfiguracion + "?");
+    if (!resultado) return;
 
     if (resultado) {
         try {
@@ -1017,3 +1038,4 @@ async function listaEstados() {
 
     }
 }
+
