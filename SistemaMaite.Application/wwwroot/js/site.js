@@ -222,3 +222,236 @@ function formatearSinMiles(valor) {
 
 let audioContext = null;
 let audioBuffer = null;
+
+
+function limpiarModal(modalSelector, errorSelector) {
+    const root = document.querySelector(modalSelector);
+    if (!root) return;
+
+    root.querySelectorAll('input, select, textarea').forEach(el => {
+        // Reset valor
+        if (el.type === 'checkbox' || el.type === 'radio') {
+            el.checked = false;
+        } else if (el.tagName === 'SELECT') {
+            el.selectedIndex = 0;
+        } else {
+            el.value = '';
+        }
+        // Quitar clases de validación
+        el.classList.remove('is-invalid', 'is-valid');
+        // Vaciar mensaje si hay invalid-feedback contiguo
+        const fb = el.nextElementSibling;
+        if (fb && fb.classList.contains('invalid-feedback')) {
+            fb.textContent = 'Campo obligatorio';
+        }
+    });
+
+    if (errorSelector) {
+        const err = document.querySelector(errorSelector);
+        if (err) err.classList.add('d-none');
+    }
+}
+
+function validarCampoIndividual(elOrSelector) {
+    const el = typeof elOrSelector === 'string' ? document.querySelector(elOrSelector) : elOrSelector;
+    if (!el) return true;
+
+    const valor = (el.value || '').trim();
+    let valido = true;
+    let msg = 'Campo obligatorio';
+
+    // required
+    if (el.hasAttribute('required') && valor === '') {
+        valido = false;
+    }
+
+    // email
+    if (valido && el.type === 'email' && valor !== '') {
+        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        valido = re.test(valor);
+        if (!valido) msg = 'Correo inválido';
+    }
+
+    // patrón custom (data-pattern="[0-9]+")
+    if (valido && el.dataset.pattern && valor !== '') {
+        const reCustom = new RegExp(el.dataset.pattern);
+        valido = reCustom.test(valor);
+        if (!valido) msg = el.dataset.patternMsg || 'Formato inválido';
+    }
+
+    // largo mínimo/máximo
+    const min = el.dataset.minlength ? parseInt(el.dataset.minlength) : null;
+    const max = el.dataset.maxlength ? parseInt(el.dataset.maxlength) : null;
+
+    if (valido && min && valor.length < min) {
+        valido = false; msg = `Mínimo ${min} caracteres`;
+    }
+    if (valido && max && valor.length > max) {
+        valido = false; msg = `Máximo ${max} caracteres`;
+    }
+
+    // aplicar estilo + mensaje
+    const fb = el.nextElementSibling;
+    if (!valido) {
+        el.classList.add('is-invalid');
+        el.classList.remove('is-valid');
+        if (fb && fb.classList.contains('invalid-feedback')) fb.textContent = msg;
+    } else {
+        el.classList.remove('is-invalid');
+        if (valor !== '' || el.hasAttribute('required')) {
+            el.classList.add('is-valid');
+        } else {
+            el.classList.remove('is-valid');
+        }
+        if (fb && fb.classList.contains('invalid-feedback') && fb.textContent !== 'Campo obligatorio') {
+            fb.textContent = 'Campo obligatorio';
+        }
+    }
+
+    return valido;
+}
+
+function verificarErroresGenerales(modalSelector, errorSelector) {
+    const root = document.querySelector(modalSelector);
+    if (!root) return true;
+
+    let valido = true;
+    root.querySelectorAll('input[required], select[required], textarea[required]').forEach(el => {
+        if (!validarCampoIndividual(el)) valido = false;
+    });
+
+    if (errorSelector) {
+        const err = document.querySelector(errorSelector);
+        if (err) err.classList.toggle('d-none', valido);
+    }
+    return valido;
+}
+
+function attachLiveValidation(modalSelector) {
+    const root = document.querySelector(modalSelector);
+    if (!root) return;
+
+    root.querySelectorAll('input, select, textarea').forEach(el => {
+        el.setAttribute('autocomplete', 'off');
+        el.addEventListener('input', () => validarCampoIndividual(el));
+        el.addEventListener('change', () => validarCampoIndividual(el));
+        el.addEventListener('blur', () => validarCampoIndividual(el));
+    });
+}
+
+/**
+ * Por si querés dejar todo autocomplete off sin validar.
+ * @param {string} modalSelector
+ */
+function setAutocompleteOff(modalSelector) {
+    const root = document.querySelector(modalSelector);
+    if (!root) return;
+    root.querySelectorAll('input, select, textarea').forEach(el => el.setAttribute('autocomplete', 'off'));
+}
+
+function setFormValues(formSelector, model) {
+    const form = document.querySelector(formSelector);
+    if (!form || !model) return;
+
+    const prefixes = ['#txt', '#cmb', '#dt', '#sel', '#'];
+    for (const [key, val] of Object.entries(model)) {
+        let el = null;
+        for (const p of prefixes) {
+            el = form.querySelector(`${p}${key}`);
+            if (el) break;
+        }
+        if (!el) continue;
+
+        if (el.type === 'checkbox' || el.type === 'radio') {
+            el.checked = !!val;
+        } else {
+            el.value = val ?? '';
+        }
+        el.classList.remove('is-invalid', 'is-valid');
+    }
+}
+
+function setFormValues(formSelector, model) {
+    const form = document.querySelector(formSelector);
+    if (!form || !model) return;
+
+    const prefixes = ['#txt', '#cmb', '#dt', '#sel', '#'];
+    for (const [key, val] of Object.entries(model)) {
+        let el = null;
+        for (const p of prefixes) {
+            el = form.querySelector(`${p}${key}`);
+            if (el) break;
+        }
+        if (!el) continue;
+
+        if (el.type === 'checkbox' || el.type === 'radio') {
+            el.checked = !!val;
+        } else {
+            el.value = val ?? '';
+        }
+        el.classList.remove('is-invalid', 'is-valid');
+    }
+}
+
+function llenarSelect(selectId, data, valueField = 'Id', textField = 'Nombre', conOpcionVacia = true) {
+    const sel = document.getElementById(selectId);
+    if (!sel) return;
+    sel.innerHTML = conOpcionVacia ? '<option value="">Seleccione</option>' : '';
+    (data || []).forEach(it => {
+        const opt = document.createElement('option');
+        opt.value = it[valueField];
+        opt.textContent = it[textField];
+        sel.appendChild(opt);
+    });
+}
+
+
+function configurarOpcionesColumnas(tableSelector, menuSelector, storageKey) {
+    const grid = $(tableSelector).DataTable();
+    const columnas = grid.settings().init().columns;
+    const container = $(menuSelector);
+    const saved = JSON.parse(localStorage.getItem(storageKey) || '{}');
+
+    container.empty();
+
+    columnas.forEach((col, index) => {
+        // Saltar columna de acciones si data no existe
+        if (!col.data) return;
+
+        if (col.data && col.data !== "Id") { // Solo agregar columnas que no sean "Id"
+
+            const isChecked = saved[`col_${index}`] !== undefined ? saved[`col_${index}`] : true;
+            grid.column(index).visible(isChecked);
+
+            const nombre = (typeof col.title === 'string' && col.title.trim() !== '') ? col.title : (col.data || `Col ${index}`);
+
+            container.append(`
+            <li>
+              <label class="dropdown-item">
+                <input type="checkbox" class="toggle-column" data-column="${index}" ${isChecked ? 'checked' : ''}>
+                ${nombre}
+              </label>
+            </li>
+        `);
+        }
+    });
+
+    container.find('.toggle-column').on('change', function () {
+        const idx = parseInt($(this).data('column'), 10);
+        const on = $(this).is(':checked');
+        saved[`col_${idx}`] = on;
+        localStorage.setItem(storageKey, JSON.stringify(saved));
+        grid.column(idx).visible(on);
+    });
+}
+
+function validarCampos() {
+    return verificarErroresGenerales('#modalEdicion', '#errorCampos');
+}
+
+$(document).on('click', function (e) {
+    // Verificar si el clic está fuera de cualquier dropdown
+    if (!$(e.target).closest('.acciones-menu').length) {
+        $('.acciones-dropdown').hide(); // Cerrar todos los dropdowns
+    }
+});

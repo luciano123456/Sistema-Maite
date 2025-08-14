@@ -43,91 +43,82 @@
 </nav>
 
 
- <!-- Modal Configuraciones -->
-    <div class="modal fade" id="modalConfiguracion" tabindex="-1" role="dialog" aria-labelledby="modalConfiguracionLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalConfiguracionLabel">Configuracion</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
-                </div>
-
-                <label id="lblListaVacia" for="txtListaVacia" class="lblNombreInput" hidden></label>
-
-                <div class="list-container">
-                    <div id="configuracion-list">
-                        <!-- Lista de categorías se llenará dinámicamente -->
-                    </div>
-                </div>
-
-                <div id="contenedorNombreConfiguracion" class="form-group" hidden>
-                    <label id="lblNombre" for="txtNombre" class="lblNombreInput">Nombre</label>
-                    <input type="text" class="input-nuevomodif" id="txtNombreConfiguracion" required>
-                    <input type="text" class="input-nuevomodif" id="txtIdConfiguracion" hidden>
-
-
-                    <div class="btnModificarConfiguracion-container">
-                        <button id="btnRegistrarModificarConfiguracion" class="btnModificarConfiguracion" onclick="guardarCambiosConfiguracion()">Modificar</button>
-                        <button class="btnCancelarConfiguracion ml-2" onclick="cancelarModificarConfiguracion()">Cancelar</button>
-                    </div>
-                </div>
-
-                <div class="btnAgregarConfiguracion-container">
-                    <button id="agregarConfiguracion" class="btnAgregarConfiguracion" onclick="agregarConfiguracion()">Añadir</button>
-                </div>
-
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-<!-- Modal Configuraciones -->
-<div class="modal fade" id="ModalEdicionConfiguraciones" tabindex="-1" role="dialog" aria-labelledby="ModalEdicionConfiguracionesLabel" aria-hidden="true">
+<div class="modal fade" id="modalConfiguracion" tabindex="-1" role="dialog" aria-labelledby="modalConfiguracionLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="ModalEdicionConfiguracionesLabel">Configuraciones</h5>
+        <div class="modal-content ">
+            <div class="modal-header colorEncabezado">
+                <h5 class="modal-title" id="modalConfiguracionLabel">Configuracion</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
+                  
                 </button>
             </div>
-            <div class="modal-body">
-                <form>
-                    <button type="button" class="btnConfiguraciones" onclick="abrirConfiguracion('Moneda', 'Monedas')">
-                        <img src="/Imagenes/Monedas.png" alt="Icono Categorias" class="imgConfiguraciones">
-                        <span>Monedas</span>
-                    </button>
-                   
-                    <button type="button" class="btnConfiguraciones mt-2" onclick="abrirConfiguracion('Rol', 'Roles')">
-                        <img src="/Imagenes/Roles.png" alt="Icono Roles" class="imgConfiguraciones">
-                        <span>Roles</span>
-                    </button>
 
-                    <button type="button" class="btnConfiguraciones" onclick="abrirConfiguracion('Tipos de Gastos', 'GastosTipos')">
-                        <img src="/Imagenes/configuraciones.png" alt="Icono Gastos" class="imgConfiguraciones">
-                        <span>Tipos de Gastos</span>
-                    </button>
+            <label id="lblListaVacia" for="txtListaVacia" class="lblNombreInput" hidden></label>
 
-                    <button type="button" class="btnConfiguraciones" onclick="abrirConfiguracion('Tipos de Conceptos', 'MovimientosTiposConcepto')">
-                        <img src="/Imagenes/configuraciones.png" alt="Icono Conceptos" class="imgConfiguraciones">
-                        <span>Tipos de Conceptos</span>
-                    </button>
-                    @* <button type="button" class="btnConfiguraciones mt-2" onclick="abrirConfiguracion('Estados de Usuarios', 'EstadosUsuarios')">
-                    <img src="/Imagenes/Roles.png" alt="Icono Roles" class="imgConfiguraciones">
-                    <span>Estados de Usuarios</span>
-                    </button> *@
-
-                </form>
+            <div class="list-container">
+                <div id="configuracion-list">
+                    <!-- Lista de categorías se llenará dinámicamente -->
+                </div>
             </div>
+
+            <div id="contenedorNombreConfiguracion" class="form-group" hidden>
+                <label id="lblNombre" for="txtNombre" class="lblNombreInput">Nombre</label>
+                <input type="text" class="input-nuevomodif" id="txtNombreConfiguracion" required>
+                <input type="text" class="input-nuevomodif" id="txtIdConfiguracion" hidden>
+
+
+                <div class="btnModificarConfiguracion-container">
+                    <button id="btnRegistrarModificarConfiguracion" class="btnModificarConfiguracion" onclick="guardarCambiosConfiguracion()">Modificar</button>
+                    <button class="btnCancelarConfiguracion ml-2" onclick="cancelarModificarConfiguracion()">Cancelar</button>
+                </div>
+            </div>
+
+            <div class="btnAgregarConfiguracion-container">
+                <button id="agregarConfiguracion" class="btnAgregarConfiguracion" onclick="agregarConfiguracion()">Añadir</button>
+            </div>
+
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
             </div>
         </div>
     </div>
 </div>
+   <div class="modal fade" id="ModalEdicionConfiguraciones" tabindex="-1" role="dialog" aria-labelledby="ModalEdicionConfiguracionesLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header colorEncabezado">
+                    <h5 class="modal-title fw-bold" id="ModalEdicionConfiguracionesLabel">Configuraciones</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+
+                <div class="modal-body px-4">
+                    <div class="row gy-3">
+
+                        <div class="col-12 d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Rol', 'Roles')">
+                            <img src="/Imagenes/configuraciones.png" alt="Icono Roles" class="imgConfiguraciones me-2">
+                            <span>Roles</span>
+                        </div>
+
+
+                    <div class="col-12 d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Condicion de IVA', 'CondicionesIVA')">
+                        <img src="/Imagenes/configuraciones.png" alt="Icono Roles" class="imgConfiguraciones me-2">
+                        <span>Condiciones IVA</span>
+                    </div>
+
+
+                    <div class="col-12 d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Lista de Precios', 'ListasPrecios')">
+                        <img src="/Imagenes/configuraciones.png" alt="Icono Roles" class="imgConfiguraciones me-2">
+                        <span>Lista de Precios</span>
+                    </div>
+
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btnaccion" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
 <script src="~/js/NavBarLogin.js?v=1.2" asp-append-version="true"></script>
