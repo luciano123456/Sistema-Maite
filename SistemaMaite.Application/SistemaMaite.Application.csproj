@@ -9,7 +9,6 @@
   <ItemGroup>
     <Content Remove="wwwroot\css\NavBarLogin.css~RF1f800e21.TMP" />
     <Content Remove="wwwroot\js\Clientes.js" />
-    <Content Remove="wwwroot\js\Home.js" />
     <Content Remove="wwwroot\js\Login.js" />
     <Content Remove="wwwroot\js\NavBarLogin.js" />
     <Content Remove="wwwroot\js\Usuarios.js" />

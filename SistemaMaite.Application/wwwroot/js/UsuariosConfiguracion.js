@@ -1,20 +1,24 @@
 ﻿let timerError; // Mover la variable fuera del evento para que sea accesible globalmente
 
 document.querySelector('#formularioActualizar').addEventListener('submit', async function (e) {
+
     e.preventDefault();
     const formData = new FormData(this);
     const data = Object.fromEntries(formData.entries());
 
     console.log(data);
 
-    // Realiza la solicitud PUT
+
+    // Realiza la solicitud PUT con token
     const response = await fetch('/Usuarios/Actualizar', {
-        method: 'PUT',  // Aquí es donde usamos el método PUT
+        method: 'PUT',
         headers: {
-            'Content-Type': 'application/json'
+            'Authorization': 'Bearer ' + token,   // ← aquí va el token
+            'Content-Type': 'application/json;charset=utf-8'
         },
         body: JSON.stringify(data)
     });
+
 
     const result = await response.json();
 
@@ -22,12 +26,10 @@ document.querySelector('#formularioActualizar').addEventListener('submit', async
     const btnGuardar = $('#btnGuardar');
     msjError.attr("hidden", false);
 
-    // Limpiar cualquier temporizador previo
     if (timerError) {
         clearTimeout(timerError);
     }
 
-    // Procesar la respuesta
     if (result.valor === "Contrasena") {
         msjError.html('<i class="fa fa-exclamation-circle"></i> Contraseña incorrecta <i class="fa fa-exclamation-circle"></i>');
         msjError.css('color', 'red');
@@ -46,7 +48,7 @@ document.querySelector('#formularioActualizar').addEventListener('submit', async
             $('#contador').text(seconds);
             if (seconds === 0) {
                 clearInterval(interval);
-                window.location.href = '/Operaciones/';
+                window.location.href = '/Home/';
             }
         }, 1000);
     } else {

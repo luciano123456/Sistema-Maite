@@ -59,6 +59,15 @@ namespace SistemaBronx.Application.Controllers
                 {
                     var token = GenerarToken(user);
 
+                    // Guardar token en cookie HttpOnly para que el navegador lo envíe en cada request
+                    Response.Cookies.Append("JwtToken", token, new CookieOptions
+                    {
+                        HttpOnly = true,   // Evita acceso desde JS
+                        Secure = true,     // Solo HTTPS
+                        SameSite = SameSiteMode.Lax,
+                        Expires = DateTimeOffset.UtcNow.AddHours(2)
+                    });
+
                     return Ok(new
                     {
                         success = true,
@@ -90,31 +99,45 @@ namespace SistemaBronx.Application.Controllers
         {
             try
             {
-                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["JwtSettings:SecretKey"]));
+                // 1. Clave secreta desde configuración
+                var secretKey = _config["JwtSettings:SecretKey"];
+                if (string.IsNullOrEmpty(secretKey))
+                    throw new InvalidOperationException("JwtSettings:SecretKey no está configurado en appsettings.json");
+
+                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+
+                // 2. Credenciales de firma
                 var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
+                // 3. Claims que viajan dentro del token
                 var claims = new[]
                 {
-            new Claim(JwtRegisteredClaimNames.Sub, user.Usuario),
-            new Claim("Id", user.Id.ToString()),
-            new Claim("Rol", user.IdRol.ToString()),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            new Claim(JwtRegisteredClaimNames.Sub, user.Usuario),               // Nombre de usuario
+            new Claim("Id", user.Id.ToString()),                                 // Id interno
+            new Claim("Rol", user.IdRol.ToString()),                             // Rol numérico
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())    // Id único del token
         };
 
+                // 4. Crear el token
                 var token = new JwtSecurityToken(
-                    _config["JwtSettings:Issuer"],
-                    _config["JwtSettings:Audience"],
-                    claims,
-                    expires: DateTime.UtcNow.AddHours(2),
-                    signingCredentials: creds);
+                    issuer: _config["JwtSettings:Issuer"],       // Issuer configurado
+                    audience: _config["JwtSettings:Audience"],   // Audience configurado
+                    claims: claims,
+                    expires: DateTime.UtcNow.AddHours(2),        // Expira en 2 horas
+                    signingCredentials: creds
+                );
 
+                // 5. Retornar token como string
                 return new JwtSecurityTokenHandler().WriteToken(token);
             }
             catch (Exception ex)
             {
+                // Loguear el error si tenés un logger configurado
+                Console.WriteLine($"Error generando token: {ex.Message}");
                 return null;
             }
         }
+
 
         [AllowAnonymous]
         public IActionResult Logout()

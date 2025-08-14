@@ -1,0 +1,544 @@
+﻿@{
+    ViewData["Title"] = "Sistema de Gestion";
+    Layout = null;
+}
+
+@using Microsoft.Extensions.Configuration
+
+@inject IConfiguration Configuration
+
+@{
+    var ambienteTest = Configuration.GetValue<int>("AmbienteTest");
+}
+
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"]</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    @*<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-LUfwmPel+Fu+sGprUURlOB3Jv3EE6l/BKrJ8rBN3tOSl2l+3uxGg6XZem8uf6Fdi" crossorigin="anonymous">*@
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link href="~/css/site.css" rel="stylesheet" />
+    <link href="~/css/home.css" rel="stylesheet" />
+
+
+
+</head>
+<body class="@(ambienteTest == 1 ? "fondo-test" : "")">
+
+
+    <partial name="~/Views/Shared/Partials/NavbarLogin.cshtml" />
+
+    @if (ambienteTest == 1)
+    {
+        <div class="marca-agua-svg"></div>
+    }
+
+    <div class="container-fluid">
+
+        <div class="row mt-5">
+            <!-- Columna del logo -->
+            <div class="col-lg-12 mb-5 divLogo">
+                <img src="/Imagenes/logo.png" class="img-fluid imageLogo" alt="Logo">
+            </div>
+        </div>
+
+
+
+        <div class="row">
+
+            <!-- Columna del menú -->
+            <div class="col-lg-12">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row row-cols-md-1 row-cols-lg-6 g-4">
+
+                            
+                            <div class="col">
+                                <div class="d-flex flex-column align-items-center">
+                                    <img src="~/Imagenes/Menu Principal/Clientes.png" class="img-fluid max-img-size" alt="Lista de Clientes" title="Lista de Clientes">
+                                    <button type="button" class="btn mt-2 btnMenu" onclick="window.location.href='@Url.Action("Index", "Clientes")'">Lista de Clientes</button>
+                                </div>
+                            </div>
+                            
+
+                          @*   <div class="col">
+                                <div class="d-flex flex-column align-items-center">
+                                    <img src="~/Imagenes/Menu Principal/Nuevo Cliente.png" class="img-fluid max-img-size" alt="Nuevo Cliente" title="Nuevo Cliente">
+                                    <button type="button" class="btn mt-2 btnMenu" onclick="nuevoCliente()">Nuevo Cliente</button>
+                                </div>
+                            </div>
+ *@
+
+                            <div class="col">
+                                <div class="d-flex flex-column align-items-center">
+                                    <img src="~/Imagenes/Menu Principal/Usuarios.png" class="img-fluid max-img-size" alt="Lista de Usuarios" title="Lista de Usuarios">
+                                    <button type="button" class="btn mt-2 btnMenu" onclick="window.location.href='@Url.Action("Index", "Usuarios")'">Lista de Usuarios</button>
+                                </div>
+                            </div>
+
+                       @*      <div class="col">
+                                <div class="d-flex flex-column align-items-center">
+                                    <img src="~/Imagenes/Menu Principal/Nuevo Usuario.png" class="img-fluid max-img-size" alt="Nuevo Usuario" title="Nuevo Usuario">
+                                    <button type="button" class="btn mt-2 btnMenu" onclick="nuevoUsuario()">Nuevo Usuario</button>
+                                </div>
+                            </div>
+ *@
+
+
+                            <div class="col">
+                                <div class="d-flex flex-column align-items-center">
+                                    <img src="~/Imagenes/Menu Principal/Configuraciones.png" class="img-fluid max-img-size" alt="Configuraciones" title="Configuraciones">
+                                    <button type="button" class="btn mt-2 btnMenu" onclick="abrirConfiguraciones()">Configuraciones</button>
+                                </div>
+                            </div>
+                            <div class="col">
+                                <div class="d-flex flex-column align-items-center">
+                                    <img src="~/Imagenes/Menu Principal/Analisis.png" class="img-fluid max-img-size" alt="Analisis de Datos" title="Analisis de Datos">
+                                    <button type="button" class="btn mt-2 btnMenu" onclick="errorModal('El analisis de datos no se encuentra disponible en este momento.')">Analisis de Datos</button>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Modal Configuraciones -->
+    <div class="modal fade" id="modalConfiguracion" tabindex="-1" aria-labelledby="modalConfiguracionLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content shadow-lg border-0 rounded-3">
+
+                <!-- Encabezado -->
+                <div class="modal-header bg-primary text-white rounded-top">
+                    <h5 class="modal-title fw-bold" id="modalConfiguracionLabel">
+                        <i class="fa fa-cogs me-2"></i>Configuración
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <!-- Lista -->
+                <div class="modal-body">
+                    <div id="lblListaVacia" class="alert alert-warning text-center py-2 mb-3" hidden></div>
+
+                    <div class="list-container border rounded p-2" style="max-height: 250px; overflow-y: auto;">
+                        <div id="configuracion-list">
+                            <!-- Lista dinámica -->
+                        </div>
+                    </div>
+
+                    <!-- Formulario de edición -->
+                    <div id="contenedorNombreConfiguracion" class="mt-4" hidden>
+                        <label for="txtNombreConfiguracion" class="form-label fw-bold">Nombre</label>
+                        <input type="text" class="form-control" id="txtNombreConfiguracion" required>
+                        <input type="hidden" id="txtIdConfiguracion">
+
+                        <div class="d-flex gap-2 mt-3">
+                            <button id="btnRegistrarModificarConfiguracion" class="btn btn-success flex-fill" onclick="guardarCambiosConfiguracion()">
+                                <i class="fa fa-save me-1"></i> Guardar cambios
+                            </button>
+                            <button class="btn btn-outline-secondary flex-fill" onclick="cancelarModificarConfiguracion()">
+                                <i class="fa fa-times me-1"></i> Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pie -->
+                <div class="modal-footer d-flex justify-content-between">
+                    <button id="agregarConfiguracion" class="btn btn-primary" onclick="agregarConfiguracion()">
+                        <i class="fa fa-plus me-1"></i> Añadir
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" onclick="abrirConfiguraciones()">
+                        <i class="fa fa-times me-1"></i> Cerrar
+                    </button>
+
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="ModalEdicionConfiguraciones" tabindex="-1" role="dialog" aria-labelledby="ModalEdicionConfiguracionesLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header colorEncabezado">
+                    <h5 class="modal-title fw-bold" id="ModalEdicionConfiguracionesLabel">Configuraciones</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+
+                <div class="modal-body px-4">
+                    <div class="row gy-3">
+
+                        <div class="col-12 d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Rol', 'Roles')">
+                            <img src="/Imagenes/configuraciones.png" alt="Icono Roles" class="imgConfiguraciones me-2">
+                            <span>Roles</span>
+                        </div>
+
+
+                        <div class="col-12 d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Condicion de IVA', 'CondicionesIVA')">
+                            <img src="/Imagenes/configuraciones.png" alt="Icono Roles" class="imgConfiguraciones me-2">
+                            <span>Condiciones IVA</span>
+                        </div>
+
+
+                        <div class="col-12 d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Lista de Precios', 'ListasPrecios')">
+                            <img src="/Imagenes/configuraciones.png" alt="Icono Roles" class="imgConfiguraciones me-2">
+                            <span>Lista de Precios</span>
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btnaccion" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="modal fade" id="ModalEdicionCliente" tabindex="-1" role="dialog" aria-labelledby="ModalEdicionClienteLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-edicion" role="document">
+            <div class="modal-content">
+
+                <div class="modal-header colorEncabezado">
+                    <h5 class="modal-title fw-bold" id="ModalEdicionClienteLabel">Editar Cliente</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+
+                <div class="modal-body">
+                    <form id="formEditarCliente" class="row g-3">
+                        <input type="text" id="txtIdCliente" hidden readonly>
+
+                        <div class="col-md-6">
+                            <label for="txtNombreCliente" class="form-label">Nombre (*)</label>
+                            <input type="text" class="form-control" id="txtNombreCliente" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="txtTelefonoCliente" class="form-label">Teléfono</label>
+                            <input type="text" class="form-control" id="txtTelefonoCliente">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="txtDireccionCliente" class="form-label">Dirección</label>
+                            <input type="text" class="form-control" id="txtDireccionCliente">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="ProvinciasClientes" class="form-label">Provincia</label>
+                            <select id="ProvinciasClientes" name="select" class="form-control">
+                                <option value="" selected>Provincias</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="txtLocalidadCliente" class="form-label">Localidad</label>
+                            <input type="text" class="form-control" id="txtLocalidadCliente">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="txtDNICliente" class="form-label">DNI</label>
+                            <input type="text" class="form-control" id="txtDNICliente">
+                        </div>
+                    </form>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" id="btnGuardarCliente" class="btn btn-primary" onclick="guardarCambios()">Registrar</button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+
+
+    <div class="modal fade" id="ModalEdicionUsuario" tabindex="-1" role="dialog" aria-labelledby="ModalEdicionUsuarioLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-edicion" role="document">
+            <div class="modal-content">
+                <div class="modal-header colorEncabezado">
+                    <h5 class="modal-title fw-bold" id="ModalEdicionUsuarioLabel">Editar Usuario</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+
+                <div class="modal-body">
+                    <form id="formEditarUsuario" class="row g-3">
+                        <input type="text" id="txtIdUsuario" hidden readonly>
+
+                        <div class="col-md-4">
+                            <label for="txtUserUsuario" class="form-label">Usuario (*)</label>
+                            <input type="text" class="form-control" id="txtUserUsuario" required>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="txtNombreUsuario" class="form-label">Nombre (*)</label>
+                            <input type="text" class="form-control" id="txtNombreUsuario" required>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="txtApellidoUsuario" class="form-label">Apellido (*)</label>
+                            <input type="text" class="form-control" id="txtApellidoUsuario" required>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="txtDniUsuario" class="form-label">DNI</label>
+                            <input type="text" class="form-control" id="txtDniUsuario">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="txtTelefonoUsuario" class="form-label">Teléfono</label>
+                            <input type="text" class="form-control" id="txtTelefonoUsuario">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="txtDireccionUsuario" class="form-label">Dirección</label>
+                            <input type="text" class="form-control" id="txtDireccionUsuario">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="RolesUsuario" class="form-label">Rol</label>
+                            <select id="RolesUsuario" class="form-control">
+                                <option value="" selected>Rol</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="EstadosUsuario" class="form-label">Estado</label>
+                            <select id="EstadosUsuario" class="form-control">
+                                <option value="" selected>Estado</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="txtContrasenaUsuario" class="form-label">Contraseña</label>
+                            <input type="password" class="form-control" id="txtContrasenaUsuario">
+                        </div>
+
+                       
+                    </form>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" id="btnGuardarUsuario" class="btn btn-primary" onclick="registrarUsuario()">Registrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="modal fade" id="ModalEdicionProveedor" tabindex="-1" role="dialog" aria-labelledby="ModalEdicionProveedorLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-edicion" role="document">
+            <div class="modal-content">
+                <div class="modal-header colorEncabezado">
+                    <h5 class="modal-title fw-bold" id="ModalEdicionProveedorLabel">Editar Proveedor</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+
+                <div class="modal-body">
+                    <form id="formEditarProveedor" class="row g-3">
+                        <input type="text" id="txtIdProveedor" hidden readonly>
+
+                        <div class="col-md-6">
+                            <label for="txtNombreProveedor" class="form-label">Nombre (*)</label>
+                            <input type="text" class="form-control" id="txtNombreProveedor" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="txtApodoProveedor" class="form-label">Apodo</label>
+                            <input type="text" class="form-control" id="txtApodoProveedor">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="txtUbicacionProveedor" class="form-label">Ubicación</label>
+                            <input type="text" class="form-control" id="txtUbicacionProveedor">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="txtTelefonoProveedor" class="form-label">Teléfono</label>
+                            <input type="text" class="form-control" id="txtTelefonoProveedor">
+                        </div>
+                    </form>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" id="btnGuardarProveedor" class="btn btn-primary" onclick="registrarProveedor()">Registrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalEdicionChofer" tabindex="-1" role="dialog" aria-labelledby="modalEdicionChoferLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header colorEncabezado">
+                    <h5 class="modal-title fw-bold" id="modalEdicionChoferLabel">Editar Chofer</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+
+                <div class="modal-body">
+                    <form id="formEditarChofer" class="row g-3">
+                        <input type="text" id="txtIdChofer" hidden readonly>
+
+                        <div class="col-md-6">
+                            <label for="txtNombreChofer" class="form-label">Nombre (*)</label>
+                            <input type="text" class="form-control" id="txtNombreChofer" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="txtTelefonoChofer" class="form-label">Teléfono</label>
+                            <input type="text" class="form-control" id="txtTelefonoChofer">
+                        </div>
+
+                        <div class="col-md-12">
+                            <label for="txtDireccionChofer" class="form-label">Dirección</label>
+                            <input type="text" class="form-control" id="txtDireccionChofer">
+                        </div>
+                    </form>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" id="btnGuardarChofer" class="btn btn-primary" onclick="registrarChofer()">Registrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="modal fade" id="modalEdicionZona" tabindex="-1" role="dialog" aria-labelledby="modalEdicionZonaLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header colorEncabezado">
+                    <h5 class="modal-title fw-bold" id="modalEdicionZonaLabel">Editar Zona</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+
+                <div class="modal-body">
+                    <form id="formEditarZona" class="row g-3">
+                        <input type="text" id="txtIdZona" hidden readonly>
+
+                        <div class="col-md-6">
+                            <label for="txtNombreZona" class="form-label">Nombre (*)</label>
+                            <input type="text" class="form-control" id="txtNombreZona" required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="txtPrecioZona" class="form-label">Precio</label>
+                            <input type="text" class="form-control" id="txtPrecioZona">
+                        </div>
+                    </form>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" id="btnGuardarZona" class="btn btn-primary" onclick="registrarZona()">Registrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Productos -->
+    <div class="modal fade" id="modalEdicionProductos" tabindex="-1" role="dialog" aria-labelledby="modalEdicionProductosLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-edicion" role="document">
+            <div class="modal-content">
+                <div class="modal-header colorEncabezado">
+                    <h5 class="modal-title fw-bold" id="modalEdicionProductosLabel">Nuevo Producto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+
+                <div class="modal-body">
+                    <form id="formEdicionProducto" class="row g-3">
+
+                        <input type="text" id="txtId" hidden readonly>
+                        <input type="text" id="txtActivo" hidden readonly>
+
+                        <div class="col-md-3">
+                            <label id="lblDescripcion" for="txtDescripcionProducto" class="form-label">Descripción (*)</label>
+                            <input type="text" class="form-control" id="txtDescripcionProducto" required>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label for="MarcasProducto" class="form-label">Marca (*)</label>
+                            <select id="MarcasProducto" class="form-control">
+                                <option value="" selected>Marca</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label for="CategoriasProducto" class="form-label">Categoría (*)</label>
+                            <select id="CategoriasProducto" class="form-control">
+                                <option value="" selected>Categoría</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label for="UnidadesDeMedidasProducto" class="form-label">Unidad de Medida (*)</label>
+                            <select id="UnidadesDeMedidasProducto" class="form-control">
+                                <option value="" selected>Unidad de Medida</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3" hidden>
+                            <label id="lblProductoCantidad" for="txtProductoCantidad" class="form-label">Cantidad</label>
+                            <input type="number" class="form-control" id="txtProductoCantidad" required>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label for="MonedasProducto" class="form-label">Moneda (*)</label>
+                            <select id="MonedasProducto" class="form-control">
+                                <option value="" selected>Moneda</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label id="lblPrecioCostoProducto" for="txtPrecioCostoProducto" class="form-label">Precio Costo U. (*)</label>
+                            <input type="number" class="form-control" id="txtPrecioCostoProducto" required step="0.01">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label id="lblPorcentajeGananciaProducto" for="txtPorcentajeGananciaProducto" class="form-label">Porc. Ganancia (*)</label>
+                            <input type="number" class="form-control" id="txtPorcentajeGananciaProducto" required step="0.01">
+                        </div>
+
+                        <div class="col-md-3">
+                            <label id="lblPrecioVentaProducto" for="txtPrecioVentaProducto" class="form-label">Precio Venta U.</label>
+                            <input type="number" class="form-control" id="txtPrecioVentaProducto" step="0.01">
+                        </div>
+
+                        <div class="col-md-3" hidden>
+                            <label id="lblTotalProducto" for="txtTotalProducto" class="form-label">Total</label>
+                            <input type="number" class="form-control" id="txtTotalProducto" step="0.01" value="0" readonly>
+                        </div>
+
+                    </form>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" id="btnGuardarProducto" class="btn btn-primary" onclick="registrarProducto()">Registrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <partial name="~/Views/Utils/Modals.cshtml" />
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/home.js?v=1.2"></script>
+    <script src="~/js/site.js"></script>
+
+</body>
+</html>

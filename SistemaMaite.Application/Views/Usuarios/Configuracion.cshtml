@@ -1,12 +1,4 @@
-﻿@using Microsoft.Extensions.Configuration
-
-@inject IConfiguration Configuration
-
-@{
-    var ambienteTest = Configuration.GetValue<int>("AmbienteTest");
-}
-
-@model SistemaMaite.Models.User
+﻿@model SistemaMaite.Models.User
 @{
     ViewData["Title"] = "Configuración";
 }
@@ -24,12 +16,11 @@
     <link href="~/css/site.css" rel="stylesheet" />
 
 </head>
+<partial name="~/Views/Shared/Partials/BotonMenu.cshtml" />
 
-
- <partial name="~/Views/Shared/Partials/BotonMenu.cshtml" />
 
 <div class="container d-flex justify-content-center align-items-center " style="min-height: 1vh;">
-    <div class="card p-4" style="background-color: rgba(230, 240, 240, 2); box-shadow: 0 4px 10px rgba(40, 138, 237, 1); width: 100%; max-width: 700px;">
+    <div class="card p-4" style="background-color: rgba(230, 240, 240, 2); box-shadow: 0 4px 10px rgba(238, 48, 12, 1);; width: 100%; max-width: 700px;">
         <h2 class="text-center mb-4 text-white">Configuración</h2>
 
         @* Mostrar el mensaje de éxito si se actualizó correctamente *@
@@ -39,12 +30,14 @@
                 @TempData["SuccessMessage"]
             </div>
         }
+        
 
 
-
-        <form method="put" asp-action="Actualizar">
-
-            <input type="hidden" id="Id" name="Id" value="@Model.Id" />
+        <form id="formularioActualizar" method="put">
+            <input type="hidden" id="Id" name="Id" value="@Model.Id" readonly />
+            <input type="hidden" id="IdRol" name="IdRol" value="@Model.IdRol" readonly />
+            <input type="hidden" id="IdEstado" name="IdEstado" value="@Model.IdEstado" readonly />
+            <input type="hidden" id="Usuario" name="Usuario" value="@Model.Usuario" readonly />
 
             <div class="mb-3">
                 <label for="Nombre" class="form-label text-danger">Nombre (*)</label>
@@ -71,12 +64,6 @@
                 <input type="text" class="form-control form-control-sm" id="Direccion" name="Direccion" value="@Model.Direccion" />
             </div>
 
-
-            <div class="mb-3">
-                <label for="Correo" class="form-label">Correo</label>
-                <input type="text" class="form-control form-control-sm" id="Correo" name="Correo" value="@Model.Correo" />
-            </div>
-
             <div class="mb-3">
                 <label for="Contrasena" class="form-label text-danger">Contraseña Actual (*)</label>
                 <input type="password" class="form-control form-control-sm" id="Contrasena" name="Contrasena" required />
@@ -88,10 +75,11 @@
             </div>
             <label for="msjerror" class="form-label" id="msjerror" hidden></label>
             <div class="d-flex justify-content-end">
-                <button type="submit"  id="btnGuardar" class="btn btn-primary btn-sm">Guardar Cambios</button>
+                <button type="submit" id="btnGuardar" class="btn btn-primary btn-sm">Guardar Cambios</button>
             </div>
         </form>
+
     </div>
 </div>
 
-<script src="~/js/usuariosconfiguracion.js"></script>
+<script src="~/js/UsuariosConfiguracion.js"></script>
