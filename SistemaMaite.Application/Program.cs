@@ -73,6 +73,9 @@ builder.Services.AddScoped<IGastosCategoriasService, GastosCategoriasService>();
 builder.Services.AddScoped<IPersonalRepository<Personal>, PersonalRepository>();
 builder.Services.AddScoped<IPersonalService, PersonalService>();
 
+builder.Services.AddScoped<IProductosCategoriaRepository<ProductosCategoria>, ProductosCategoriaRepository>();
+builder.Services.AddScoped<IProductosCategoriaService, ProductosCategoriaService>();
+
 
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(o =>

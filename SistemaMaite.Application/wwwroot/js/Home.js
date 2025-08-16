@@ -812,45 +812,61 @@ function validarCamposProducto() {
 
 
 async function abrirConfiguracion(_nombreConfiguracion, _controllerConfiguracion) {
-    $('#ModalEdicionConfiguraciones').modal('hide');
-    $('#modalConfiguracion').modal('show');
 
-    cancelarModificarConfiguracion();
+    try {
 
-    $('#txtNombreConfiguracion').on('input', function () {
-        validarCamposConfiguracion()
-    });
+        nombreConfiguracion = _nombreConfiguracion;
+        controllerConfiguracion = _controllerConfiguracion
 
-    nombreConfiguracion = _nombreConfiguracion;
-    controllerConfiguracion = _controllerConfiguracion
-    llenarConfiguraciones()
+        var result = await llenarConfiguraciones()
 
+        if (!result) {
+            await errorModal("Ha ocurrido un error al cargar la lista")
+            return;
+        }
 
-    document.getElementById("modalConfiguracionLabel").innerText = "Configuracion de " + nombreConfiguracion;
+        $('#ModalEdicionConfiguraciones').modal('hide');
+        $('#modalConfiguracion').modal('show');
+
+        cancelarModificarConfiguracion();
+
+        $('#txtNombreConfiguracion').on('input', function () {
+            validarCamposConfiguracion()
+        });
+
+      
+       
+
+        document.getElementById("modalConfiguracionLabel").innerText = "Configuracion de " + nombreConfiguracion;
+    } catch (ex) {
+        erroModal("Ha ocurrido un error al cargar la lista")
+    }
 
 }
 
 async function llenarConfiguraciones() {
-    let configuraciones = await listaConfiguracion();
 
-    document.getElementById("lblListaVacia").innerText = "";
-    document.getElementById("lblListaVacia").setAttribute("hidden", "hidden");
+    try {
+        let configuraciones = await listaConfiguracion();
 
-    $("#configuracion-list").empty();
+        document.getElementById("lblListaVacia").innerText = "";
+        document.getElementById("lblListaVacia").setAttribute("hidden", "hidden");
 
-    if (configuraciones.length == 0) {
-        document.getElementById("lblListaVacia").innerText = `La lista de ${nombreConfiguracion} esta vacia.`;
+        $("#configuracion-list").empty();
 
-        document.getElementById("lblListaVacia").style.color = 'red';
-        document.getElementById("lblListaVacia").removeAttribute("hidden");
-        listaVacia = true;
+        if (configuraciones.length == 0) {
+            document.getElementById("lblListaVacia").innerText = `La lista de ${nombreConfiguracion} esta vacia.`;
 
-    } else {
+            document.getElementById("lblListaVacia").style.color = 'red';
+            document.getElementById("lblListaVacia").removeAttribute("hidden");
+            listaVacia = true;
 
-        listaVacia = false;
-        configuraciones.forEach((configuracion, index) => {
-            var indexado = configuracion.Id
-            $("#configuracion-list").append(`
+        } else {
+
+            listaVacia = false;
+            configuraciones.forEach((configuracion, index) => {
+                var indexado = configuracion.Id
+                $("#configuracion-list").append(`
                          <div class="list-item" data-id="${configuracion.Id}">
                     <span>${configuracion.Nombre}</span>
                     
@@ -858,7 +874,14 @@ async function llenarConfiguraciones() {
                     <i class="fa fa-trash eliminar-icon text-danger" data-index="${indexado}" onclick="eliminarConfiguracion(${indexado})"></i>
                 </div>
                     `);
-        });
+            });
+
+            
+        }
+        return true;
+    } catch (ex) {
+        return false;
+      
     }
 }
 
