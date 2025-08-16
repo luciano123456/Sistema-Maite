@@ -866,17 +866,21 @@ async function llenarConfiguraciones() {
 async function eliminarConfiguracion(id) {
 
 
-    let resultado = await confirmarModal("¿Desea eliminar la " + nombreConfiguracion + "?");
+    let resultado = await confirmarModal("¿Desea eliminar el/la" + nombreConfiguracion + "?");
     if (!resultado) return;
 
     if (resultado) {
         try {
             const response = await fetch(controllerConfiguracion + "/Eliminar?id=" + id, {
-                method: "DELETE"
+                method: "DELETE",
+                 headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                }
             });
 
             if (!response.ok) {
-                throw new Error("Error al eliminar la " + nombreConfiguracion);
+                throw new Error("Error al eliminar " + nombreConfiguracion);
             }
 
             const dataJson = await response.json();
@@ -892,9 +896,14 @@ async function eliminarConfiguracion(id) {
     }
 }
 
-
 const editarConfiguracion = id => {
-    fetch(controllerConfiguracion + "/EditarInfo?id=" + id)
+    fetch(controllerConfiguracion + "/EditarInfo?id=" + id, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token // 👈 tu token aquí
+        }
+    })
         .then(response => {
             if (!response.ok) throw new Error("Ha ocurrido un error.");
             return response.json();
@@ -914,6 +923,7 @@ const editarConfiguracion = id => {
             errorModal("Ha ocurrido un error.");
         });
 }
+
 
 
 function validarCamposConfiguracion() {
@@ -940,7 +950,8 @@ function guardarCambiosConfiguracion() {
         fetch(url, {
             method: method,
             headers: {
-                'Content-Type': 'application/json;charset=utf-8'
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify(nuevoModelo)
         })
