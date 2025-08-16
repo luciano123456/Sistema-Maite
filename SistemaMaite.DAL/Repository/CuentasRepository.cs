@@ -11,45 +11,45 @@ using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace SistemaMaite.DAL.Repository
 {
-    public class CuentasRepository : ICuentasRepository<Cuenta>
+    public class BancosRepository : IBancosRepository<Banco>
     {
 
         private readonly SistemaMaiteContext _dbcontext;
 
-        public CuentasRepository(SistemaMaiteContext context)
+        public BancosRepository(SistemaMaiteContext context)
         {
             _dbcontext = context;
         }
-        public async Task<bool> Actualizar(Cuenta model)
+        public async Task<bool> Actualizar(Banco model)
         {
-            _dbcontext.Cuentas.Update(model);
+            _dbcontext.Bancos.Update(model);
             await _dbcontext.SaveChangesAsync();
             return true;
         }
 
         public async Task<bool> Eliminar(int id)
         {
-            Cuenta model = _dbcontext.Cuentas.First(c => c.Id == id);
-            _dbcontext.Cuentas.Remove(model);
+            Banco model = _dbcontext.Bancos.First(c => c.Id == id);
+            _dbcontext.Bancos.Remove(model);
             await _dbcontext.SaveChangesAsync();
             return true;
         }
 
-        public async Task<bool> Insertar(Cuenta model)
+        public async Task<bool> Insertar(Banco model)
         {
-            _dbcontext.Cuentas.Add(model);
+            _dbcontext.Bancos.Add(model);
             await _dbcontext.SaveChangesAsync();
             return true;
         }
 
-        public async Task<Cuenta> Obtener(int id)
+        public async Task<Banco> Obtener(int id)
         {
-            Cuenta model = await _dbcontext.Cuentas.FindAsync(id);
+            Banco model = await _dbcontext.Bancos.FindAsync(id);
             return model;
         }
-        public async Task<IQueryable<Cuenta>> ObtenerTodos()
+        public async Task<IQueryable<Banco>> ObtenerTodos()
         {
-            IQueryable<Cuenta> query = _dbcontext.Cuentas;
+            IQueryable<Banco> query = _dbcontext.Bancos;
             return await Task.FromResult(query);
         }
 

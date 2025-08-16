@@ -18,7 +18,6 @@ namespace SistemaMaite.Application.Controllers
             _ListasPreciosService = ListasPreciosService;
         }
 
-        [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> Lista()
         {

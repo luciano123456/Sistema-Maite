@@ -18,7 +18,6 @@ namespace SistemaMaite.Application.Controllers
             _ProvinciasService = ProvinciasService;
         }
 
-        [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> Lista()
         {

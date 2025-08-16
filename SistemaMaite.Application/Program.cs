@@ -55,6 +55,9 @@ builder.Services.AddScoped<IBancosService, BancosService>();
 builder.Services.AddScoped<ISucursalesRepository<Sucursal>, SucursalesRepository>();
 builder.Services.AddScoped<ISucursalesService, SucursalesService>();
 
+builder.Services.AddScoped<ICuentasRepository<Cuenta>, CuentasRepository>();
+builder.Services.AddScoped<ICuentasService, CuentasService>();
+
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(o =>
     {
