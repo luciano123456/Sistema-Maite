@@ -61,6 +61,9 @@ builder.Services.AddScoped<ICuentasService, CuentasService>();
 builder.Services.AddScoped<IColoresRepository<Color>, ColoresRepository>();
 builder.Services.AddScoped<IColoresService, ColoresService>();
 
+builder.Services.AddScoped<IPersonalSueldosRepository<PersonalSueldo>, PersonalSueldosRepository>();
+builder.Services.AddScoped<IPersonalSueldosService, PersonalSueldosService>();
+
 
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(o =>
