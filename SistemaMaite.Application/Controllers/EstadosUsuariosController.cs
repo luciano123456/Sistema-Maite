@@ -18,7 +18,6 @@ namespace SistemaMaite.Application.Controllers
             _EstadosUsuariosService = EstadosUsuariosService;
         }
 
-        [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> Lista()
         {

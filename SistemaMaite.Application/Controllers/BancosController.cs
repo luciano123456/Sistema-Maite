@@ -18,7 +18,6 @@ namespace SistemaMaite.Application.Controllers
             _BancosService = BancosService;
         }
 
-        [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> Lista()
         {

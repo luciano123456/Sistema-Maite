@@ -165,8 +165,8 @@
         </div>
     </div>
 
-    <div class="modal fade" id="ModalEdicionConfiguraciones" tabindex="-1" role="dialog" aria-labelledby="ModalEdicionConfiguracionesLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered" role="document">
+    <div class="modal fade" id="ModalEdicionConfiguraciones" tabindex="-1" aria-labelledby="ModalEdicionConfiguracionesLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
             <div class="modal-content">
                 <div class="modal-header colorEncabezado">
                     <h5 class="modal-title fw-bold" id="ModalEdicionConfiguracionesLabel">Configuraciones</h5>
@@ -174,33 +174,49 @@
                 </div>
 
                 <div class="modal-body px-4">
-                    <div class="row gy-3">
+                    <!-- Usá gutters en vez de margin-left -->
+                    <div class="row gx-2 gy-3">
 
-                        <div class="col-12 d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Rol', 'Roles')">
-                            <img src="/Imagenes/configuraciones.png" alt="Icono" class="imgConfiguraciones me-2">
-                            <span>Roles</span>
+                        <div class="col-12 col-sm-6 col-lg-4">
+                            <div class="d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Rol','Roles')">
+                                <img src="/Imagenes/configuraciones.png" class="imgConfiguraciones me-2" alt="">
+                                <span>Roles</span>
+                            </div>
                         </div>
 
-
-                        <div class="col-12 d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Condicion de IVA', 'CondicionesIVA')">
-                            <img src="/Imagenes/configuraciones.png" alt="Icono" class="imgConfiguraciones me-2">
-                            <span>Condiciones IVA</span>
+                        <div class="col-12 col-sm-6 col-lg-4">
+                            <div class="d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Condicion de IVA','CondicionesIVA')">
+                                <img src="/Imagenes/configuraciones.png" class="imgConfiguraciones me-2" alt="">
+                                <span>Condiciones IVA</span>
+                            </div>
                         </div>
 
-
-                        <div class="col-12 d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Lista de Precios', 'ListasPrecios')">
-                            <img src="/Imagenes/configuraciones.png" alt="Icono" class="imgConfiguraciones me-2">
-                            <span>Lista de Precios</span>
+                        <div class="col-12 col-sm-6 col-lg-4">
+                            <div class="d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Lista de Precios','ListasPrecios')">
+                                <img src="/Imagenes/configuraciones.png" class="imgConfiguraciones me-2" alt="">
+                                <span>Lista de Precios</span>
+                            </div>
                         </div>
 
-                        <div class="col-12 d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Banco', 'Bancos')">
-                            <img src="/Imagenes/configuraciones.png" alt="Icono" class="imgConfiguraciones me-2">
-                            <span>Bancos</span>
+                        <div class="col-12 col-sm-6 col-lg-4">
+                            <div class="d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Banco','Bancos')">
+                                <img src="/Imagenes/configuraciones.png" class="imgConfiguraciones me-2" alt="">
+                                <span>Bancos</span>
+                            </div>
                         </div>
 
-                        <div class="col-12 d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Sucural', 'Sucursales')">
-                            <img src="/Imagenes/configuraciones.png" alt="Icono" class="imgConfiguraciones me-2">
-                            <span>Sucursales</span>
+                        <div class="col-12 col-sm-6 col-lg-4">
+                            <div class="d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Sucursal','Sucursales')">
+                                <img src="/Imagenes/configuraciones.png" class="imgConfiguraciones me-2" alt="">
+                                <span>Sucursales</span>
+                            </div>
+                        </div>
+
+                        <div class="col-12 col-sm-6 col-lg-4">
+                            <div class="d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Cuenta','Cuentas')">
+                                <img src="/Imagenes/configuraciones.png" class="imgConfiguraciones me-2" alt="">
+                                <span>Cuentas</span>
+                            </div>
                         </div>
 
                     </div>
@@ -212,7 +228,7 @@
             </div>
         </div>
     </div>
-.
+
     <partial name="~/Views/Utils/Modals.cshtml" />
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>

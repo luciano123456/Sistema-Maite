@@ -18,7 +18,6 @@ namespace SistemaMaite.Application.Controllers
             _RolesService = RolesService;
         }
 
-        [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> Lista()
         {

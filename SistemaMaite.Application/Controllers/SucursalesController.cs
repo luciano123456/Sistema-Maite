@@ -18,7 +18,6 @@ namespace SistemaMaite.Application.Controllers
             _SucursalesService = SucursalesService;
         }
 
-        [AllowAnonymous]
         [HttpGet]
         public async Task<IActionResult> Lista()
         {

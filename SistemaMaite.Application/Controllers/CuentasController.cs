@@ -9,21 +9,22 @@ using System.Diagnostics;
 namespace SistemaMaite.Application.Controllers
 {
     [Authorize]
-    public class CondicionesIVAController : Controller
+    public class CuentasController : Controller
     {
-        private readonly ICondicionesIVAService _CondicionesIVAService;
+        private readonly ICuentasService _CuentasService;
 
-        public CondicionesIVAController(ICondicionesIVAService CondicionesIVAService)
+        public CuentasController(ICuentasService CuentasService)
         {
-            _CondicionesIVAService = CondicionesIVAService;
+            _CuentasService = CuentasService;
         }
 
+       
         [HttpGet]
         public async Task<IActionResult> Lista()
         {
-            var CondicionesIVA = await _CondicionesIVAService.ObtenerTodos();
+            var Cuentas = await _CuentasService.ObtenerTodos();
 
-            var lista = CondicionesIVA.Select(c => new VMGenericModel
+            var lista = Cuentas.Select(c => new VMGenericModel
             {
                 Id = c.Id,
                 Nombre = c.Nombre,
@@ -36,13 +37,13 @@ namespace SistemaMaite.Application.Controllers
         [HttpPost]
         public async Task<IActionResult> Insertar([FromBody] VMGenericModel model)
         {
-            var result = new CondicionesIva
+            var result = new Cuenta
             {
                 Id = model.Id,
                 Nombre = model.Nombre,
             };
 
-            bool respuesta = await _CondicionesIVAService.Insertar(result);
+            bool respuesta = await _CuentasService.Insertar(result);
 
             return Ok(new { valor = respuesta });
         }
@@ -50,13 +51,13 @@ namespace SistemaMaite.Application.Controllers
         [HttpPut]
         public async Task<IActionResult> Actualizar([FromBody] VMGenericModel model)
         {
-            var result = new CondicionesIva
+            var result = new Cuenta
             {
                 Id = model.Id,
                 Nombre = model.Nombre,
             };
 
-            bool respuesta = await _CondicionesIVAService.Actualizar(result);
+            bool respuesta = await _CuentasService.Actualizar(result);
 
             return Ok(new { valor = respuesta });
         }
@@ -64,7 +65,7 @@ namespace SistemaMaite.Application.Controllers
         [HttpDelete]
         public async Task<IActionResult> Eliminar(int id)
         {
-            bool respuesta = await _CondicionesIVAService.Eliminar(id);
+            bool respuesta = await _CuentasService.Eliminar(id);
 
             return StatusCode(StatusCodes.Status200OK, new { valor = respuesta });
         }
@@ -72,7 +73,7 @@ namespace SistemaMaite.Application.Controllers
         [HttpGet]
         public async Task<IActionResult> EditarInfo(int id)
         {
-             var result = await _CondicionesIVAService.Obtener(id);
+             var result = await _CuentasService.Obtener(id);
 
             if (result != null)
             {
