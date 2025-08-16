@@ -960,7 +960,7 @@ function guardarCambiosConfiguracion() {
                 return response.json();
             })
             .then(dataJson => {
-                const mensaje = idConfiguracion === "" ? "nombreConfiguracion" + " registrado/a correctamente" : nombreConfiguracion + " modificado/a correctamente";
+                const mensaje = idConfiguracion === "" ? nombreConfiguracion + " registrado/a correctamente" : nombreConfiguracion + " modificado/a correctamente";
                 llenarConfiguraciones()
                 cancelarModificarConfiguracion();
                 exitoModal(mensaje)
