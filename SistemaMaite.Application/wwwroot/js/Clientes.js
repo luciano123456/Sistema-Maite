@@ -252,24 +252,24 @@ async function configurarDataTableClientes(data) {
                 {
                     extend: 'excelHtml5',
                     text: 'Exportar Excel',
-                    filename: 'Reporte Clientes',
+                    filename: 'Reporte Personal',
                     title: '',
-                    exportOptions: { columns: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] },
+                    exportOptions: { columns: [...Array(22).keys()].map(i => i + 1) },
                     className: 'btn-exportar-excel',
                 },
                 {
                     extend: 'pdfHtml5',
                     text: 'Exportar PDF',
-                    filename: 'Reporte Clientes',
+                    filename: 'Reporte Personal',
                     title: '',
-                    exportOptions: { columns: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] },
+                    exportOptions: { columns: [...Array(22).keys()].map(i => i + 1) },
                     className: 'btn-exportar-pdf',
                 },
                 {
                     extend: 'print',
                     text: 'Imprimir',
                     title: '',
-                    exportOptions: { columns: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] },
+                    exportOptions: { columns: [...Array(22).keys()].map(i => i + 1) },
                     className: 'btn-exportar-print'
                 },
                 'pageLength'
@@ -289,12 +289,12 @@ async function configurarDataTableClientes(data) {
                             .appendTo(cell.empty())
                             .on('change', async function () {
                                 const selectedText = $(this).find('option:selected').text();
-                                await api.column(config.index).search(selectedText ? '^' + selectedText + '$' : '', true, false).draw();
+                                await api.column(config.index).search(selectedText ? '^' + escapeRegex(selectedText) + '$' : '', true, false).draw();
                             });
 
                         const items = await config.fetchDataFunc();
                         items.forEach(item => {
-                            select.append('<option value="' + item.Id + '">' + item.Nombre + '</option>');
+                            select.append('<option value="' + item.Id + '">' + (item.Nombre ?? '') + '</option>');
                         });
 
                     } else if (config.filterType === 'text') {
@@ -306,7 +306,7 @@ async function configurarDataTableClientes(data) {
                                 const regexr = '({search})';
                                 const cursorPosition = this.selectionStart;
                                 api.column(config.index)
-                                    .search(this.value !== '' ? regexr.replace('{search}', '(((' + this.value + ')))') : '', this.value !== '', this.value === '')
+                                    .search(this.value !== '' ? regexr.replace('{search}', '(((' + escapeRegex(this.value) + ')))') : '', this.value !== '', this.value === '')
                                     .draw();
                                 $(this).focus()[0].setSelectionRange(cursorPosition, cursorPosition);
                             });

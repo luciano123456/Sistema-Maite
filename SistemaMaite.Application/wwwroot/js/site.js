@@ -203,6 +203,7 @@ function formatearFechaParaVista(fecha) {
     return m.isValid() ? m.format('DD/MM/YYYY') : '';
 }
 
+
 function formatearMiles(valor) {
     let num = String(valor).replace(/\D/g, '');
     return num.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
@@ -217,6 +218,18 @@ function formatearSinMiles(valor) {
     const limpio = valor.replace(/\./g, '').replace(',', '.');
     const num = parseFloat(limpio);
     return isNaN(num) ? 0 : num;
+}
+
+
+
+
+function setValorInput(selector, valor) {
+    const $el = $(selector);
+    if ($el.hasClass("Inputmiles")) {
+        $el.val(formatearMiles(valor ?? ""));
+    } else {
+        $el.val(valor ?? "");
+    }
 }
 
 
