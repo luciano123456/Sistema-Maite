@@ -64,6 +64,10 @@ builder.Services.AddScoped<IColoresService, ColoresService>();
 builder.Services.AddScoped<IPersonalSueldosRepository<PersonalSueldo>, PersonalSueldosRepository>();
 builder.Services.AddScoped<IPersonalSueldosService, PersonalSueldosService>();
 
+builder.Services.AddScoped<IPersonalPuestosRepository<PersonalPuesto>, PersonalPuestosRepository>();
+builder.Services.AddScoped<IPersonalPuestosService, PersonalPuestosService>();
+
+
 
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(o =>
