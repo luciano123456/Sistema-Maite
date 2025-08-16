@@ -67,6 +67,8 @@ builder.Services.AddScoped<IPersonalSueldosService, PersonalSueldosService>();
 builder.Services.AddScoped<IPersonalPuestosRepository<PersonalPuesto>, PersonalPuestosRepository>();
 builder.Services.AddScoped<IPersonalPuestosService, PersonalPuestosService>();
 
+builder.Services.AddScoped<IGastosCategoriasRepository<GastosCategoria>, GastosCategoriasRepository>();
+builder.Services.AddScoped<IGastosCategoriasService, GastosCategoriasService>();
 
 
 builder.Services.AddControllersWithViews()
