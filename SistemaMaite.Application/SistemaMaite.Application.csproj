@@ -12,6 +12,7 @@
     <Content Remove="wwwroot\js\Login.js" />
     <Content Remove="wwwroot\js\NavBarLogin.js" />
     <Content Remove="wwwroot\js\Personal.js" />
+    <Content Remove="wwwroot\js\Productos.js" />
     <Content Remove="wwwroot\js\Usuarios.js" />
     <Content Remove="wwwroot\js\UsuariosConfiguracion.js" />
     <Content Remove="wwwroot\js\Utils\moment.js" />
@@ -19,6 +20,7 @@
 
   <ItemGroup>
     <None Include="wwwroot\Imagenes\Clientes.png" />
+    <None Include="wwwroot\js\Productos.js" />
     <None Include="wwwroot\js\Personal.js" />
     <None Include="wwwroot\js\Login.js" />
     <None Include="wwwroot\js\Clientes.js" />

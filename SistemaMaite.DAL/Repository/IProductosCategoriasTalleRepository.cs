@@ -15,5 +15,6 @@ namespace SistemaMaite.DAL.Repository
         Task<bool> Insertar(ProductosCategoriasTalle model);
         Task<ProductosCategoriasTalle> Obtener(int id);
         Task<IQueryable<ProductosCategoriasTalle>> ObtenerTodos();
+        Task<IQueryable<ProductosCategoriasTalle>> ObtenerPorCategoria(int idCategoria);
     }
 }

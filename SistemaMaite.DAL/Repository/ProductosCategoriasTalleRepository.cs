@@ -51,6 +51,16 @@ namespace SistemaMaite.DAL.Repository
         }
 
 
+        public Task<IQueryable<ProductosCategoriasTalle>> ObtenerPorCategoria(int idCategoria)
+        {
+            var query = _dbcontext.ProductosCategoriasTalles
+                .Include(x => x.IdCategoriaNavigation)
+                .Where(x => x.IdCategoria == idCategoria)
+                .AsNoTracking();
+
+            return Task.FromResult(query);
+        }
+
         public async Task<IQueryable<ProductosCategoriasTalle>> ObtenerTodos()
         {
             IQueryable<ProductosCategoriasTalle> query = _dbcontext.ProductosCategoriasTalles.Include(x => x.IdCategoriaNavigation);

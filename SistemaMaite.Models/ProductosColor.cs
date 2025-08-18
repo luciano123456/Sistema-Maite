@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace SistemaMaite.Models
 {
 
-    public partial class ProductosColore
+    public partial class ProductosColor
     {
         public int Id { get; set; }
 

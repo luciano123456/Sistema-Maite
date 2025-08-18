@@ -35,6 +35,22 @@ namespace SistemaMaite.Application.Controllers
         }
 
 
+        [HttpGet]
+        public async Task<IActionResult> ListaPorCategoria(int idCategoria)
+        {
+            var ProductosCategoriasTalle = await _ProductosCategoriasTalleService.ObtenerPorCategoria(idCategoria);
+
+            var lista = ProductosCategoriasTalle.Select(c => new VMGenericModelConfCombo
+            {
+                Id = c.Id,
+                IdCombo = c.IdCategoria,
+                Nombre = c.Nombre,
+            }).ToList();
+
+            return Ok(lista);
+        }
+
+
         [HttpPost]
         public async Task<IActionResult> Insertar([FromBody] VMGenericModelConfCombo model)
         {
