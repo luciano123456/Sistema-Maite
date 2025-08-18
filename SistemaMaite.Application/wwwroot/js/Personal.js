@@ -357,64 +357,127 @@ async function configurarDataTablePersonal(data) {
 
 /* -------- Cargas para selects del modal -------- */
 
-async function listaCondicionesIva() {
-    const res = await fetch("/CondicionesIva/Lista", { headers: { 'Content-Type': 'application/json' } });
-    const data = await res.json();
-    llenarSelect("cmbCondicionIva", data);
-}
-async function listaProvincias() {
-    const res = await fetch("/Provincias/Lista", { headers: { 'Content-Type': 'application/json' } });
-    const data = await res.json();
-    llenarSelect("cmbProvincia", data);
-}
-async function listaBancos() {
-    const res = await fetch("/Bancos/Lista", { headers: { 'Content-Type': 'application/json' } });
-    const data = await res.json();
-    llenarSelect("cmbBanco", data);
-}
-async function listaPuestos() {
-    const res = await fetch("/PersonalPuestos/Lista", { headers: { 'Content-Type': 'application/json' } });
-    const data = await res.json();
-    llenarSelect("cmbPuesto", data);
-}
-async function listaSucursales() {
-    const res = await fetch("/Sucursales/Lista", { headers: { 'Content-Type': 'application/json' } });
-    const data = await res.json();
-    llenarSelect("cmbSucursal", data);
-}
+    /* -------- Cargas para selects del modal (CON token) -------- */
+    async function listaCondicionesIva() {
+        const res = await fetch("/CondicionesIva/Lista", {
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            }
+        });
+        const data = await res.json();
+        llenarSelect("cmbCondicionIva", data);
+    }
 
-/* -------- Filtros (selects del header) -------- */
+    async function listaProvincias() {
+        const res = await fetch("/Provincias/Lista", {
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            }
+        });
+        const data = await res.json();
+        llenarSelect("cmbProvincia", data);
+    }
 
-async function listaCondicionIvaFilter() {
-    const response = await fetch('/CondicionesIva/Lista', { method: 'GET', headers: { 'Content-Type': 'application/json' } });
-    if (!response.ok) throw new Error('Error cargando Condición IVA');
-    const data = await response.json();
-    return data.map(item => ({ Id: item.Id, Nombre: item.Nombre ?? item.Descripcion ?? '' }));
-}
-async function listaProvinciasFilter() {
-    const response = await fetch('/Provincias/Lista', { method: 'GET', headers: { 'Content-Type': 'application/json' } });
-    if (!response.ok) throw new Error('Error cargando Provincias');
-    const data = await response.json();
-    return data.map(item => ({ Id: item.Id, Nombre: item.Nombre }));
-}
-async function listaBancosFilter() {
-    const response = await fetch('/Bancos/Lista', { method: 'GET', headers: { 'Content-Type': 'application/json' } });
-    if (!response.ok) throw new Error('Error cargando Bancos');
-    const data = await response.json();
-    return data.map(item => ({ Id: item.Id, Nombre: item.Nombre }));
-}
-async function listaPuestosFilter() {
-    const response = await fetch('/PersonalPuestos/Lista', { method: 'GET', headers: { 'Content-Type': 'application/json' } });
-    if (!response.ok) throw new Error('Error cargando Puestos');
-    const data = await response.json();
-    return data.map(item => ({ Id: item.Id, Nombre: item.Nombre }));
-}
-async function listaSucursalesFilter() {
-    const response = await fetch('/Sucursales/Lista', { method: 'GET', headers: { 'Content-Type': 'application/json' } });
-    if (!response.ok) throw new Error('Error cargando Sucursales');
-    const data = await response.json();
-    return data.map(item => ({ Id: item.Id, Nombre: item.Nombre }));
-}
+    async function listaBancos() {
+        const res = await fetch("/Bancos/Lista", {
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            }
+        });
+        const data = await res.json();
+        llenarSelect("cmbBanco", data);
+    }
+
+    async function listaPuestos() {
+        const res = await fetch("/PersonalPuestos/Lista", {
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            }
+        });
+        const data = await res.json();
+        llenarSelect("cmbPuesto", data);
+    }
+
+    async function listaSucursales() {
+        const res = await fetch("/Sucursales/Lista", {
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            }
+        });
+        const data = await res.json();
+        llenarSelect("cmbSucursal", data);
+    }
+
+    /* -------- Filtros (selects del header) (CON token) -------- */
+    async function listaCondicionIvaFilter() {
+        const response = await fetch('/CondicionesIva/Lista', {
+            method: 'GET',
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            }
+        });
+        if (!response.ok) throw new Error('Error cargando Condición IVA');
+        const data = await response.json();
+        return data.map(item => ({ Id: item.Id, Nombre: item.Nombre ?? item.Descripcion ?? '' }));
+    }
+
+    async function listaProvinciasFilter() {
+        const response = await fetch('/Provincias/Lista', {
+            method: 'GET',
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            }
+        });
+        if (!response.ok) throw new Error('Error cargando Provincias');
+        const data = await response.json();
+        return data.map(item => ({ Id: item.Id, Nombre: item.Nombre }));
+    }
+
+    async function listaBancosFilter() {
+        const response = await fetch('/Bancos/Lista', {
+            method: 'GET',
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            }
+        });
+        if (!response.ok) throw new Error('Error cargando Bancos');
+        const data = await response.json();
+        return data.map(item => ({ Id: item.Id, Nombre: item.Nombre }));
+    }
+
+    async function listaPuestosFilter() {
+        const response = await fetch('/PersonalPuestos/Lista', {
+            method: 'GET',
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            }
+        });
+        if (!response.ok) throw new Error('Error cargando Puestos');
+        const data = await response.json();
+        return data.map(item => ({ Id: item.Id, Nombre: item.Nombre }));
+    }
+
+    async function listaSucursalesFilter() {
+        const response = await fetch('/Sucursales/Lista', {
+            method: 'GET',
+            headers: {
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json"
+            }
+        });
+        if (!response.ok) throw new Error('Error cargando Sucursales');
+        const data = await response.json();
+        return data.map(item => ({ Id: item.Id, Nombre: item.Nombre }));
+    }
 
 /* -------- Helpers -------- */
 
