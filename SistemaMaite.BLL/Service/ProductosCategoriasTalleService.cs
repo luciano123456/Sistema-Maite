@@ -32,6 +32,10 @@ namespace SistemaMaite.BLL.Service
             return await _contactRepo.Obtener(id);
         }
 
+        public async Task<IQueryable<ProductosCategoriasTalle>> ObtenerPorCategoria(int idCategoria)
+        {
+            return await _contactRepo.ObtenerPorCategoria(idCategoria);
+        }
 
         public async Task<IQueryable<ProductosCategoriasTalle>> ObtenerTodos()
         {

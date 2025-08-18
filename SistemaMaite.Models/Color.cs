@@ -9,6 +9,6 @@ public partial class Color
 
     public string Nombre { get; set; } = null!;
 
-    public virtual ICollection<ProductosColore> ProductosColores { get; set; } = new List<ProductosColore>();
+    public virtual ICollection<ProductosColor> ProductosColores { get; set; } = new List<ProductosColor>();
 }
 }

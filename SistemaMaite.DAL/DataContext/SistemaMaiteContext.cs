@@ -66,7 +66,7 @@ public partial class SistemaMaiteContext : DbContext
 
     public virtual DbSet<ProductosCategoriasTalle> ProductosCategoriasTalles { get; set; }
 
-    public virtual DbSet<ProductosColore> ProductosColores { get; set; }
+    public virtual DbSet<ProductosColor> ProductosColores { get; set; }
 
     public virtual DbSet<ProductosPrecio> ProductosPrecios { get; set; }
 
@@ -576,7 +576,7 @@ public partial class SistemaMaiteContext : DbContext
                 .HasConstraintName("FK_Productos_Categorias_Talles_Productos_Categorias");
         });
 
-        modelBuilder.Entity<ProductosColore>(entity =>
+        modelBuilder.Entity<ProductosColor>(entity =>
         {
             entity.ToTable("Productos_Colores");
 

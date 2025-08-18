@@ -11,6 +11,7 @@ namespace SistemaMaite.BLL.Service
         Task<ProductosCategoriasTalle> Obtener(int id);
 
         Task<IQueryable<ProductosCategoriasTalle>> ObtenerTodos();
+        Task<IQueryable<ProductosCategoriasTalle>> ObtenerPorCategoria(int idCategoria);
     }
 
 }
