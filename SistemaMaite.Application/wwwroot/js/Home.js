@@ -859,16 +859,22 @@ async function listaEstados() {
 
 async function listaConfiguracion() {
     const url = `/${controllerConfiguracion}/Lista`;
-    const response = await fetch(url);
-    const data = await response.json();
+    const response = await fetch(url, {
+        headers: {
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json'
+        }
+    });
+    if (!response.ok) throw new Error('Error al cargar configuraciones');
 
+    const data = await response.json();
     return data.map(configuracion => ({
         Id: configuracion.Id,
         Nombre: configuracion.Nombre,
         NombreCombo: configuracion.NombreCombo
     }));
-
 }
+
 
 async function abrirConfiguracion(_nombreConfiguracion, _controllerConfiguracion, _comboNombre = null, _comboController = null, _lblComboNombre) {
 
@@ -1037,9 +1043,15 @@ async function eliminarConfiguracion(id) {
 }
 
 
-
 async function llenarComboConfiguracion() {
-    const res = await fetch(`${comboController}/Lista`, { headers: { 'Content-Type': 'application/json' } });
+    const res = await fetch(`${comboController}/Lista`, {
+        headers: {
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json'
+        }
+    });
+    if (!res.ok) throw new Error('Error al cargar combo');
+
     const data = await res.json();
     llenarSelect("cmbConfiguracion", data);
 }
