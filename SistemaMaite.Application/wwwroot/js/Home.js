@@ -5,6 +5,8 @@ const precioZonaInput = document.getElementById('txtPrecioZona');
 
 let nombreConfiguracion
 let controllerConfiguracion;
+let comboNombre;
+let lblComboNombre;
 let listaVacia = false;
 
 async function nuevoCliente() {
@@ -490,7 +492,7 @@ function limpiarModalUsuario() {
         $(`#txt${campo}`).val("");
     });
 
-     $('#lblUserUsuario, #txtUserUsuario').css('color', '').css('border-color', '');
+    $('#lblUserUsuario, #txtUserUsuario').css('color', '').css('border-color', '');
     $('#lblNombreUsuario, #txtNombreUsuario').css('color', '').css('border-color', '');
     $('#lblApellidoUsuario, #txtApellidoUsuario').css('color', '').css('border-color', '');
 }
@@ -532,14 +534,14 @@ function actualizarProductoCantidad() {
         document.getElementById('lblProductoCantidad').removeAttribute('hidden');
         document.getElementById('txtTotalProducto').removeAttribute('hidden');
         document.getElementById('lblTotalProducto').removeAttribute('hidden');
-            document.getElementById('txtProductoCantidad').removeAttribute('readonly');
-        
+        document.getElementById('txtProductoCantidad').removeAttribute('readonly');
+
     } else {
         // Oculta el label y el input
         document.getElementById('txtTotalProducto').setAttribute('hidden', 'hidden');
         document.getElementById('lblTotalProducto').setAttribute('hidden', 'hidden');
         document.getElementById('txtProductoCantidad').setAttribute('hidden', 'hidden');
-        document.getElementById('lblProductoCantidad').setAttribute('hidden', 'hidden'); 
+        document.getElementById('lblProductoCantidad').setAttribute('hidden', 'hidden');
     }
 }
 
@@ -712,18 +714,6 @@ async function listaMarcas() {
 
 }
 
-async function listaConfiguracion() {
-    const url = `/${controllerConfiguracion}/Lista`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    return data.map(configuracion => ({
-        Id: configuracion.Id,
-        Nombre: configuracion.Nombre
-    }));
-
-}
-
 
 $('#txtDescripcionProducto, #txtPorcentajeGananciaProducto').on('input', function () {
     validarCamposProducto()
@@ -811,217 +801,6 @@ function validarCamposProducto() {
 }
 
 
-async function abrirConfiguracion(_nombreConfiguracion, _controllerConfiguracion) {
-
-    try {
-
-        nombreConfiguracion = _nombreConfiguracion;
-        controllerConfiguracion = _controllerConfiguracion
-
-        var result = await llenarConfiguraciones()
-
-        if (!result) {
-            await errorModal("Ha ocurrido un error al cargar la lista")
-            return;
-        }
-
-        $('#ModalEdicionConfiguraciones').modal('hide');
-        $('#modalConfiguracion').modal('show');
-
-        cancelarModificarConfiguracion();
-
-        $('#txtNombreConfiguracion').on('input', function () {
-            validarCamposConfiguracion()
-        });
-
-      
-       
-
-        document.getElementById("modalConfiguracionLabel").innerText = "Configuracion de " + nombreConfiguracion;
-    } catch (ex) {
-        erroModal("Ha ocurrido un error al cargar la lista")
-    }
-
-}
-
-async function llenarConfiguraciones() {
-
-    try {
-        let configuraciones = await listaConfiguracion();
-
-        document.getElementById("lblListaVacia").innerText = "";
-        document.getElementById("lblListaVacia").setAttribute("hidden", "hidden");
-
-        $("#configuracion-list").empty();
-
-        if (configuraciones.length == 0) {
-            document.getElementById("lblListaVacia").innerText = `La lista de ${nombreConfiguracion} esta vacia.`;
-
-            document.getElementById("lblListaVacia").style.color = 'red';
-            document.getElementById("lblListaVacia").removeAttribute("hidden");
-            listaVacia = true;
-
-        } else {
-
-            listaVacia = false;
-            configuraciones.forEach((configuracion, index) => {
-                var indexado = configuracion.Id
-                $("#configuracion-list").append(`
-                         <div class="list-item" data-id="${configuracion.Id}">
-                    <span>${configuracion.Nombre}</span>
-                    
-                    <i class="fa fa-pencil-square-o edit-icon text-white" data-index="${indexado}" onclick="editarConfiguracion(${indexado})" style="float: right;"></i>
-                    <i class="fa fa-trash eliminar-icon text-danger" data-index="${indexado}" onclick="eliminarConfiguracion(${indexado})"></i>
-                </div>
-                    `);
-            });
-
-            
-        }
-        return true;
-    } catch (ex) {
-        return false;
-      
-    }
-}
-
-
-async function eliminarConfiguracion(id) {
-
-
-    let resultado = await confirmarModal("¿Desea eliminar el/la" + nombreConfiguracion + "?");
-    if (!resultado) return;
-
-    if (resultado) {
-        try {
-            const response = await fetch(controllerConfiguracion + "/Eliminar?id=" + id, {
-                method: "DELETE",
-                 headers: {
-                    'Authorization': 'Bearer ' + token,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (!response.ok) {
-                throw new Error("Error al eliminar " + nombreConfiguracion);
-            }
-
-            const dataJson = await response.json();
-
-            if (dataJson.valor) {
-                llenarConfiguraciones()
-
-                exitoModal(nombreConfiguracion + " eliminada correctamente")
-            }
-        } catch (error) {
-            console.error("Ha ocurrido un error:", error);
-        }
-    }
-}
-
-const editarConfiguracion = id => {
-    fetch(controllerConfiguracion + "/EditarInfo?id=" + id, {
-        method: "GET",
-        headers: {
-            "Content-Type": "application/json",
-            "Authorization": "Bearer " + token // 👈 tu token aquí
-        }
-    })
-        .then(response => {
-            if (!response.ok) throw new Error("Ha ocurrido un error.");
-            return response.json();
-        })
-        .then(dataJson => {
-            if (dataJson !== null) {
-                document.getElementById("btnRegistrarModificarConfiguracion").textContent = "Modificar";
-                document.getElementById("agregarConfiguracion").setAttribute("hidden", "hidden");
-                document.getElementById("txtNombreConfiguracion").value = dataJson.Nombre;
-                document.getElementById("txtIdConfiguracion").value = dataJson.Id;
-                document.getElementById("contenedorNombreConfiguracion").removeAttribute("hidden");
-            } else {
-                throw new Error("Ha ocurrido un error.");
-            }
-        })
-        .catch(error => {
-            errorModal("Ha ocurrido un error.");
-        });
-}
-
-
-
-function validarCamposConfiguracion() {
-    const nombre = $("#txtNombreConfiguracion").val();
-    const camposValidos = nombre !== "";
-
-    $("#lblNombreConfiguracion").css("color", camposValidos ? "" : "red");
-    $("#txtNombreConfiguracion").css("border-color", camposValidos ? "" : "red");
-
-    return camposValidos;
-}
-
-function guardarCambiosConfiguracion() {
-    if (validarCamposConfiguracion()) {
-        const idConfiguracion = $("#txtIdConfiguracion").val();
-        const nuevoModelo = {
-            "Id": idConfiguracion !== "" ? idConfiguracion : 0,
-            "Nombre": $("#txtNombreConfiguracion").val(),
-        };
-
-        const url = idConfiguracion === "" ? controllerConfiguracion + "/Insertar" : controllerConfiguracion + "/Actualizar";
-        const method = idConfiguracion === "" ? "POST" : "PUT";
-
-        fetch(url, {
-            method: method,
-            headers: {
-                'Authorization': 'Bearer ' + token,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(nuevoModelo)
-        })
-            .then(response => {
-                if (!response.ok) throw new Error(response.statusText);
-                return response.json();
-            })
-            .then(dataJson => {
-                const mensaje = idConfiguracion === "" ? nombreConfiguracion + " registrado/a correctamente" : nombreConfiguracion + " modificado/a correctamente";
-                llenarConfiguraciones()
-                cancelarModificarConfiguracion();
-                exitoModal(mensaje)
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-    } else {
-        errorModal('Debes completar los campos requeridos');
-    }
-}
-
-
-function cancelarModificarConfiguracion() {
-    document.getElementById("txtNombreConfiguracion").value = "";
-    document.getElementById("txtIdConfiguracion").value = "";
-    document.getElementById("contenedorNombreConfiguracion").setAttribute("hidden", "hidden");
-    document.getElementById("agregarConfiguracion").removeAttribute("hidden");
-
-    if (listaVacia == true) {
-        document.getElementById("lblListaVacia").innerText = `La lista de ${nombreConfiguracion} esta vacia.`;
-        document.getElementById("lblListaVacia").style.color = 'red';
-        document.getElementById("lblListaVacia").removeAttribute("hidden");
-    }
-}
-
-function agregarConfiguracion() {
-    document.getElementById("txtNombreConfiguracion").value = "";
-    document.getElementById("txtIdConfiguracion").value = "";
-    document.getElementById("contenedorNombreConfiguracion").removeAttribute("hidden");
-    document.getElementById("agregarConfiguracion").setAttribute("hidden", "hidden");
-    document.getElementById("lblListaVacia").innerText = "";
-    document.getElementById("lblListaVacia").setAttribute("hidden", "hidden");
-    document.getElementById("btnRegistrarModificarConfiguracion").textContent = "Agregar";
-
-    $('#lblNombreConfiguracion').css('color', 'red');
-    $('#txtNombreConfiguracion').css('border-color', 'red');
-} 
 
 
 precioZonaInput.addEventListener('blur', function () {
@@ -1071,5 +850,290 @@ async function listaEstados() {
         select.appendChild(option);
 
     }
+}
+
+
+
+
+//CONFIGURACIONES
+
+async function listaConfiguracion() {
+    const url = `/${controllerConfiguracion}/Lista`;
+    const response = await fetch(url);
+    const data = await response.json();
+
+    return data.map(configuracion => ({
+        Id: configuracion.Id,
+        Nombre: configuracion.Nombre,
+        NombreCombo: configuracion.NombreCombo
+    }));
+
+}
+
+async function abrirConfiguracion(_nombreConfiguracion, _controllerConfiguracion, _comboNombre = null, _comboController = null, _lblComboNombre) {
+
+    try {
+
+        nombreConfiguracion = _nombreConfiguracion;
+        controllerConfiguracion = _controllerConfiguracion,
+        comboNombre = _comboNombre,
+        comboController = _comboController,
+        lblComboNombre = _lblComboNombre;
+
+        var result = await llenarConfiguraciones()
+
+        if (!result) {
+            await errorModal("Ha ocurrido un error al cargar la lista")
+            return;
+        }
+
+        $('#ModalEdicionConfiguraciones').modal('hide');
+        $('#modalConfiguracion').modal('show');
+
+        cancelarModificarConfiguracion();
+
+        $('#txtNombreConfiguracion').on('input', function () {
+            validarCamposConfiguracion()
+        });
+
+
+        $('#cmbConfiguracion').on('change', function () {
+            validarCamposConfiguracion()
+        });
+
+
+        document.getElementById("modalConfiguracionLabel").innerText = "Configuracion de " + nombreConfiguracion;
+    } catch (ex) {
+        errorModal("Ha ocurrido un error al cargar la lista")
+    }
+
+}
+
+async function editarConfiguracion(id) {
+    fetch(controllerConfiguracion + "/EditarInfo?id=" + id, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token // 👈 tu token aquí
+        }
+    })
+        .then(response => {
+            if (!response.ok) throw new Error("Ha ocurrido un error.");
+            return response.json();
+        })
+        .then(dataJson => {
+            if (dataJson !== null) {
+
+                document.getElementById("btnRegistrarModificarConfiguracion").textContent = "Modificar";
+                document.getElementById("agregarConfiguracion").setAttribute("hidden", "hidden");
+                document.getElementById("txtNombreConfiguracion").value = dataJson.Nombre;
+                document.getElementById("txtIdConfiguracion").value = dataJson.Id;
+                
+                document.getElementById("contenedorNombreConfiguracion").removeAttribute("hidden");
+
+                if (comboNombre != null) {
+                    document.getElementById("lblConfiguracionCombo").innerText = lblComboNombre;
+                    document.getElementById("cmbConfiguracion").value = dataJson.IdCombo;
+                }
+
+                validarCamposConfiguracion();
+            } else {
+                throw new Error("Ha ocurrido un error.");
+            }
+        })
+        .catch(error => {
+            errorModal("Ha ocurrido un error.");
+        });
+}
+
+
+async function llenarConfiguraciones() {
+
+    try {
+        let configuraciones = await listaConfiguracion();
+
+        if (comboNombre != null) {
+            llenarComboConfiguracion();
+            document.getElementById("divConfiguracionCombo").removeAttribute("hidden", "");
+        } else {
+            document.getElementById("divConfiguracionCombo").setAttribute("hidden", "hidden");
+        }
+
+    
+        document.getElementById("lblListaVacia").innerText = "";
+        document.getElementById("lblListaVacia").setAttribute("hidden", "hidden");
+
+        $("#configuracion-list").empty();
+
+        if (configuraciones.length == 0) {
+            document.getElementById("lblListaVacia").innerText = `La lista de ${nombreConfiguracion} esta vacia.`;
+
+            document.getElementById("lblListaVacia").style.color = 'red';
+            document.getElementById("lblListaVacia").removeAttribute("hidden");
+            listaVacia = true;
+
+        } else {
+
+            listaVacia = false;
+            configuraciones.forEach((configuracion, index) => {
+
+                nombreConfig = configuracion.Nombre;
+
+                if (configuracion.NombreCombo != null) {
+                    nombreConfig += " - " + configuracion.NombreCombo;
+                } 
+
+                var indexado = configuracion.Id
+                $("#configuracion-list").append(`
+                         <div class="list-item" data-id="${configuracion.Id}">
+                    <span>${nombreConfig}</span>
+                    
+                    <i class="fa fa-pencil-square-o edit-icon text-white" data-index="${indexado}" onclick="editarConfiguracion(${indexado})" style="float: right;"></i>
+                    <i class="fa fa-trash eliminar-icon text-danger" data-index="${indexado}" onclick="eliminarConfiguracion(${indexado})"></i>
+                </div>
+                    `);
+            });
+
+
+        }
+        return true;
+    } catch (ex) {
+        return false;
+
+    }
+}
+
+async function eliminarConfiguracion(id) {
+
+
+    let resultado = await confirmarModal("¿Desea eliminar el/la" + nombreConfiguracion + "?");
+    if (!resultado) return;
+
+    if (resultado) {
+        try {
+            const response = await fetch(controllerConfiguracion + "/Eliminar?id=" + id, {
+                method: "DELETE",
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error("Error al eliminar " + nombreConfiguracion);
+            }
+
+            const dataJson = await response.json();
+
+            if (dataJson.valor) {
+                llenarConfiguraciones()
+
+                exitoModal(nombreConfiguracion + " eliminada correctamente")
+            }
+        } catch (error) {
+            console.error("Ha ocurrido un error:", error);
+        }
+    }
+}
+
+
+
+async function llenarComboConfiguracion() {
+    const res = await fetch(`${comboController}/Lista`, { headers: { 'Content-Type': 'application/json' } });
+    const data = await res.json();
+    llenarSelect("cmbConfiguracion", data);
+}
+
+function validarCamposConfiguracion() {
+    const nombre = $("#txtNombreConfiguracion").val();
+    const combo = $("#cmbConfiguracion").val();
+
+    const camposValidos = nombre !== "";
+    const selectValido = combo !== "";
+
+    // estilos
+    $("#lblNombreConfiguracion").css("color", camposValidos ? "" : "red");
+    $("#txtNombreConfiguracion").css("border-color", camposValidos ? "" : "red");
+    $("#cmbConfiguracion").css("border-color", selectValido ? "" : "red");
+
+    // lógica de validación
+    if (comboNombre != null) {
+        return camposValidos && selectValido;
+    } else {
+        return camposValidos;
+    }
+}
+
+
+function guardarCambiosConfiguracion() {
+    if (validarCamposConfiguracion()) {
+        const idConfiguracion = $("#txtIdConfiguracion").val();
+        const idCombo = $("#cmbConfiguracion").val();
+        const nuevoModelo = {
+            "Id": idConfiguracion !== "" ? idConfiguracion : 0,
+            "IdCombo": comboNombre !== "" ? idCombo : 0,
+            "Nombre": $("#txtNombreConfiguracion").val(),
+        };
+
+        const url = idConfiguracion === "" ? controllerConfiguracion + "/Insertar" : controllerConfiguracion + "/Actualizar";
+        const method = idConfiguracion === "" ? "POST" : "PUT";
+
+        fetch(url, {
+            method: method,
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(nuevoModelo)
+        })
+            .then(response => {
+                if (!response.ok) throw new Error(response.statusText);
+                return response.json();
+            })
+            .then(dataJson => {
+                const mensaje = idConfiguracion === "" ? nombreConfiguracion + " registrado/a correctamente" : nombreConfiguracion + " modificado/a correctamente";
+                llenarConfiguraciones()
+                cancelarModificarConfiguracion();
+                exitoModal(mensaje)
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    } else {
+        errorModal('Debes completar los campos requeridos');
+    }
+}
+
+function cancelarModificarConfiguracion() {
+    document.getElementById("txtNombreConfiguracion").value = "";
+    document.getElementById("txtIdConfiguracion").value = "";
+    document.getElementById("contenedorNombreConfiguracion").setAttribute("hidden", "hidden");
+    document.getElementById("agregarConfiguracion").removeAttribute("hidden");
+
+    if (listaVacia == true) {
+        document.getElementById("lblListaVacia").innerText = `La lista de ${nombreConfiguracion} esta vacia.`;
+        document.getElementById("lblListaVacia").style.color = 'red';
+        document.getElementById("lblListaVacia").removeAttribute("hidden");
+    }
+}
+
+function agregarConfiguracion() {
+    document.getElementById("txtNombreConfiguracion").value = "";
+    document.getElementById("txtIdConfiguracion").value = "";
+    document.getElementById("contenedorNombreConfiguracion").removeAttribute("hidden");
+    document.getElementById("agregarConfiguracion").setAttribute("hidden", "hidden");
+    document.getElementById("lblListaVacia").innerText = "";
+    document.getElementById("lblListaVacia").setAttribute("hidden", "hidden");
+    document.getElementById("btnRegistrarModificarConfiguracion").textContent = "Agregar";
+
+    $('#lblNombreConfiguracion').css('color', 'red');
+    $('#txtNombreConfiguracion').css('border-color', 'red');
+
+    if (comboNombre != null) {
+        document.getElementById("lblConfiguracionCombo").innerText = lblComboNombre;
+        document.getElementById("cmbConfiguracion").value = "";
+        $('#cmbConfiguracion').css('border-color', 'red');
+    }
+
 }
 
