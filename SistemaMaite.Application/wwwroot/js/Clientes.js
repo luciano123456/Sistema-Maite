@@ -327,33 +327,63 @@ async function configurarDataTableClientes(data) {
     }
 }
 
-/* -------- Cargas para selects (sin token) -------- */
+/* -------- Cargas para selects (con token) -------- */
 async function listaCondicionesIva() {
-    const res = await fetch("/CondicionesIva/Lista", { headers: { 'Content-Type': 'application/json' } });
+    const res = await fetch("/CondicionesIva/Lista", {
+        headers: {
+            "Authorization": "Bearer " + token,
+            "Content-Type": "application/json"
+        }
+    });
     const data = await res.json();
     llenarSelect("cmbCondicionIva", data);
 }
+
 async function listaProvincias() {
-    const res = await fetch("/Provincias/Lista", { headers: { 'Content-Type': 'application/json' } });
+    const res = await fetch("/Provincias/Lista", {
+        headers: {
+            "Authorization": "Bearer " + token,
+            "Content-Type": "application/json"
+        }
+    });
     const data = await res.json();
     llenarSelect("cmbProvincia", data);
 }
+
 async function listaListaPrecios() {
-    const res = await fetch("/ListasPrecios/Lista", { headers: { 'Content-Type': 'application/json' } });
+    const res = await fetch("/ListasPrecios/Lista", {
+        headers: {
+            "Authorization": "Bearer " + token,
+            "Content-Type": "application/json"
+        }
+    });
     const data = await res.json();
     llenarSelect("cmbListaPrecios", data);
 }
 
 /* -------- Filtros (selects del header) -------- */
 async function listaCondicionIvaFilter() {
-    const response = await fetch('/CondicionesIva/Lista', { method: 'GET', headers: { 'Content-Type': 'application/json' } });
-    if (!response.ok) throw new Error('Error cargando Condición IVA');
+    const response = await fetch("/CondicionesIva/Lista", {
+        method: "GET",
+        headers: {
+            "Authorization": "Bearer " + token,
+            "Content-Type": "application/json"
+        }
+    });
+    if (!response.ok) throw new Error("Error cargando Condición IVA");
     const data = await response.json();
-    return data.map(item => ({ Id: item.Id, Nombre: item.Nombre ?? item.Descripcion ?? '' }));
+    return data.map(item => ({ Id: item.Id, Nombre: item.Nombre ?? item.Descripcion ?? "" }));
 }
+
 async function listaProvinciasFilter() {
-    const response = await fetch('/Provincias/Lista', { method: 'GET', headers: { 'Content-Type': 'application/json' } });
-    if (!response.ok) throw new Error('Error cargando Provincias');
+    const response = await fetch("/Provincias/Lista", {
+        method: "GET",
+        headers: {
+            "Authorization": "Bearer " + token,
+            "Content-Type": "application/json"
+        }
+    });
+    if (!response.ok) throw new Error("Error cargando Provincias");
     const data = await response.json();
     return data.map(item => ({ Id: item.Id, Nombre: item.Nombre }));
 }

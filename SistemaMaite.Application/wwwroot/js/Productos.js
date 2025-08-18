@@ -37,10 +37,26 @@ $(document).ready(async () => {
 /* =========================
    Crear / Editar
    ========================= */
-
 function getMultiSelectValues(selectId) {
-    return Array.from(document.getElementById(selectId).selectedOptions).map(o => parseInt(o.value));
+    const el = document.getElementById(selectId);
+    // Si no existe, devolvé []
+    if (!el) return [];
+
+    // Caso <select>: usar selectedOptions si existe (soporta plugins)
+    if (el.tagName?.toLowerCase() === 'select') {
+        const opts = Array.from(el.selectedOptions ?? []);
+        return opts
+            .map(o => Number(o.value))
+            .filter(v => Number.isFinite(v)); // saca "", NaN, etc.
+    }
+
+    // Fallback: si te pasan un contenedor con checkboxes (por si usás checklist)
+    const checks = el.querySelectorAll?.('input[type="checkbox"]:checked') ?? [];
+    return Array.from(checks)
+        .map(cb => Number(cb.value ?? cb.dataset.id))
+        .filter(v => Number.isFinite(v));
 }
+
 
 function setMultiSelectValues(selectId, values) {
     const sel = document.getElementById(selectId);
@@ -57,10 +73,34 @@ function validarCampos() {
     const categoria = $("#cmbCategoria").val();
     const precio = $("#txtPrecio").val();
 
-    const ok = nombre !== '' && categoria !== '' && precio !== '';
-    $("#errorCampos").toggleClass('d-none', ok);
-    return ok;
+    const tallesSel = getTallesSeleccionados();   // usa MultiState o <select multiple>
+    const coloresSel = getColoresSeleccionados();
+
+    const okNombre = nombre !== '';
+    const okCategoria = categoria !== '';
+    const okPrecio = precio !== '' && !isNaN(parseFloat(precio));
+    const okTalles = Array.isArray(tallesSel) && tallesSel.length > 0;
+    const okColores = Array.isArray(coloresSel) && coloresSel.length > 0;
+
+    // estilos / feedback
+    $("#errorCampos")
+        .toggleClass('d-none', (okNombre && okCategoria && okPrecio && okTalles && okColores))
+        .text(!okTalles || !okColores
+            ? 'Debes seleccionar al menos un talle y un color.'
+            : 'Debes completar los campos obligatorios.');
+
+    // bordes rojos en los “botones” checklist (son <div class="form-select">)
+    document.getElementById('btnTalles')?.classList.toggle('is-invalid', !okTalles);
+    document.getElementById('btnColores')?.classList.toggle('is-invalid', !okColores);
+
+    // también marcamos inputs base
+    $("#txtNombre").toggleClass("is-invalid", !okNombre);
+    $("#cmbCategoria").toggleClass("is-invalid", !okCategoria);
+    $("#txtPrecio").toggleClass("is-invalid", !okPrecio);
+
+    return okNombre && okCategoria && okPrecio && okTalles && okColores;
 }
+
 
 async function guardarCambios() {
     if (!validarCampos()) return;
@@ -585,6 +625,7 @@ function renderChecklist(panelId, items, stateKey, btnId, labelTodos = 'Seleccio
             if (cb) cb.checked = ev.target.checked;
         });
         updateChecklistButtonLabel(btnId, stateKey);
+        validarCampos(); // ⬅️ nuevo
     });
 
     items.forEach(it => {
@@ -594,6 +635,7 @@ function renderChecklist(panelId, items, stateKey, btnId, labelTodos = 'Seleccio
             const id = Number(ev.target.getAttribute('data-id'));
             if (ev.target.checked) selected.add(id); else selected.delete(id);
             updateChecklistButtonLabel(btnId, stateKey);
+            validarCampos(); // ⬅️ nuevo
             // actualizar "seleccionar todos"
             const allC = items.length > 0 && items.every(x => selected.has(Number(x.Id)));
             const allBox = document.getElementById(`${panelId}-all`);
