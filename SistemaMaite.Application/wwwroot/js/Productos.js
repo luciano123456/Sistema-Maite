@@ -392,34 +392,47 @@ function llenarSelectConCatalogo(selectId, items) {
 // Reemplaza la función que inventé por tus llamadas a llenarSelect:
 
 function cargarCategorias() {
-    return fetch("/ProductosCategoria/Lista", { headers: { 'Content-Type': 'application/json' } })
+    return fetch("/ProductosCategoria/Lista", {
+        headers: {
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json'
+        }
+    })
         .then(r => r.json())
         .then(data => {
-            Catalogos.categorias = data; // [{Id, Nombre}]
+            Catalogos.categorias = data;
             Catalogos.categoriasMap = new Map(data.map(x => [Number(x.Id), x.Nombre]));
-            // Cargar en el combo del modal (si existe en el DOM)
             if (document.getElementById('cmbCategoria')) llenarSelect('cmbCategoria', data);
         });
 }
 
 function cargarColores() {
-    return fetch("/Colores/Lista", { headers: { 'Content-Type': 'application/json' } })
+    return fetch("/Colores/Lista", {
+        headers: {
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json'
+        }
+    })
         .then(r => r.json())
         .then(data => {
-            Catalogos.colores = data; // [{Id, Nombre}]
+            Catalogos.colores = data;
             Catalogos.coloresMap = new Map(data.map(x => [Number(x.Id), x.Nombre]));
             if (document.getElementById('cmbColores')) {
-                // Para múltiples, tu llenarSelect normalmente mete "Seleccione". Si no querés esa opción, podés filtrarla después.
                 llenarSelect('cmbColores', data);
-                // Si tu helper no soporta multiple sin "Seleccione", quitá la primera opción:
                 const sel = document.getElementById('cmbColores');
                 if (sel && sel.multiple && sel.options[0]?.value === "") sel.remove(0);
             }
         });
 }
 
+
 function cargarTalles() {
-    return fetch("/ProductosCategoriasTalle/Lista", { headers: { 'Content-Type': 'application/json' } })
+    return fetch("/ProductosCategoriasTalle/Lista", {
+        headers: {
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json'
+        }
+    })
         .then(r => r.ok ? r.json() : [])
         .then(data => {
             const norm = data.map(x => ({ Id: x.Id ?? x.IdTalle ?? 0, Nombre: x.Nombre ?? x.TalleNombre ?? '' }));
@@ -439,21 +452,26 @@ async function recargarTallesPorCategoria(idCategoria) {
     let data = [];
     try {
         if (idCategoria && idCategoria > 0) {
-            const r = await fetch(`/ProductosCategoriasTalle/ListaPorCategoria?idCategoria=${idCategoria}`, { headers: { 'Content-Type': 'application/json' } });
+            const r = await fetch(`/ProductosCategoriasTalle/ListaPorCategoria?idCategoria=${idCategoria}`, {
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                }
+            });
             const rel = await r.json();
             data = rel.map(r => ({ Id: r.IdTalle ?? r.Id ?? 0, Nombre: r.TalleNombre ?? r.Nombre ?? '' }));
         } else {
-            data = Catalogos.talles; // full
+            data = Catalogos.talles;
         }
-    } catch { data = Catalogos.talles; }
+    } catch {
+        data = Catalogos.talles;
+    }
 
-    // actualizar cache y mapa (así el botón puede mostrar nombres)
     Catalogos.talles = data;
     Catalogos.tallesMap = new Map(data.map(x => [Number(x.Id), x.Nombre]));
-
-    // re-render del checklist
     renderChecklist('listaTalles', Catalogos.talles, 'talles', 'btnTalles');
 }
+
 
 
 
@@ -471,23 +489,33 @@ async function listaCategoriasFilter() {
    ========================= */
 
 async function listaTallesPorProducto(idProducto) {
-    // Si no tenés estos endpoints, devolvemos []
     try {
-        const r = await fetch(`/ProductosTalles/ListaPorProducto?id=${idProducto}`, { headers: { 'Content-Type': 'application/json' } });
+        const r = await fetch(`/ProductosTalles/ListaPorProducto?id=${idProducto}`, {
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        });
         if (!r.ok) return [];
-        const data = await r.json(); // [{IdTalle}] o [{Id}]
+        const data = await r.json();
         return data.map(x => Number(x.IdTalle ?? x.Id));
     } catch { return []; }
 }
 
 async function listaColoresPorProducto(idProducto) {
     try {
-        const r = await fetch(`/ProductosColores/ListaPorProducto?id=${idProducto}`, { headers: { 'Content-Type': 'application/json' } });
+        const r = await fetch(`/ProductosColores/ListaPorProducto?id=${idProducto}`, {
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        });
         if (!r.ok) return [];
-        const data = await r.json(); // [{IdColor}] o [{Id}]
+        const data = await r.json();
         return data.map(x => Number(x.IdColor ?? x.Id));
     } catch { return []; }
 }
+
 
 /* =========================
    Utilidades varias
@@ -604,10 +632,14 @@ function getColoresSeleccionados() {
 // cache
 Catalogos.listasPrecios = Catalogos.listasPrecios || [];
 
-// render inputs (una por lista)
 async function renderPreciosListas(valores = []) {
     if (!Catalogos.listasPrecios.length) {
-        const r = await fetch('/ListasPrecios/Lista', { headers: { 'Content-Type': 'application/json' } });
+        const r = await fetch('/ListasPrecios/Lista', {
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        });
         Catalogos.listasPrecios = await r.json(); // [{Id, Nombre}]
     }
     const mapValores = new Map(valores.map(x => [Number(x.IdListaPrecio), Number(x.PrecioUnitario)]));
