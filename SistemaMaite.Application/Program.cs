@@ -84,6 +84,9 @@ builder.Services.AddScoped<IProductosRepository<Producto>, ProductosRepository>(
 builder.Services.AddScoped<IProductosService, ProductosService>();
 
 
+builder.Services.AddScoped<ICajasRepository<Caja>, CajasRepository>();
+builder.Services.AddScoped<ICajasService, CajasService>();
+
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(o =>
     {

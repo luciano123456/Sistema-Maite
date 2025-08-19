@@ -1,0 +1,188 @@
+﻿@{
+    ViewData["Title"] = "Movimientos de Caja";
+}
+
+@section Estilos {
+    <link href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css" rel="stylesheet" />
+    <link href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css" rel="stylesheet" />
+    <link href="https://cdn.datatables.net/fixedheader/3.2.2/css/fixedHeader.dataTables.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link href="~/css/Cajas.css" rel="stylesheet" />
+}
+
+<div class="container-fluid mt-5">
+    <partial name="~/Views/Shared/Partials/BotonMenu.cshtml" />
+    <div class="row">
+        <div class="col-lg-10">
+            <div class="card" style="width: 88%; position: absolute; left: 7vw; border: none;">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Movimientos de Caja</span>
+
+                    <div class="dropdown">
+                        <button class="btn btn-secondary dropdown-toggle d-flex align-items-center" type="button" id="dropdownColumnas" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fa fa-cog me-2"></i> Config. Columnas
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="dropdownColumnas" id="configColumnasMenu">
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <table class="display nowrap" id="grd_Caja" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th>Fecha</th>
+                                <th>Tipo</th>
+                                <th>Concepto</th>
+                                <th>Ingreso</th>
+                                <th>Egreso</th>
+                                <th>Sucursal</th>
+                                <th>Cuenta</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- DataTable -->
+                        </tbody>
+
+
+                    </table>
+
+
+                </div>
+
+
+
+                <div class="totales-botones-container mb-4">
+
+                    <!-- Sumas -->
+                    <div class="grupo-totales">
+                        <div class="form-group mb-0">
+                            <label class="form-label fw-bold">Suma de ingresos</label>
+                            <input type="text" class="form-control form-control-sm text-start" id="txtTotalIngreso" readonly>
+                        </div>
+
+                        <div class="form-group mb-0">
+                            <label class="form-label fw-bold">Suma de egresos</label>
+                            <input type="text" class="form-control form-control-sm text-start" id="txtTotalEgreso" readonly>
+                        </div>
+
+                        <div class="form-group mb-0">
+                            <label class="form-label fw-bold">Saldo</label>
+                            <input type="text" class="form-control form-control-sm text-start" id="txtTotalSaldo" readonly>
+                        </div>
+                    </div>
+
+                    <!-- Botones -->
+                    <div class="grupo-botones ">
+
+                        <button class="btn btn-success d-flex align-items-center px-3 py-2 text-center" onclick="nuevoCaja()">
+                            <i class="fa fa-plus-square"></i> Nuevo mov.
+                        </button>
+
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modalEdicion" tabindex="-1" role="dialog" aria-labelledby="modalEdicionLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-edicion" role="document">
+        <div class="modal-content">
+
+            <div class="modal-header colorEncabezado">
+                <h5 class="modal-title fw-bold" id="modalEdicionLabel">Nuevo Movimiento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <div class="modal-body">
+                <form id="formCaja" class="row g-3">
+                    <input type="text" id="txtId" hidden>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Sucursal</label>
+                        <select id="cmbSucursal" class="form-control" required>
+                            <option value="">Seleccione</option>
+                        </select>
+                        <div class="invalid-feedback">Campo obligatorio</div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Cuenta</label>
+                        <select id="cmbCuenta" class="form-control" required>
+                            <option value="">Seleccione</option>
+                        </select>
+                        <div class="invalid-feedback">Campo obligatorio</div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Fecha</label>
+                        <input type="date" class="form-control" id="dtpFecha" required />
+                        <div class="invalid-feedback">Campo obligatorio</div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Tipo</label>
+                        <select id="cmbTipoMov" class="form-control" required>
+                            <option value="">Seleccione</option>
+                            <option value="Ingreso">Ingreso</option>
+                            <option value="Egreso">Egreso</option>
+                        </select>
+                        <div class="invalid-feedback">Campo obligatorio</div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Concepto</label>
+                        <input type="text" class="form-control" id="txtConcepto" required />
+                        <div class="invalid-feedback">Campo obligatorio</div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Ingreso</label>
+                        <input type="text" class="form-control Inputmiles" id="numIngreso" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Egreso</label>
+                        <input type="text"class="form-control Inputmiles" id="numEgreso" />
+                    </div>
+
+                    <div id="errorCampos" class="alert alert-danger d-none col-12">
+                        Completá los campos obligatorios y al menos un importe (Ingreso o Egreso).
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fa fa-arrow-left"></i> Volver
+                </button>
+                <button type="button" id="btnGuardar" class="btn btn-primary" onclick="guardarCambios()">
+                    <i class="fa fa-check"></i> Registrar
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<partial name="~/Views/Utils/Modals.cshtml" />
+
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
+    <script src="~/js/site.js"></script>
+    <script src="~/js/utils/moment.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.print.min.js"></script>
+    <script src="https://cdn.datatables.net/fixedheader/3.2.2/js/dataTables.fixedHeader.min.js"></script>
+
+    <script src="~/js/Cajas.js?v=1.0"></script>
+}
