@@ -1,0 +1,135 @@
+﻿.modal-transferencia {
+    max-width: 550px; /* o lo que necesites */
+}
+
+.is-invalid {
+    border-color: red !important;
+    box-shadow: 0 0 5px red;
+}
+
+
+.invalid-feedback {
+    display: none;
+    color: #dc3545;
+    font-size: 0.875em;
+}
+
+.is-invalid ~ .invalid-feedback {
+    display: block;
+}
+
+
+.alert-validacion {
+    background-color: rgba(240, 240, 240, 0.9); /* gris claro con transparencia */
+    border: 1px solid rgba(180, 180, 180, 0.7);
+    padding: 10px 15px;
+    border-radius: 8px;
+    color: #b30000;
+    font-weight: 600;
+    text-align: center;
+    margin-top: 10px;
+    transition: all 0.3s ease-in-out;
+}
+
+input:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0px 1000px white inset !important;
+    box-shadow: 0 0 0px 1000px white inset !important;
+    caret-color: #000;
+    color: #000 !important;
+}
+
+
+.totales-botones-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.grupo-totales {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    flex-grow: 1;
+    align-items: flex-end;
+}
+
+    .grupo-totales .form-group {
+        flex: 1 1 auto;
+        max-width: 180px;
+    }
+
+.form-control-sm {
+    height: 30px;
+    padding: 2px 8px;
+    font-size: 0.875rem;
+}
+
+.grupo-botones {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+    .grupo-botones .btn {
+        white-space: nowrap;
+        padding: 4px 10px;
+        font-size: 0.85rem;
+    }
+
+        .grupo-botones .btn i {
+            margin-right: 6px;
+        }
+
+@media (max-width: 768px) {
+    .totales-botones-container {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .grupo-totales,
+    .grupo-botones {
+        flex-direction: column;
+        width: 100%;
+        align-items: stretch;
+    }
+
+        .grupo-totales .form-group {
+            max-width: 100%;
+        }
+
+        .grupo-botones .btn {
+            width: 100%;
+        }
+}
+
+
+.grupo-botones .btn {
+    white-space: nowrap;
+    padding: 4px 10px;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center; /* 👈 Centra horizontalmente */
+}
+
+
+.modal-edicion {
+    max-width: 60%; /* o lo que necesites */
+}
+
+
+@media (max-width: 1300px) {
+    .modal-edicion {
+        max-width: 80%; /* o lo que necesites */
+    }
+}
+
+@media (max-width: 900px) {
+    .modal-edicion {
+        max-width: 98%; /* o lo que necesites */
+    }
+}

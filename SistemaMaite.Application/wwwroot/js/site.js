@@ -468,3 +468,32 @@ $(document).on('click', function (e) {
         $('.acciones-dropdown').hide(); // Cerrar todos los dropdowns
     }
 });
+
+
+// Agregar listener a todos los inputs con class="miles"
+document.querySelectorAll("input.Inputmiles").forEach(input => {
+    input.addEventListener("input", function () {
+        const cursorPos = input.selectionStart;
+        const originalLength = input.value.length;
+
+        // limpiar todo lo que no sea número
+        const soloNumeros = input.value.replace(/\D/g, "");
+        if (soloNumeros === "") {
+            input.value = "";
+            return;
+        }
+
+        // aplicar formateo
+        const formateado = formatearMiles(soloNumeros);
+
+        input.value = formateado;
+
+        // restaurar posición del cursor
+        const newLength = formateado.length;
+        input.setSelectionRange(
+            cursorPos + (newLength - originalLength),
+            cursorPos + (newLength - originalLength)
+        );
+    });
+
+});
