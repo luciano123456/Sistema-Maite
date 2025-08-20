@@ -644,3 +644,7 @@ const Filters = (() => {
 
     return { FilterManager };
 })();
+
+function escapeRegex(text) {
+    return (text + '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}

@@ -504,9 +504,7 @@ function numeroNulo(v) {
     return isNaN(n) ? null : n;
 }
 
-function escapeRegex(text) {
-    return (text + '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
+
 
 
 const sm = document.getElementById("numSueldoMensual");
