@@ -225,3 +225,39 @@ input:-webkit-autofill {
 .invalid-feedback {
     margin-top: .25rem;
 }
+
+
+.filter-bar {
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.08);
+}
+
+    .filter-bar .form-label {
+        margin-bottom: .25rem;
+        font-weight: 600;
+    }
+
+@media (max-width: 575.98px) {
+    #formFiltros .btn {
+        width: 100%;
+    }
+}
+
+
+/* Fila especial de saldo anterior */
+.saldo-anterior-row td {
+    background: #f2fbf5 !important; /* verdoso muy suave */
+    border-top: 2px solid #d3f0da;
+    border-bottom: 2px solid #d3f0da;
+}
+
+.saldo-anterior-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .25rem;
+    font-size: 0.95rem;
+}
+
+.saldo-anterior-row .badge.bg-success {
+    font-weight: 600;
+}

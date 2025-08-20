@@ -3,18 +3,21 @@
 <Project>
   <PropertyGroup>
     <_PublishTargetUrl>D:\Publicaciones Webs\Sistema Maite</_PublishTargetUrl>
-    <History>True|2025-08-18T06:19:32.3723767Z||;True|2025-08-18T03:16:01.7993740-03:00||;True|2025-08-18T03:09:19.3695566-03:00||;True|2025-08-18T03:06:10.4638872-03:00||;True|2025-08-15T23:00:55.4995320-03:00||;</History>
+    <History>True|2025-08-20T07:21:33.6499260Z||;True|2025-08-18T03:19:32.3723767-03:00||;True|2025-08-18T03:16:01.7993740-03:00||;True|2025-08-18T03:09:19.3695566-03:00||;True|2025-08-18T03:06:10.4638872-03:00||;True|2025-08-15T23:00:55.4995320-03:00||;</History>
     <LastFailureDetails />
   </PropertyGroup>
   <ItemGroup>
     <File Include="Views/AccesoDenegado/Index.cshtml">
       <publishTime>08/11/2025 23:47:33</publishTime>
     </File>
+    <File Include="Views/Cajas/Index.cshtml">
+      <publishTime>08/20/2025 04:20:49</publishTime>
+    </File>
     <File Include="Views/Clientes/Index.cshtml">
-      <publishTime>08/18/2025 16:42:37</publishTime>
+      <publishTime>08/20/2025 04:20:53</publishTime>
     </File>
     <File Include="Views/Home/Index.cshtml">
-      <publishTime>08/18/2025 16:37:27</publishTime>
+      <publishTime>08/20/2025 04:20:58</publishTime>
     </File>
     <File Include="Views/Home/Privacy.cshtml">
       <publishTime>08/14/2025 03:07:12</publishTime>
@@ -23,10 +26,10 @@
       <publishTime>08/12/2025 14:15:54</publishTime>
     </File>
     <File Include="Views/Personal/Index.cshtml">
-      <publishTime>08/18/2025 16:42:43</publishTime>
+      <publishTime>08/20/2025 04:21:02</publishTime>
     </File>
     <File Include="Views/Productos/Index.cshtml">
-      <publishTime>08/18/2025 16:37:27</publishTime>
+      <publishTime>08/18/2025 23:36:22</publishTime>
     </File>
     <File Include="Views/Shared/Error.cshtml">
       <publishTime>08/11/2025 23:47:33</publishTime>
@@ -63,6 +66,9 @@
     </File>
     <File Include="wwwroot/css/BotonMenu.css">
       <publishTime>11/08/2025 23:47:33</publishTime>
+    </File>
+    <File Include="wwwroot/css/Cajas.css">
+      <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/css/Home.css">
       <publishTime>01/01/0001 00:00:00</publishTime>
@@ -124,6 +130,9 @@
     <File Include="wwwroot/Imagenes/Menu Principal/Analisis.png">
       <publishTime>11/08/2025 23:47:33</publishTime>
     </File>
+    <File Include="wwwroot/Imagenes/Menu Principal/Cajas.png">
+      <publishTime>01/01/0001 00:00:00</publishTime>
+    </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Chofer.png">
       <publishTime>11/08/2025 23:47:33</publishTime>
     </File>
@@ -152,13 +161,13 @@
       <publishTime>11/08/2025 23:47:33</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Nueva Venta.png">
-      <publishTime>11/08/2025 23:47:33</publishTime>
+      <publishTime>08/11/2025 23:47:33</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Nueva Zona.png">
       <publishTime>11/08/2025 23:47:33</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Nuevo Cliente.png">
-      <publishTime>11/08/2025 23:47:33</publishTime>
+      <publishTime>08/11/2025 23:47:33</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Nuevo Pedido.png">
       <publishTime>11/08/2025 23:47:33</publishTime>
@@ -194,7 +203,7 @@
       <publishTime>11/08/2025 23:47:33</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/productos.png">
-      <publishTime>11/08/2025 23:47:33</publishTime>
+      <publishTime>08/11/2025 23:47:33</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/proveedores.png">
       <publishTime>11/08/2025 23:47:33</publishTime>
@@ -216,6 +225,9 @@
     </File>
     <File Include="wwwroot/Imagenes/Ventas.png">
       <publishTime>11/08/2025 23:47:33</publishTime>
+    </File>
+    <File Include="wwwroot/js/Cajas.js">
+      <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/js/Clientes.js">
       <publishTime>01/01/0001 00:00:00</publishTime>

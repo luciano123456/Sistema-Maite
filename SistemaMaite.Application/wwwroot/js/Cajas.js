@@ -11,7 +11,7 @@ let gridTransf = null;
 let editingTransfer = null;
 
 /* ============================
-   Config filtros de la tabla
+   Config filtros de la tabla (header DataTable)
    ============================ */
 
 // columnas: 1 Fecha | 2 Tipo | 3 Concepto | 4 Ingreso | 5 Egreso | 6 Sucursal | 7 Cuenta
@@ -25,9 +25,14 @@ const columnConfig = [
     { index: 7, filterType: "select", fetchDataFunc: listaCuentasFilter },
 ];
 
+
+/* ============================
+   ARRANQUE
+   ============================ */
+
 $(document).ready(() => {
-    listaCaja();
-    attachLiveValidation("#modalEdicion");
+    initFiltros();               // filtros + primera carga
+    attachLiveValidation("#modalEdicion"); // utilidad del proyecto
 
     ["#numImporte", "#cmbTipoMov"].forEach((sel) => {
         $(sel).on("input change", () => validarReglaMontos());
@@ -88,7 +93,8 @@ function guardarCambios() {
         .then(() => {
             $("#modalEdicion").modal("hide");
             exitoModal(id === "" ? "Movimiento registrado correctamente" : "Movimiento modificado correctamente");
-            listaCaja();
+            // recargar la lista respetando filtros actuales
+            if (window._fmCaja) window._fmCaja.search(); else listaCaja();
         })
         .catch((err) => {
             console.error("Error:", err);
@@ -137,26 +143,52 @@ async function mostrarModalCaja(modelo) {
 
 /* ========== Lista principal (DataTable) ========== */
 
-async function listaCaja() {
+async function listaCaja(filtros = {}) {
     let paginaActual = gridCaja != null ? gridCaja.page() : 0;
 
-    const response = await fetch("/Cajas/Lista", {
-        method: "GET",
-        headers: {
-            Authorization: "Bearer " + token,
-            "Content-Type": "application/json",
-        },
+    // build querystring (sólo params con valor)
+    const qs = new URLSearchParams();
+    Object.entries(filtros).forEach(([k, v]) => {
+        if (v !== '' && v != null) qs.append(k, v);
     });
 
-    if (!response.ok) {
-        errorModal("Error obteniendo movimientos.");
-        return;
-    }
+    const resp = await fetch('/Cajas/Lista' + (qs.toString() ? `?${qs}` : ''), {
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' }
+    });
+    if (!resp.ok) { errorModal('Error obteniendo movimientos.'); return; }
 
-    const data = await response.json();
-    await configurarDataTableCaja(data);
+    const json = await resp.json();
 
-    if (paginaActual > 0) gridCaja.page(paginaActual).draw("page");
+    // Soportar tanto el formato nuevo {SaldoAnterior, Movimientos}
+    // como el viejo [ ... ] para no romper nada si el back aún no está.
+    let rows = Array.isArray(json) ? json : (json.Movimientos ?? json.movimientos ?? []);
+    const saldoAnterior = Number(json.SaldoAnterior ?? json.saldoAnterior ?? 0);
+
+    // fechaDesde para el texto (toma del objeto de filtros o del form si no lo pasaron)
+    const fDesde = filtros.FechaDesde || filtros.desde || document.getElementById('fltDesde')?.value || '';
+
+    // 👇 fila "virtual" de saldo (no afecta totales porque Ingreso/Egreso = 0)
+    const saldoRow = {
+        Id: 0,
+        Fecha: '',
+        TipoMov: '',
+        Concepto: fDesde
+            ? `Saldo anterior al ${formatearFechaParaVista(fDesde)}`
+            : `Saldo anterior`,
+        Ingreso: 0,
+        Egreso: 0,
+        Sucursal: '',
+        Cuenta: '',
+        __isSaldo: true,
+        __saldoAnterior: saldoAnterior
+    };
+
+    // prepend
+    rows = [saldoRow, ...rows];
+
+    await configurarDataTableCaja(rows);
+
+    if (paginaActual > 0) gridCaja.page(paginaActual).draw('page');
     calcularIngresos();
 }
 
@@ -192,13 +224,46 @@ async function configurarDataTableCaja(data) {
                 {
                     data: "Fecha",
                     title: "Fecha",
-                    render: (data, type) => {
+                    render: function (data, type, row) {
+                        // Fila sintética de saldo
+                        if (row.__isSaldo) {
+                            if (type === "display" || type === "filter") {
+                                const montoNum = Number(row.__saldoAnterior || 0);
+                                const badgeCls = montoNum < 0 ? "bg-danger" : "bg-success";
+                                return `
+          <div class="saldo-anterior-chip">
+            <span class="badge ${badgeCls} me-2">Saldo anterior</span>
+          </div>`;
+                            }
+                            // para ordenar/exportar
+                            return "";
+                        }
+
+                        // Filas normales
                         if (type === "display" || type === "filter") return formatearFechaParaVista(data) || "-";
                         return data; // ordenar/exportar
-                    },
+                    }
                 },
                 { data: "TipoMov", title: "Tipo" },
-                { data: "Concepto", title: "Concepto" },
+                {
+                    data: "Concepto",
+                    title: "Concepto",
+                    render: function (data, type, row) {
+                        if (!row.__isSaldo) return data ?? "";
+
+                        // Fila de “Saldo anterior”: color según signo
+                        const montoNum = Number(row.__saldoAnterior || 0);
+                        const txtCls = montoNum < 0 ? "text-danger" : "text-success";
+                        const montoFmt = formatNumber(montoNum);
+                        const label = row.Concepto || "Saldo anterior";
+
+                        return `
+      <div class="saldo-anterior-chip">
+        <span class="ms-1 fw-bold ${txtCls}">${label}:</span>
+        <span class="ms-1 fw-bold ${txtCls}">${montoFmt}</span>
+      </div>`;
+                    }
+                },
                 {
                     data: "Ingreso",
                     title: "Ingreso",
@@ -252,7 +317,7 @@ async function configurarDataTableCaja(data) {
             initComplete: async function () {
                 const api = this.api();
 
-                // Filtros por columna
+                // Filtros por columna (header de DataTable)
                 for (const config of columnConfig) {
                     const cell = $(".filters th").eq(config.index);
 
@@ -260,8 +325,19 @@ async function configurarDataTableCaja(data) {
                         const select = $(`<select id="filter${config.index}"><option value="">Seleccionar</option></select>`)
                             .appendTo(cell.empty())
                             .on("change", async function () {
+                                const val = this.value; // '' si es el placeholder
+                                if (val === "") {
+                                    // limpiar filtro
+                                    await api.column(config.index).search("").draw();
+                                    return;
+                                }
+
+                                // si la columna muestra el texto
                                 const selectedText = $(this).find("option:selected").text();
-                                await api.column(config.index).search(selectedText ? "^" + escapeRegex(selectedText) + "$" : "", true, false).draw();
+                                await api
+                                    .column(config.index)
+                                    .search("^" + escapeRegex(selectedText) + "$", true, false)
+                                    .draw();
                             });
 
                         const items = await config.fetchDataFunc();
@@ -288,7 +364,7 @@ async function configurarDataTableCaja(data) {
 
                 configurarOpcionesColumnas("#grd_Caja", "#configColumnasMenu", "Caja_Columnas");
 
-                // totales al iniciar y en cada draw
+                // totales al iniciar y en cada draw (busca/ordena/pagina)
                 calcularIngresos();
                 api.on("draw", () => calcularIngresos());
 
@@ -318,7 +394,7 @@ async function listaCuentas() {
     llenarSelect("cmbCuenta", data);
 }
 
-/* ========== Filtros (header) helpers ========== */
+/* ========== Filtros (header DataTable) helpers ========== */
 
 async function listaSucursalesFilter() {
     const response = await fetch("/Sucursales/Lista", {
@@ -355,15 +431,14 @@ function escapeRegex(text) {
 
 async function calcularIngresos() {
     if (!gridCaja) return;
-    const data = gridCaja.rows({ search: "applied" }).data().toArray();
+    const data = gridCaja.rows({ search: "applied" }).data().toArray()
+        .filter(r => !r.__isSaldo);
 
-    let totalIngreso = 0;
-    let totalEgreso = 0;
-    for (let i = 0; i < data.length; i++) {
-        totalIngreso += parseFloat(data[i].Ingreso) || 0;
-        totalEgreso += parseFloat(data[i].Egreso) || 0;
+    let totalIngreso = 0, totalEgreso = 0;
+    for (const r of data) {
+        totalIngreso += parseFloat(r.Ingreso) || 0;
+        totalEgreso += parseFloat(r.Egreso) || 0;
     }
-
     const totalSaldo = totalIngreso - totalEgreso;
 
     document.getElementById("txtTotalIngreso").value = formatNumber(totalIngreso);
@@ -372,13 +447,8 @@ async function calcularIngresos() {
 
     const inputSaldo = document.getElementById("txtTotalSaldo");
     inputSaldo.style.fontWeight = "bold";
-    if (totalSaldo >= 0) {
-        inputSaldo.classList.remove("text-danger");
-        inputSaldo.classList.add("text-success");
-    } else {
-        inputSaldo.classList.remove("text-success");
-        inputSaldo.classList.add("text-danger");
-    }
+    inputSaldo.classList.toggle("text-success", totalSaldo >= 0);
+    inputSaldo.classList.toggle("text-danger", totalSaldo < 0);
 }
 
 /* ======================================================
@@ -411,27 +481,20 @@ function ensureDeleteBtn(show, idTransf) {
     });
 }
 
-// check verde/rojo del input-group
-// Indicador al lado del select (check verde o rojo).
-// lock=true deja el rojo "bloqueado" para que ningún otro handler lo vuelva a poner en verde.
+// check verde/rojo del input-group con bloqueo de error
 function toggleCheck(selector, show, isError = false, lock = false) {
     const $ind = $(selector).closest('.input-group').find('.valid-indicator');
     if (!$ind.length) return;
 
     if (lock) $ind.addClass('force-error'); else $ind.removeClass('force-error');
 
-    // Si está bloqueado como error, mantené rojo pase lo que pase
     if ($ind.hasClass('force-error')) {
         $ind.removeClass('d-none bg-success').addClass('text-white bg-danger');
         return;
     }
 
-    // Estado normal
     $ind.removeClass('d-none bg-success bg-danger text-white');
-    if (!show) {
-        $ind.addClass('d-none');
-        return;
-    }
+    if (!show) { $ind.addClass('d-none'); return; }
     $ind.addClass('text-white').addClass(isError ? 'bg-danger' : 'bg-success');
 }
 
@@ -443,8 +506,6 @@ function markSelect2Invalid(sel, invalid) {
             .toggleClass('is-invalid', !!invalid);
     }
 }
-
-
 function _anchorFor($el) {
     if ($.fn.select2 && $el.hasClass('select2-hidden-accessible')) {
         return $el.next('.select2-container');
@@ -452,36 +513,28 @@ function _anchorFor($el) {
     const $ig = $el.closest('.input-group');
     return $ig.length ? $ig : $el;
 }
-
-// crea/actualiza feedback debajo del control (input, select o select2)
 function showInvalid(sel, msg) {
     const $el = $(sel);
     $el.addClass('is-invalid');
     markSelect2Invalid(sel, true);
 
     const $anc = _anchorFor($el);
-
-    // limpiamos feedbacks anteriores para no duplicar
     $anc.nextAll('.invalid-feedback.auto-feedback').remove();
 
-    // creamos feedback justo después del anchor
     $('<div class="invalid-feedback auto-feedback d-block"></div>')
         .text(msg || 'Campo obligatorio')
         .insertAfter($anc)
         .removeClass('d-none')
         .addClass('d-block');
 }
-
-// REEMPLAZAR clearInvalid por ESTE
 function clearInvalid(sel) {
     const $el = $(sel);
     $el.removeClass('is-invalid');
     markSelect2Invalid(sel, false);
 
-    // limpiamos en todos los posibles anchors
     const $ancMain = _anchorFor($el);
-    const $ancAlt1 = $el;                         // por si alguna vez se colgó del propio select
-    const $ancAlt2 = $el.closest('.input-group'); // o del input-group
+    const $ancAlt1 = $el;
+    const $ancAlt2 = $el.closest('.input-group');
 
     [$ancMain, $ancAlt1, $ancAlt2].forEach($a => {
         if ($a && $a.length) {
@@ -489,41 +542,30 @@ function clearInvalid(sel) {
         }
     });
 }
+
 // limpia todos los errores del modal
 function resetTransferValidationUI() {
-    // cartel general
     $('#errorTransf').addClass('d-none').text('');
-
-    // clases
     $('#formNuevaTransferencia .is-invalid').removeClass('is-invalid');
     markSelect2Invalid('#cmbSucursalTransf', false);
     markSelect2Invalid('#cmbCuentaOrigen', false);
     markSelect2Invalid('#cmbCuentaDestino', false);
-
-    // feedbacks sueltos (limpia todo lo que creamos dinámicamente)
     $('#modalTransfer .invalid-feedback.auto-feedback').remove();
-
-    // checks de validación visual
     toggleCheck('#cmbCuentaOrigen', false);
     toggleCheck('#cmbCuentaDestino', false);
 }
 
-
-// pinta checks y devuelve false si origen==destino
 // Requeridos + igualdad. Devuelve true si ambos son válidos y distintos.
 function evaluarCuentasIgualesYMarcar() {
     const o = $('#cmbCuentaOrigen').val();
     const d = $('#cmbCuentaDestino').val();
 
-    // Limpio banner general
     $('#errorTransf').addClass('d-none').text('');
-
     let ok = true;
 
-    // --- requeridos ---
     if (!o) {
         showInvalid('#cmbCuentaOrigen', 'Campo obligatorio');
-        toggleCheck('#cmbCuentaOrigen', false, false, false); // sin indicador si falta
+        toggleCheck('#cmbCuentaOrigen', false, false, false);
         ok = false;
     } else {
         clearInvalid('#cmbCuentaOrigen');
@@ -537,23 +579,17 @@ function evaluarCuentasIgualesYMarcar() {
         clearInvalid('#cmbCuentaDestino');
     }
 
-    // Si falta alguno, no evaluamos igualdad
     if (!o || !d) return ok;
 
-    // --- igualdad ---
     if (o === d) {
         showInvalid('#cmbCuentaOrigen', 'Cuenta origen y destino no pueden ser iguales.');
         showInvalid('#cmbCuentaDestino', 'Cuenta origen y destino no pueden ser iguales.');
-
-        // 🔴 ambos con indicador rojo bloqueado
         toggleCheck('#cmbCuentaOrigen', true, true, true);
         toggleCheck('#cmbCuentaDestino', true, true, true);
-
         $('#errorTransf').text('Origen y destino no pueden ser la misma cuenta.').removeClass('d-none');
         return false;
     }
 
-    // ✅ válidos y distintos → checks verdes (liberamos el "bloqueo" si lo había)
     toggleCheck('#cmbCuentaOrigen', true, false, false);
     toggleCheck('#cmbCuentaDestino', true, false, false);
     return true;
@@ -592,10 +628,7 @@ function abrirModalTransfer() {
         $('#cmbCuentaOrigen, #cmbCuentaDestino')
             .off('change.eq')
             .on('change.eq', function () {
-                // recalcula todo: requeridos + igualdad + checks
                 const okPar = evaluarCuentasIgualesYMarcar();
-
-                // si ambos elegidos y válidos → cargar historial
                 if (okPar && $('#cmbCuentaOrigen').val() && $('#cmbCuentaDestino').val()) {
                     cargarHistorialTransferencias();
                 }
@@ -659,7 +692,7 @@ function validarTransferenciaModal() {
 
     const imp = Number(formatearSinMiles($("#numImporteTransf").val()));
     if (!(imp > 0)) {
-        showInvalid("#numImporteTransf", "Campo obligatorio");
+        showInvalid("#numImporteTransf", "El importe debe ser mayor a 0.");
         ok = false;
     }
 
@@ -722,9 +755,12 @@ async function guardarTransferencia() {
         $("#modalTransfer").modal("hide");
         editingTransfer = null;
 
-        await listaCaja();
-        calcularIngresos();
-        cargarHistorialTransferencias();
+        if (window._fmCaja) window._fmCaja.search();
+        else {
+            await listaCaja();
+            calcularIngresos();
+            cargarHistorialTransferencias();
+        }
     } catch (e) {
         console.error(e);
         errorModal("No se pudo guardar la transferencia.");
@@ -774,7 +810,6 @@ async function cargarHistorialTransferencias() {
     }
 }
 
-// Eliminar transferencia (desde historial o botón del pie)
 async function eliminarTransferencia(id, opts = {}) {
     if (!(await confirmarModal("¿Eliminar esta transferencia? Se revertirán los asientos."))) return;
     const { closeModal = false } = opts;
@@ -788,7 +823,7 @@ async function eliminarTransferencia(id, opts = {}) {
         if (j.valor) {
             exitoModal("Transferencia eliminada");
             await cargarHistorialTransferencias();
-            await listaCaja();
+            if (window._fmCaja) await window._fmCaja.search(); else await listaCaja();
             calcularIngresos();
             if (closeModal) {
                 $("#modalTransfer").modal("hide");
@@ -801,7 +836,7 @@ async function eliminarTransferencia(id, opts = {}) {
     }
 }
 
-// Evitar submit por Enter
+// Evitar submit por Enter en modal
 $("#formNuevaTransferencia").on("submit", (e) => e.preventDefault());
 
 /* ======================
@@ -891,10 +926,7 @@ async function editarTransferenciaDesdeMovimiento(idCaja) {
         $('#cmbCuentaOrigen, #cmbCuentaDestino')
             .off('change.eq')
             .on('change.eq', function () {
-                // recalcula todo: requeridos + igualdad + checks
                 const okPar = evaluarCuentasIgualesYMarcar();
-
-                // si ambos elegidos y válidos → cargar historial
                 if (okPar && $('#cmbCuentaOrigen').val() && $('#cmbCuentaDestino').val()) {
                     cargarHistorialTransferencias();
                 }
@@ -929,25 +961,63 @@ async function eliminarCajaDesdeModal() {
         if (!r.ok || !j.valor) throw new Error(j.mensaje || "No se pudo eliminar.");
         $("#modalEdicion").modal("hide");
         exitoModal("Movimiento eliminado.");
-        await listaCaja();
-        calcularIngresos();
+        if (window._fmCaja) window._fmCaja.search(); else { await listaCaja(); calcularIngresos(); }
     } catch (e) {
         console.error(e);
         errorModal(e.message || "No se pudo eliminar.");
     }
 }
 
-// limpia en cuanto selecciona algo en los selects requeridos
-$('#cmbSucursalTransf, #cmbCuentaOrigen, #cmbCuentaDestino')
-    .off('change.clean')
-    .on('change.clean', function () {
-        if ($(this).val()) clearInvalid(this);
-        else showInvalid(this, 'Campo obligatorio'); // si vuelve a dejarlo vacío
-        evaluarCuentasIgualesYMarcar();
+/* ==========================================================
+   Inicialización de filtros superiores (formulario externo)
+   ========================================================== */
+
+async function initFiltros() {
+    // Cargar combos (Sucursales/Cuentas) del panel superior si existen
+    try {
+        const [sucs, ctas] = await Promise.all([
+            fetch('/Sucursales/Lista', { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json()),
+            fetch('/Cuentas/Lista', { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json())
+        ]);
+        if ($('#fltSucursal').length) {
+            const $s = $('#fltSucursal').empty().append('<option value="">Todas</option>');
+            sucs.forEach(x => $s.append(`<option value="${x.Id}">${x.Nombre}</option>`));
+        }
+        if ($('#fltCuenta').length) {
+            const $c = $('#fltCuenta').empty().append('<option value="">Todas</option>');
+            ctas.forEach(x => $c.append(`<option value="${x.Id}">${x.Nombre}</option>`));
+        }
+    } catch { /* ignora fallos de combos */ }
+
+    // Crear FilterManager reutilizable
+    window._fmCaja = new Filters.FilterManager({
+        form: '#formFiltros',                           // agrupador de filtros
+        debounce: 300,
+        buttons: {
+            search: '#btnBuscar',
+            clear: '#btnLimpiar',
+            keepDefaultsOnClear: true,                    // limpia pero mantiene fechas por default
+        },
+        fields: {
+            // alias             // selector                 // nombre de parámetro en backend
+            desde: { el: '#fltDesde', param: 'fechaDesde', parse: v => v || null, default: Filters.FilterManager.firstOfMonthISO },
+            hasta: { el: '#fltHasta', param: 'fechaHasta', parse: v => v || null, default: Filters.FilterManager.todayISO },
+            tipo: { el: '#fltTipo', param: 'tipo', parse: v => v || null },
+            idSucursal: { el: '#fltSucursal', param: 'idSucursal', parse: v => v ? Number(v) : null },
+            idCuenta: { el: '#fltCuenta', param: 'idCuenta', parse: v => v ? Number(v) : null },
+            concepto: { el: '#fltConcepto', param: 'concepto', parse: v => (v || '').trim() || null },
+        },
+        onSearch: async (params) => {
+            // params ya viene normalizado y sin vacíos
+            await listaCaja(params);
+        },
+        // autoSearch: true, // si querés que busque solo al cambiar filtros, descomentar
     });
 
-// limpia el feedback del importe cuando pasa a > 0
-$('#numImporteTransf').off('input.clean').on('input.clean', function () {
-    const imp = Number(formatearSinMiles($(this).val()));
-    if (imp > 0) clearInvalid(this);
-});
+    // aplicar defaults (fechas) y bindear eventos
+    window._fmCaja.applyDefaults();
+    window._fmCaja.bind();
+
+    // primera carga respetando defaults
+    await window._fmCaja.search();
+}

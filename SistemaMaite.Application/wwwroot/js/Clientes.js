@@ -284,12 +284,23 @@ async function configurarDataTableClientes(data) {
                 for (const config of columnConfig) {
                     const cell = $('.filters th').eq(config.index);
 
-                    if (config.filterType === 'select') {
-                        const select = $('<select id="filter' + config.index + '"><option value="">Seleccionar</option></select>')
+                    if (config.filterType === "select") {
+                        const select = $(`<select id="filter${config.index}"><option value="">Seleccionar</option></select>`)
                             .appendTo(cell.empty())
-                            .on('change', async function () {
-                                const selectedText = $(this).find('option:selected').text();
-                                await api.column(config.index).search(selectedText ? '^' + escapeRegex(selectedText) + '$' : '', true, false).draw();
+                            .on("change", async function () {
+                                const val = this.value; // '' si es el placeholder
+                                if (val === "") {
+                                    // limpiar filtro
+                                    await api.column(config.index).search("").draw();
+                                    return;
+                                }
+
+                                // si la columna muestra el texto
+                                const selectedText = $(this).find("option:selected").text();
+                                await api
+                                    .column(config.index)
+                                    .search("^" + escapeRegex(selectedText) + "$", true, false)
+                                    .draw();
                             });
 
                         const items = await config.fetchDataFunc();
