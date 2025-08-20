@@ -90,6 +90,8 @@ builder.Services.AddScoped<ICajasService, CajasService>();
 builder.Services.AddScoped<ITransferenciasCajasRepository, TransferenciasCajasRepository>();
 builder.Services.AddScoped<ITransferenciasCajasService, TransferenciasCajasService>();
 
+builder.Services.AddScoped<IGastosRepository<Gasto>, GastosRepository>();
+builder.Services.AddScoped<IGastosService, GastosService>();
 
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(o =>
