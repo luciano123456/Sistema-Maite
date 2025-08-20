@@ -133,3 +133,95 @@ input:-webkit-autofill {
         max-width: 98%; /* o lo que necesites */
     }
 }
+
+
+.transfer-header {
+    background: linear-gradient(135deg, #3b82f6, #1f2937);
+    color: #fff;
+    border-top-left-radius: 1rem !important;
+    border-top-right-radius: 1rem !important;
+}
+
+#modalTransfer .form-label {
+    font-weight: 600;
+}
+
+#modalTransfer .valid-indicator {
+    background: #16a34a;
+    color: #fff;
+}
+
+#modalTransfer .select2-container--default .select2-selection--single {
+    height: 38px;
+    padding: 4px 8px;
+    background-color: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+}
+
+    #modalTransfer .select2-container--default .select2-selection--single .select2-selection__rendered {
+        line-height: 28px;
+    }
+
+    #modalTransfer .select2-container--default .select2-selection--single .select2-selection__arrow {
+        height: 36px;
+    }
+
+/* Header degradé del modal */
+.transfer-header {
+    background: linear-gradient(135deg, #1f68d1, #6a88ff);
+    color: #fff;
+    border-top-left-radius: 1rem;
+    border-top-right-radius: 1rem;
+}
+
+/* Panel suave para “Historial entre estas cuentas” */
+.panel-soft {
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 12px;
+    background: rgba(255,255,255,.02);
+    box-shadow: 0 8px 24px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.05);
+    overflow: hidden;
+}
+
+.panel-soft__header {
+    background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+    padding: .65rem .9rem;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+    display: flex;
+    align-items: center;
+}
+
+.panel-soft__body {
+    padding: .75rem;
+}
+
+/* Check de input-group (verde/rojo) */
+.input-group .valid-indicator {
+    border: 0;
+    color: #fff;
+    font-weight: 700;
+    border-radius: 0 .375rem .375rem 0;
+}
+
+    .input-group .valid-indicator.bg-success {
+        background-color: #198754 !important;
+    }
+
+    .input-group .valid-indicator.bg-danger {
+        background-color: #dc3545 !important;
+    }
+
+/* Select2: propagar estado inválido al contenedor */
+.select2-container + .invalid-feedback {
+    display: block;
+}
+
+.select2-container .select2-selection.is-invalid-state {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 .25rem rgba(220,53,69,.25);
+}
+
+/* Invalid-feedback compacto bajo cada control */
+.invalid-feedback {
+    margin-top: .25rem;
+}
