@@ -80,7 +80,11 @@
                             <i class="fa fa-plus-square"></i> Nuevo mov.
                         </button>
 
+                        <button class="btn btn-success d-flex align-items-center px-3 py-2 text-center" onclick="abrirModalTransfer()">
+                            <i class="fa fa-plus-square"></i>Nueva transferencia
+                        </button>
 
+                  
                     </div>
                 </div>
             </div>
@@ -141,30 +145,145 @@
                     </div>
 
                     <div class="col-md-3">
-                        <label class="form-label">Ingreso</label>
-                        <input type="text" class="form-control Inputmiles" id="numIngreso" />
+                        <label class="form-label">Importe</label>
+                        <input type="text" class="form-control Inputmiles" id="numImporte" />
                     </div>
 
-                    <div class="col-md-3">
-                        <label class="form-label">Egreso</label>
-                        <input type="text"class="form-control Inputmiles" id="numEgreso" />
-                    </div>
 
                     <div id="errorCampos" class="alert alert-danger d-none col-12">
-                        Completá los campos obligatorios y al menos un importe (Ingreso o Egreso).
+                       Debes completar los campos requeridos.
                     </div>
                 </form>
             </div>
 
             <div class="modal-footer">
+                <!-- Botón eliminar a la izquierda -->
+                <button type="button" id="btnEliminarMov" class="btn btn-danger me-auto d-none" onclick="eliminarCajaDesdeModal()">
+                    <i class="fa fa-trash"></i> Eliminar
+                </button>
+
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                     <i class="fa fa-arrow-left"></i> Volver
                 </button>
                 <button type="button" id="btnGuardar" class="btn btn-primary" onclick="guardarCambios()">
-                    <i class="fa fa-check"></i> Registrar
+                    <i class="fa fa-check"></i> Guardar
                 </button>
             </div>
 
+
+        </div>
+    </div>
+</div>
+
+<!-- Modal Transferencia -->
+<div class="modal fade" id="modalTransfer" tabindex="-1" aria-labelledby="modalTransferLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content shadow-lg rounded-4">
+            <!-- Header con degradé -->
+            <div class="modal-header colorEncabezado">
+                <h5 class="modal-title fw-bold" id="modalTransferLabel">
+                    <i class="bi bi-arrow-left-right me-2"></i> Transferencia entre cuentas
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <div class="modal-body">
+                <form id="formNuevaTransferencia" class="row g-3">
+                    <!-- Fecha -->
+                    <div class="col-md-3">
+                        <label class="form-label">Fecha</label>
+                        <div class="input-group">
+                            <input type="date" class="form-control" id="dtpFechaTransf" required>
+                            <span class="input-group-text"><i class="bi bi-calendar-event"></i></span>
+                        </div>
+                        <div class="invalid-feedback">Campo obligatorio</div>
+                    </div>
+
+                    <!-- Sucursal -->
+                    <div class="col-md-3">
+                        <label class="form-label">Sucursal</label>
+                        <div class="input-group">
+                            <select id="cmbSucursalTransf" class="form-select" required></select>
+                            <span class="input-group-text valid-indicator d-none"><i class="bi bi-check2"></i></span>
+                        </div>
+                        <div class="invalid-feedback">Campo obligatorio</div>
+                    </div>
+
+                    <!-- Cuenta origen -->
+                    <div class="col-md-3">
+                        <label class="form-label">Cuenta origen</label>
+                        <div class="input-group">
+                            <select id="cmbCuentaOrigen" class="form-select" required></select>
+                            <span class="input-group-text valid-indicator d-none"><i class="bi bi-check2"></i></span>
+                        </div>
+                        <div class="invalid-feedback">Campo obligatorio</div>
+                    </div>
+
+                    <!-- Cuenta destino -->
+                    <div class="col-md-3">
+                        <label class="form-label">Cuenta destino</label>
+                        <div class="input-group">
+                            <select id="cmbCuentaDestino" class="form-select" required></select>
+                            <span class="input-group-text valid-indicator d-none"><i class="bi bi-check2"></i></span>
+                        </div>
+                        <div class="invalid-feedback">Campo obligatorio</div>
+                    </div>
+
+                    <!-- Importe -->
+                    <div class="col-md-3">
+                        <label class="form-label">Importe</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="text" class="form-control Inputmiles" id="numImporteTransf" placeholder="0,00" required>
+                            <span class="input-group-text valid-indicator d-none"><i class="bi bi-check2"></i></span>
+                        </div>
+                        <div class="invalid-feedback">El importe debe ser mayor a 0.</div>
+                    </div>
+
+                    <!-- Nota -->
+                    <div class="col-md-9">
+                        <label class="form-label">Nota interna (opcional)</label>
+                        <input type="text" class="form-control" id="txtNotaTransf" maxlength="200">
+                    </div>
+
+                    <!-- Panel “Historial” -->
+                    <div class="col-12">
+                        <div class="panel-soft mt-2">
+                            <div class="panel-soft__header">
+                                <i class="bi bi-clock-history me-2"></i>
+                                <span class="fw-semibold">Historial entre estas cuentas</span>
+                            </div>
+                            <div class="panel-soft__body">
+                                <table id="grd_TransfHist" class="table table-striped table-hover w-100 mb-0">
+                                    <thead>
+                                        <tr>
+                                            <th>Fecha</th>
+                                            <th>Origen</th>
+                                            <th>Importe</th>
+                                            <th>Destino</th>
+                                            <th>Importe</th>
+                                            <th>Nota</th>
+                                            <th style="width: 42px;"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Error general -->
+                    <div id="errorTransf" class="alert alert-danger d-none col-12 mt-2"></div>
+                </form>
+            </div>
+
+            <div class="modal-footer bg-body-tertiary">
+                <!-- el botón eliminar se inyecta dinámicamente cuando se edita -->
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Volver</button>
+                <button type="button" class="btn btn-primary" onclick="guardarTransferencia()">
+                    <i class="bi bi-arrow-right-circle me-1"></i> Transferir
+                </button>
+            </div>
         </div>
     </div>
 </div>

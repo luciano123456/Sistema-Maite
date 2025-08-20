@@ -5,27 +5,24 @@ namespace SistemaMaite.Application.Models.ViewModels
     public class VMCaja
     {
         public int Id { get; set; }
-
         public int IdSucursal { get; set; }
-
         public int IdCuenta { get; set; }
-
         public DateTime Fecha { get; set; }
-
-        public string TipoMov { get; set; } = null!;
-
+        public string TipoMov { get; set; } = ""; // "Ingreso" o "Egreso"
         public int? IdMov { get; set; }
+        public string? Concepto { get; set; }
 
-        public string Concepto { get; set; } = null!;
-
+        // Persistidos
         public decimal Ingreso { get; set; }
-
         public decimal Egreso { get; set; }
-        public string Cuenta { get; set; }
-        public string Sucursal { get; set; }
 
-        public virtual Cuenta IdCuentaNavigation { get; set; } = null!;
+        // 👇 Nuevo: lo usa el front. No se persiste directo.
+        public decimal? Importe { get; set; }
 
-        public virtual Sucursal IdSucursalNavigation { get; set; } = null!;
+        // Solo lectura (para la grilla / modal)
+        public string? Cuenta { get; set; }
+        public string? Sucursal { get; set; }
+        public bool EsTransferencia { get; set; }
+        public bool PuedeEliminar { get; set; }
     }
 }
