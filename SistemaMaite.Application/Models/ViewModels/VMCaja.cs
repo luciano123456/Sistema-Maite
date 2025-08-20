@@ -24,5 +24,7 @@ namespace SistemaMaite.Application.Models.ViewModels
         public string? Sucursal { get; set; }
         public bool EsTransferencia { get; set; }
         public bool PuedeEliminar { get; set; }
+
+        public decimal SaldoAnterior { get; set; }
     }
 }

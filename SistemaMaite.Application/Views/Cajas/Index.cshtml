@@ -28,6 +28,59 @@
                 </div>
 
                 <div class="card-body">
+                    <!-- Filtros -->
+                    <form id="formFiltros" class="filter-bar shadow-sm rounded-3 mb-3 p-3">
+                        <div class="row g-2 align-items-end">
+
+                            <div class="col-6 col-md-3">
+                                <label class="form-label">Desde</label>
+                                <input type="date" id="fltDesde" class="form-control">
+                            </div>
+
+                            <div class="col-6 col-md-3">
+                                <label class="form-label">Hasta</label>
+                                <input type="date" id="fltHasta" class="form-control">
+                            </div>
+
+                            <div class="col-6 col-md-2">
+                                <label class="form-label">Tipo</label>
+                                <select id="fltTipo" class="form-select">
+                                    <option value="">Todos</option>
+                                    <option value="Ingreso">Ingreso</option>
+                                    <option value="Egreso">Egreso</option>
+                                </select>
+                            </div>
+
+                            <div class="col-6 col-md-2">
+                                <label class="form-label">Sucursal</label>
+                                <select id="fltSucursal" class="form-select">
+                                    <option value="">Todas</option>
+                                </select>
+                            </div>
+
+                            <div class="col-6 col-md-2">
+                                <label class="form-label">Cuenta</label>
+                                <select id="fltCuenta" class="form-select">
+                                    <option value="">Todas</option>
+                                </select>
+                            </div>
+
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">Concepto</label>
+                                <input type="text" id="fltConcepto" class="form-control" placeholder="Contiene...">
+                            </div>
+
+                            <div class="col-12 col-md-4 d-flex gap-2 mt-2 mt-md-0">
+                                <button type="button" id="btnBuscar" class="btn btn-primary flex-fill">
+                                    <i class="fa fa-search me-1"></i> Buscar
+                                </button>
+                                <button type="button" id="btnLimpiar" class="btn btn-outline-secondary">
+                                    <i class="fa fa-eraser me-1"></i> Limpiar
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+
                     <table class="display nowrap" id="grd_Caja" style="width:100%">
                         <thead>
                             <tr>
@@ -303,5 +356,5 @@
     <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.print.min.js"></script>
     <script src="https://cdn.datatables.net/fixedheader/3.2.2/js/dataTables.fixedHeader.min.js"></script>
 
-    <script src="~/js/Cajas.js?v=1.0"></script>
+    <script src="~/js/Cajas.js?v=1.1"></script>
 }

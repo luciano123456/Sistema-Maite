@@ -40,26 +40,25 @@ namespace SistemaMaite.Application.Controllers
             return (0m, importe);
         }
 
-  
 
-        // GET: /Caja/Lista
+
         [HttpGet]
-        public async Task<IActionResult> Lista()
+        public async Task<IActionResult> Lista(
+    DateTime? FechaDesde = null,
+    DateTime? FechaHasta = null,
+    int IdSucursal = -1,
+    int IdCuenta = -1,
+    string Tipo = "TODOS",
+    string Concepto = ""
+)
         {
-            var query = await _CajaService.ObtenerTodos(); // IQueryable<Caja>
-
-            // Materializá primero
-            var cajas = await query
-                .Include(c => c.IdCuentaNavigation)
-                .Include(c => c.IdSucursalNavigation)
-                .ToListAsync();
-
-            var lista = cajas.Select(c =>
+            try
             {
-                var esTransf = c.Concepto != null && c.Concepto.Contains("Transferencia");
-                var puedeEliminar = (c.IdMov == null) || esTransf;
+                // Ojo: este método del service debe devolver (List<Caja> Lista, decimal SaldoAnterior)
+                var (cajas, saldoAnterior) = await _CajaService.ObtenerFiltradoConSaldoAnterior(
+                    FechaDesde, FechaHasta, IdSucursal, IdCuenta, Tipo, Concepto);
 
-                return new VMCaja
+                var movimientos = cajas.Select(c => new VMCaja
                 {
                     Id = c.Id,
                     IdSucursal = c.IdSucursal,
@@ -68,18 +67,25 @@ namespace SistemaMaite.Application.Controllers
                     TipoMov = c.TipoMov,
                     IdMov = c.IdMov,
                     Concepto = c.Concepto,
-                    Importe = c.Ingreso > 0 ? c.Ingreso : c.Egreso,
-                    Egreso = c.Egreso,
                     Ingreso = c.Ingreso,
-                    Cuenta = c.IdCuentaNavigation.Nombre,
-                    Sucursal = c.IdSucursalNavigation.Nombre,
-                    EsTransferencia = esTransf,
-                    PuedeEliminar = puedeEliminar
-                };
-            }).ToList();
+                    Egreso = c.Egreso,
+                    Importe = c.Ingreso > 0 ? c.Ingreso : c.Egreso,
+                    Cuenta = c.IdCuentaNavigation?.Nombre ?? "",
+                    Sucursal = c.IdSucursalNavigation?.Nombre ?? "",
+                    EsTransferencia = (c.Concepto ?? "").IndexOf("Transferencia", StringComparison.OrdinalIgnoreCase) >= 0,
+                    PuedeEliminar = c.IdMov == null || (c.Concepto ?? "").Contains("Transferencia", StringComparison.OrdinalIgnoreCase)
+                }).ToList();
 
-            return Ok(lista);
+                // 👉 Devolvemos saldo + lista
+                return Ok(new { SaldoAnterior = saldoAnterior, Movimientos = movimientos });
+            }
+            catch
+            {
+                return BadRequest("Ha ocurrido un error al mostrar la lista de movimientos de caja.");
+            }
         }
+
+
 
         // POST: /Cajas/Insertar
         [HttpPost]

@@ -1,19 +1,36 @@
-﻿using SistemaMaite.Models;
+﻿using System.Linq;
+using System.Threading.Tasks;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
+using SistemaMaite.Models;
 
 namespace SistemaMaite.DAL.Repository
 {
-    public interface ICajasRepository<TEntityModel> where TEntityModel : class
+    public interface ICajasRepository<T>
     {
+        Task<bool> Insertar(T model);
+        Task<bool> Actualizar(T model);
         Task<bool> Eliminar(int id);
-        Task<bool> Actualizar(Caja model);
-        Task<bool> Insertar(Caja model);
-        Task<Caja> Obtener(int id);
-        Task<IQueryable<Caja>> ObtenerTodos();
+        Task<T> Obtener(int id);
+        Task<IQueryable<T>> ObtenerTodos();
+
+
+        Task<(List<Caja> Lista, decimal SaldoAnterior)> ObtenerFiltradoConSaldoAnterior(
+         DateTime? fechaDesde,
+         DateTime? fechaHasta,
+         int idSucursal,
+         int idCuenta,
+         string tipo,
+         string concepto);
+
+        // 👉 Nuevo: filtro en repositorio
+        Task<List<T>> ObtenerFiltrado(
+            DateTime? fechaDesde,
+            DateTime? fechaHasta,
+            int idSucursal,
+            int idCuenta,
+            string tipo,
+            string concepto
+        );
     }
 }

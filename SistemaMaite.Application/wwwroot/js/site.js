@@ -497,3 +497,150 @@ document.querySelectorAll("input.Inputmiles").forEach(input => {
     });
 
 });
+
+
+
+
+/* ==========================================================
+   MÓDULO DE FILTROS REUTILIZABLE (FilterManager)
+   ========================================================== */
+
+const Filters = (() => {
+    const isEmpty = (v) => v === undefined || v === null || v === "";
+    const todayISO = () => new Date().toISOString().slice(0, 10);
+    const firstOfMonthISO = () => {
+        const d = new Date();
+        return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10);
+    };
+
+    class FilterManager {
+        /**
+         * @param {Object} cfg
+         *  - form: selector del form que agrupa filtros
+         *  - fields: { alias: { el, param, parse(v), default() } }
+         *  - onSearch: (paramsObject) => Promise | void
+         *  - debounce: ms (default 250)
+         *  - buttons: { search: '#btnBuscar', clear: '#btnLimpiar', keepDefaultsOnClear: true }
+         */
+        constructor(cfg) {
+            this.cfg = { debounce: 250, buttons: {}, ...cfg };
+            this.form = $(this.cfg.form);
+            this.fields = this.cfg.fields || {};
+            this._debouncedTimer = null;
+        }
+
+        // Defaults de conveniencia
+        static todayISO = todayISO;
+        static firstOfMonthISO = firstOfMonthISO;
+
+        // Lee los valores "raw" desde el DOM
+        readRaw() {
+            const out = {};
+            for (const [alias, f] of Object.entries(this.fields)) {
+                const $el = $(f.el);
+                out[alias] = $el.length ? $el.val() : null;
+            }
+            return out;
+        }
+
+        // Normaliza cada valor con parse() y arma objeto { paramName: value }
+        normalize(raw) {
+            const params = {};
+            for (const [alias, f] of Object.entries(this.fields)) {
+                const rawVal = raw[alias];
+                const val = typeof f.parse === "function" ? f.parse(rawVal) : rawVal;
+                if (!isEmpty(val)) params[f.param] = val;
+            }
+            return params;
+        }
+
+        // Construye URLSearchParams con lo no vacío
+        toQuery(paramsObj) {
+            const usp = new URLSearchParams();
+            Object.entries(paramsObj || {}).forEach(([k, v]) => {
+                if (!isEmpty(v)) usp.append(k, v);
+            });
+            return usp;
+        }
+
+        // Aplica defaults definidos en cada field (si existe y está vacío)
+        applyDefaults() {
+            for (const [_, f] of Object.entries(this.fields)) {
+                if (!f.default) continue;
+                const $el = $(f.el);
+                if (!$el.length) continue;
+                const current = $el.val();
+                if (isEmpty(current)) $el.val(f.default());
+            }
+        }
+
+        // Limpia todos los campos; si keepDefaults=true, re-aplica defaults después
+        clear(keepDefaults = true) {
+            for (const [_, f] of Object.entries(this.fields)) {
+                const $el = $(f.el);
+                if (!$el.length) continue;
+                $el.val("");
+                if ($.fn.select2 && $el.hasClass("select2-hidden-accessible")) {
+                    $el.val(null).trigger("change");
+                }
+            }
+            if (keepDefaults) this.applyDefaults();
+        }
+
+        // Lee + normaliza + devuelve también el query listo
+        current() {
+            const raw = this.readRaw();
+            const norm = this.normalize(raw);
+            const query = this.toQuery(norm);
+            return { raw, norm, query };
+        }
+
+        // Disparar búsqueda
+        async search() {
+            if (typeof this.cfg.onSearch === "function") {
+                const { norm } = this.current();
+                await this.cfg.onSearch(norm);
+            }
+        }
+
+        // Bind de eventos de Buscar/Limpiar + Enter + (opcional) auto-search con debounce
+        bind() {
+            const b = this.cfg.buttons || {};
+
+            // Botón Buscar
+            if (b.search && $(b.search).length) {
+                $(b.search).off("click.fm").on("click.fm", async () => {
+                    await this.search();
+                });
+            }
+
+            // Botón Limpiar
+            if (b.clear && $(b.clear).length) {
+                $(b.clear).off("click.fm").on("click.fm", async () => {
+                    this.clear(b.keepDefaultsOnClear !== false);
+                    await this.search();
+                });
+            }
+
+            // ENTER dispara búsqueda
+            this.form.off("keydown.fm").on("keydown.fm", "input,select", (e) => {
+                if (e.key === "Enter") {
+                    e.preventDefault();
+                    this.search();
+                }
+            });
+
+            // (Opcional) auto search con debounce al cambiar filtros
+            const auto = this.cfg.autoSearch;
+            if (auto) {
+                const trigger = () => {
+                    clearTimeout(this._debouncedTimer);
+                    this._debouncedTimer = setTimeout(() => this.search(), this.cfg.debounce);
+                };
+                this.form.off("input.fm change.fm").on("input.fm change.fm", "input,select", trigger);
+            }
+        }
+    }
+
+    return { FilterManager };
+})();

@@ -1,44 +1,44 @@
 ﻿using SistemaMaite.DAL.Repository;
 using SistemaMaite.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace SistemaMaite.BLL.Service
 {
     public class CajasService : ICajasService
     {
+        private readonly ICajasRepository<Caja> _repo;
 
-        private readonly ICajasRepository<Caja> _contactRepo;
-
-        public CajasService(ICajasRepository<Caja> contactRepo)
+        public CajasService(ICajasRepository<Caja> repo)
         {
-            _contactRepo = contactRepo;
-        }
-        public async Task<bool> Actualizar(Caja model)
-        {
-            return await _contactRepo.Actualizar(model);
+            _repo = repo;
         }
 
-        public async Task<bool> Eliminar(int id)
-        {
-            return await _contactRepo.Eliminar(id);
-        }
+        public Task<bool> Insertar(Caja model) => _repo.Insertar(model);
+        public Task<bool> Actualizar(Caja model) => _repo.Actualizar(model);
+        public Task<bool> Eliminar(int id) => _repo.Eliminar(id);
+        public Task<Caja> Obtener(int id) => _repo.Obtener(id);
+        public Task<IQueryable<Caja>> ObtenerTodos() => _repo.ObtenerTodos();
 
-        public async Task<bool> Insertar(Caja model)
-        {
-            return await _contactRepo.Insertar(model);
-        }
+        public Task<(List<Caja> Lista, decimal SaldoAnterior)> ObtenerFiltradoConSaldoAnterior(
+            DateTime? fechaDesde,
+            DateTime? fechaHasta,
+            int idSucursal,
+            int idCuenta,
+            string tipo,
+            string concepto)
+            => _repo.ObtenerFiltradoConSaldoAnterior(fechaDesde, fechaHasta, idSucursal, idCuenta, tipo, concepto);
 
-        public async Task<Caja> Obtener(int id)
-        {
-            return await _contactRepo.Obtener(id);
-        }
-
-
-        public async Task<IQueryable<Caja>> ObtenerTodos()
-        {
-            return await _contactRepo.ObtenerTodos();
-        }
-
-
-
+        // 👉 Solo puentea al repositorio
+        public Task<List<Caja>> ObtenerFiltrado(
+            DateTime? fechaDesde,
+            DateTime? fechaHasta,
+            int idSucursal,
+            int idCuenta,
+            string tipo,
+            string concepto)
+            => _repo.ObtenerFiltrado(fechaDesde, fechaHasta, idSucursal, idCuenta, tipo, concepto);
     }
 }
