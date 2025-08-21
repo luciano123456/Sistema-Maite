@@ -18,18 +18,28 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span>Movimientos de Caja</span>
 
-                    <div class="dropdown">
-                        <button class="btn btn-secondary dropdown-toggle d-flex align-items-center" type="button" id="dropdownColumnas" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fa fa-cog me-2"></i> Config. Columnas
+                    <!-- Grupo de acciones a la derecha -->
+                    <div class="d-flex align-items-center gap-2">
+                        <!-- Botón de Filtros -->
+                        <button class="btn btn-outline-primary d-flex align-items-center" type="button" id="btnToggleFiltros">
+                            <i class="fa fa-arrow-up me-2" id="iconFiltros"></i> Filtros
                         </button>
-                        <ul class="dropdown-menu" aria-labelledby="dropdownColumnas" id="configColumnasMenu">
-                        </ul>
+
+                        <!-- Botón de Configuración de Columnas -->
+                        <div class="dropdown">
+                            <button class="btn btn-secondary dropdown-toggle d-flex align-items-center" type="button" id="dropdownColumnas" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fa fa-cog me-2"></i> Config. Columnas
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="dropdownColumnas" id="configColumnasMenu">
+                            </ul>
+                        </div>
                     </div>
                 </div>
 
+
                 <div class="card-body">
                     <!-- Filtros -->
-                    <form id="formFiltros" class="filter-bar shadow-sm rounded-3 mb-3 p-3">
+                    <form id="formFiltros" class="filter-bar shadow-sm rounded-3 mb-3 p-3 d-none">
                         <div class="row g-2 align-items-end">
 
                             <div class="col-6 col-md-3">

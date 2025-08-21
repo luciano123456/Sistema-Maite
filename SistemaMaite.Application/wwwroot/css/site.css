@@ -1,4 +1,4 @@
-html {
+ï»¿html {
     font-size: 14px;
 }
 
@@ -23,7 +23,7 @@ html {
     color: black !important; /* Asegura que el color del texto sea negro */
 }
 
-/* Cambiar el color del texto cuando el elemento select2 está abierto */
+/* Cambiar el color del texto cuando el elemento select2 estÃ¡ abierto */
 .select2-dropdown {
     color: black !important; /* Asegura que el color del texto sea negro en el dropdown */
 }
@@ -307,7 +307,7 @@ label {
     width: 95% !important;
 }
 
-/* Estilo personalizado para la colección de botones */
+/* Estilo personalizado para la colecciÃ³n de botones */
 div.dt-button-collection {
     background-color: #0D82F7; /* Cambia el color de fondo */
     border-color: #0D82F7 !important; /* Cambia el color del borde */
@@ -471,17 +471,17 @@ div.dt-button-collection {
 }
 
 .navbar-nav .dropdown-menu .dropdown-item {
-    color: black !important; /* Mantén el dropdown con texto negro para legibilidad */
+    color: black !important; /* MantÃ©n el dropdown con texto negro para legibilidad */
 }
 
 .navbar-nav .nav-link:hover {
     text-shadow: 0 0 8px rgba(255, 255, 255, 0.9); /* Brillo blanco */
     color: white !important; /* Asegura que el texto sea blanco */
-    transition: all 0.3s ease-in-out; /* Transición suave */
+    transition: all 0.3s ease-in-out; /* TransiciÃ³n suave */
 }
 
 .navbar-brand:hover {
-    text-shadow: 0 0 8px rgba(255, 255, 255, 0.9); /* Brillo para el título */
+    text-shadow: 0 0 8px rgba(255, 255, 255, 0.9); /* Brillo para el tÃ­tulo */
     transition: all 0.3s ease-in-out;
 }
 
@@ -515,7 +515,7 @@ table.dataTable.row-border tbody th, table.dataTable.row-border tbody td, table.
 }
 
 .blinking {
-    animation: blinkTextShadow 3s ease-out; /* Duración de 3 segundos, se repite infinitamente */
+    animation: blinkTextShadow 3s ease-out; /* DuraciÃ³n de 3 segundos, se repite infinitamente */
 }
 
 
@@ -532,7 +532,7 @@ table.dataTable.row-border tbody th, table.dataTable.row-border tbody td, table.
     margin-top: -30px;
     padding: 5px;
     border-radius: 4px;
-    min-width: 150px; /* Ajusta el ancho mínimo si es necesario */
+    min-width: 150px; /* Ajusta el ancho mÃ­nimo si es necesario */
 }
 
     .acciones-dropdown button {
@@ -600,4 +600,94 @@ input:disabled {
     background-color: #323844 !important;
     border-radius: 0 0 0.5rem 0.5rem;
     box-shadow: none;
+}
+
+
+.grupo-botones {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+
+    .grupo-botones .btn {
+        white-space: nowrap;
+        padding: 4px 10px;
+        font-size: 0.85rem;
+    }
+
+        .grupo-botones .btn i {
+            margin-right: 6px;
+        }
+
+@media (max-width: 768px) {
+    .totales-botones-container {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .grupo-totales,
+    .grupo-botones {
+        flex-direction: column;
+        width: 100%;
+        align-items: stretch;
+    }
+
+        .grupo-totales .form-group {
+            max-width: 100%;
+        }
+
+        .grupo-botones .btn {
+            width: 100%;
+        }
+}
+
+
+.grupo-botones .btn {
+    white-space: nowrap;
+    padding: 4px 10px;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center; /* ðŸ‘ˆ Centra horizontalmente */
+}
+
+
+.totales-botones-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.grupo-totales {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    flex-grow: 1;
+    align-items: flex-end;
+}
+
+    .grupo-totales .form-group {
+        flex: 1 1 auto;
+        max-width: 180px;
+    }
+
+.filter-bar {
+    background: rgba(255,255,255,.03);
+    border: 1px solid rgba(255,255,255,.08);
+    box-shadow: 0 3px 15px rgba(0, 0, 0,1) !important;
+}
+
+    .filter-bar .form-label {
+        margin-bottom: .25rem;
+        font-weight: 600;
+    }
+
+@media (max-width: 575.98px) {
+    #formFiltros .btn {
+        width: 100%;
+    }
 }

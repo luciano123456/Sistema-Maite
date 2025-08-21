@@ -18,16 +18,78 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span>Gastos</span>
 
-                    <div class="dropdown">
-                        <button class="btn btn-secondary dropdown-toggle d-flex align-items-center" type="button" id="dropdownColumnas" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fa fa-cog me-2"></i> Config. Columnas
+                    <!-- Grupo de acciones a la derecha -->
+                    <div class="d-flex align-items-center gap-2">
+                        <!-- Botón de Filtros -->
+                        <button class="btn btn-outline-primary d-flex align-items-center"
+                                type="button" id="btnToggleFiltros">
+                            <i class="fa fa-arrow-up me-2" id="iconFiltros"></i> Filtros
                         </button>
-                        <ul class="dropdown-menu" aria-labelledby="dropdownColumnas" id="configColumnasMenu">
-                        </ul>
+
+
+                        <!-- Botón de Configuración de Columnas -->
+                        <div class="dropdown">
+                            <button class="btn btn-secondary dropdown-toggle d-flex align-items-center" type="button" id="dropdownColumnas" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fa fa-cog me-2"></i> Config. Columnas
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="dropdownColumnas" id="configColumnasMenu">
+                            </ul>
+                        </div>
                     </div>
                 </div>
 
                 <div class="card-body">
+                    <!-- Filtros -->
+                    <form id="formFiltros" class="filter-bar shadow-sm rounded-3 mb-3 p-3 d-none">
+                        <div class="row g-2 align-items-end">
+
+                            <div class="col-6 col-md-3">
+                                <label class="form-label">Desde</label>
+                                <input type="date" id="fltDesde" class="form-control">
+                            </div>
+
+                            <div class="col-6 col-md-3">
+                                <label class="form-label">Hasta</label>
+                                <input type="date" id="fltHasta" class="form-control">
+                            </div>
+
+
+                            <div class="col-6 col-md-2">
+                                <label class="form-label">Categoria</label>
+                                <select id="fltCategoria" class="form-select">
+                                    <option value="">Todas</option>
+                                </select>
+                            </div>
+
+                            <div class="col-6 col-md-2">
+                                <label class="form-label">Sucursal</label>
+                                <select id="fltSucursal" class="form-select">
+                                    <option value="">Todas</option>
+                                </select>
+                            </div>
+
+                            <div class="col-6 col-md-2">
+                                <label class="form-label">Cuenta</label>
+                                <select id="fltCuenta" class="form-select">
+                                    <option value="">Todas</option>
+                                </select>
+                            </div>
+
+                            <div class="col-12 col-md-4">
+                                <label class="form-label">Concepto</label>
+                                <input type="text" id="fltConcepto" class="form-control" placeholder="Contiene...">
+                            </div>
+
+                            <div class="col-12 col-md-4 d-flex gap-2 mt-2 mt-md-0">
+                                <button type="button" id="btnBuscar" class="btn btn-primary flex-fill">
+                                    <i class="fa fa-search me-1"></i> Buscar
+                                </button>
+                                <button type="button" id="btnLimpiar" class="btn btn-outline-secondary">
+                                    <i class="fa fa-eraser me-1"></i> Limpiar
+                                </button>
+                            </div>
+                        </div>
+                    </form>
                     <table class="display nowrap" id="grd_Gastos" style="width:100%">
                         <thead>
                             <tr>
@@ -44,9 +106,32 @@
                     </table>
                 </div>
 
-                <div class="d-flex justify-content-end mt-2 mb-4">
-                    <a class="btn btn-primary btnnuevo" onclick="nuevoGasto()">Nuevo</a>
+
+                <div class="totales-botones-container mb-4">
+
+                    <!-- Sumas -->
+                    <div class="grupo-totales">
+                        <div class="form-group mb-0">
+                            <label class="form-label fw-bold">Suma de gastos</label>
+                            <input type="text" class="form-control form-control-sm text-start" id="txtTotalGastos" readonly>
+                        </div>
+
+                       
+                    </div>
+
+                    <!-- Botones -->
+                    <div class="grupo-botones ">
+
+                        <button class="btn btn-success d-flex align-items-center px-3 py-2 text-center" onclick="nuevoGasto()">
+                            <i class="fa fa-plus-square"></i> Nuevo Gasto
+                        </button>
+
+
+                    </div>
                 </div>
+
+
+                
             </div>
         </div>
     </div>

@@ -1021,3 +1021,15 @@ async function initFiltros() {
     // primera carga respetando defaults
     await window._fmCaja.search();
 }
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    FiltersUI.init({
+        storageKey: 'Cajas_FiltrosVisibles',
+        panelSelector: '#formFiltros',
+        headerFiltersSelector: '#grd_Caja thead tr.filters',
+        buttonSelector: '#btnToggleFiltros',
+        iconSelector: '#iconFiltros',
+        defaultVisible: true
+    });
+});
