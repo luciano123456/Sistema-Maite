@@ -20,7 +20,7 @@ const Modelo_base = {
 };
 
 $(document).ready(() => {
-    listaGastos();
+    initFiltros();               // filtros + primera carga
     attachLiveValidation('#modalEdicion'); // reutiliza tu helper
 });
 
@@ -108,10 +108,13 @@ async function mostrarModal(modelo) {
 
 /* -------- Listado / EditarInfo / Eliminar -------- */
 
-async function listaGastos() {
+async function listaGastos(params = {}) {
     let paginaActual = gridGastos != null ? gridGastos.page() : 0;
 
-    const response = await fetch("/Gastos/Lista", {
+    // armar querystring con filtros
+    const qs = new URLSearchParams(params).toString();
+
+    const response = await fetch("/Gastos/Lista" + (qs ? "?" + qs : ""), {
         method: 'GET',
         headers: {
             'Authorization': 'Bearer ' + token,
@@ -129,6 +132,8 @@ async function listaGastos() {
     if (paginaActual > 0) {
         gridGastos.page(paginaActual).draw('page');
     }
+
+    calcularGastos()
 }
 
 const editarGasto = id => {
@@ -298,6 +303,8 @@ async function configurarDataTableGastos(data) {
                 // La celda de acciones (índice 0) no lleva filtro
                 $('.filters th').eq(0).html('');
 
+                calcularGastos()
+
                 // Configuración de columnas (dropdown)
                 configurarOpcionesColumnas('#grd_Gastos', '#configColumnasMenu', 'Gastos_Columnas');
 
@@ -392,4 +399,90 @@ function validarCampos() {
 
     document.querySelector('#errorCampos').classList.toggle('d-none', ok);
     return ok;
+}
+
+
+
+async function initFiltros() {
+    // Cargar combos (Sucursales/Cuentas) del panel superior si existen
+    try {
+        const [sucs, ctas, cats] = await Promise.all([
+            fetch('/Sucursales/Lista', { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json()),
+            fetch('/Cuentas/Lista', { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json()),
+            fetch('/GastosCategorias/Lista', { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json())
+        ]);
+        if ($('#fltSucursal').length) {
+            const $s = $('#fltSucursal').empty().append('<option value="">Todas</option>');
+            sucs.forEach(x => $s.append(`<option value="${x.Id}">${x.Nombre}</option>`));
+        }
+        if ($('#fltCuenta').length) {
+            const $c = $('#fltCuenta').empty().append('<option value="">Todas</option>');
+            ctas.forEach(x => $c.append(`<option value="${x.Id}">${x.Nombre}</option>`));
+        }
+
+        if ($('#fltCategoria').length) {
+            const $c = $('#fltCategoria').empty().append('<option value="">Todas</option>');
+            cats.forEach(x => $c.append(`<option value="${x.Id}">${x.Nombre}</option>`));
+        }
+
+    } catch { /* ignora fallos de combos */ }
+
+    // Crear FilterManager reutilizable
+    window._fmCaja = new Filters.FilterManager({
+        form: '#formFiltros',                           // agrupador de filtros
+        debounce: 300,
+        buttons: {
+            search: '#btnBuscar',
+            clear: '#btnLimpiar',
+            keepDefaultsOnClear: true,                    // limpia pero mantiene fechas por default
+        },
+        fields: {
+            // alias             // selector                 // nombre de parámetro en backend
+            desde: { el: '#fltDesde', param: 'fechaDesde', parse: v => v || null, default: Filters.FilterManager.firstOfMonthISO },
+            hasta: { el: '#fltHasta', param: 'fechaHasta', parse: v => v || null, default: Filters.FilterManager.todayISO },
+            categoria: { el: '#fltCategoria', param: 'idCategoria', parse: v => v || null },
+            idSucursal: { el: '#fltSucursal', param: 'idSucursal', parse: v => v ? Number(v) : null },
+            idCuenta: { el: '#fltCuenta', param: 'idCuenta', parse: v => v ? Number(v) : null },
+            concepto: { el: '#fltConcepto', param: 'concepto', parse: v => (v || '').trim() || null },
+        },
+        onSearch: async (params) => {
+            // params ya viene normalizado y sin vacíos
+            await listaGastos(params);
+        },
+        // autoSearch: true, // si querés que busque solo al cambiar filtros, descomentar
+    });
+
+    // aplicar defaults (fechas) y bindear eventos
+    window._fmCaja.applyDefaults();
+    window._fmCaja.bind();
+
+    // primera carga respetando defaults
+    await window._fmCaja.search();
+}
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    FiltersUI.init({
+        storageKey: 'Gastos_FiltrosVisibles',
+        panelSelector: '#formFiltros',
+        headerFiltersSelector: '#grd_Gastos thead tr.filters',
+        buttonSelector: '#btnToggleFiltros',
+        iconSelector: '#iconFiltros',
+        defaultVisible: true
+    });
+});
+
+
+async function calcularGastos() {
+    if (!gridGastos) return;
+    const data = gridGastos.rows({ search: "applied" }).data().toArray()
+        .filter(r => !r.__isSaldo);
+
+    let Importe = 0;
+    for (const r of data) {
+        Importe += parseFloat(r.Importe) || 0;
+    }
+
+    document.getElementById("txtTotalGastos").value = formatNumber(Importe);
+
 }

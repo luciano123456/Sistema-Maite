@@ -33,9 +33,14 @@ namespace SistemaMaite.BLL.Service
         }
 
 
-        public async Task<IQueryable<Gasto>> ObtenerTodos()
+        public async Task<List<Gasto>> ObtenerTodos(DateTime? fechaDesde,
+                                               DateTime? fechaHasta,
+                                               int idSucursal,
+                                               int idCuenta,
+                                               int idCategoria,
+                                               string concepto)
         {
-            return await _contactRepo.ObtenerTodos();
+            return await _contactRepo.ObtenerTodos(fechaDesde, fechaHasta, idSucursal, idCuenta, idCategoria, concepto);
         }
 
 

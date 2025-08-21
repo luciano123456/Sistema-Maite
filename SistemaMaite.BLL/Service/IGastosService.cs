@@ -10,7 +10,12 @@ namespace SistemaMaite.BLL.Service
 
         Task<Gasto> Obtener(int id);
 
-        Task<IQueryable<Gasto>> ObtenerTodos();
+        Task<List<Gasto>> ObtenerTodos(DateTime? fechaDesde,
+                               DateTime? fechaHasta,
+                               int idSucursal,
+                               int idCuenta,
+                               int idCategoria,
+                               string concepto);
     }
 
 }

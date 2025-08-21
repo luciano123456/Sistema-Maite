@@ -648,3 +648,56 @@ const Filters = (() => {
 function escapeRegex(text) {
     return (text + '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
+
+
+
+window.FiltersUI = (function () {
+    function setVisibility(el, visible) {
+        if (!el) return;
+        el.classList.toggle('d-none', !visible);
+    }
+
+    function apply(opts) {
+        const raw = localStorage.getItem(opts.storageKey);
+        const visible = (raw === null) ? opts.defaultVisible : JSON.parse(raw);
+
+        // panel
+        setVisibility(document.querySelector(opts.panelSelector), visible);
+
+        // header filters (de DataTables)
+        if (opts.headerFiltersSelector) {
+            document.querySelectorAll(opts.headerFiltersSelector).forEach(el => {
+                el.classList.toggle('d-none', !visible);
+            });
+        }
+
+        // botón
+        const btn = document.querySelector(opts.buttonSelector);
+        if (btn) {
+            btn.classList.toggle("btn-primary", visible);
+            btn.classList.toggle("btn-outline-primary", !visible);
+        }
+
+        // icono
+        const icon = document.querySelector(opts.iconSelector);
+        if (icon) {
+            icon.classList.remove("fa-arrow-up", "fa-arrow-down");
+            icon.classList.add(visible ? "fa-arrow-up" : "fa-arrow-down");
+        }
+    }
+
+    function toggle(opts) {
+        const raw = localStorage.getItem(opts.storageKey);
+        const visible = (raw === null) ? opts.defaultVisible : JSON.parse(raw);
+        localStorage.setItem(opts.storageKey, JSON.stringify(!visible));
+        apply(opts);
+    }
+
+    function init(opts) {
+        const btn = document.querySelector(opts.buttonSelector);
+        if (btn) btn.addEventListener('click', () => toggle(opts));
+        apply(opts);
+    }
+
+    return { init };
+})();

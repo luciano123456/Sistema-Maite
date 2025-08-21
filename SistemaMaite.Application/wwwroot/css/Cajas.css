@@ -39,27 +39,7 @@ input:-webkit-autofill {
 }
 
 
-.totales-botones-container {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: flex-end;
-    gap: 0.5rem;
-    margin-top: 1rem;
-}
 
-.grupo-totales {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    flex-grow: 1;
-    align-items: flex-end;
-}
-
-    .grupo-totales .form-group {
-        flex: 1 1 auto;
-        max-width: 180px;
-    }
 
 .form-control-sm {
     height: 30px;
@@ -67,54 +47,6 @@ input:-webkit-autofill {
     font-size: 0.875rem;
 }
 
-.grupo-botones {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 0.5rem;
-}
-
-    .grupo-botones .btn {
-        white-space: nowrap;
-        padding: 4px 10px;
-        font-size: 0.85rem;
-    }
-
-        .grupo-botones .btn i {
-            margin-right: 6px;
-        }
-
-@media (max-width: 768px) {
-    .totales-botones-container {
-        flex-direction: column;
-        gap: 0.5rem;
-    }
-
-    .grupo-totales,
-    .grupo-botones {
-        flex-direction: column;
-        width: 100%;
-        align-items: stretch;
-    }
-
-        .grupo-totales .form-group {
-            max-width: 100%;
-        }
-
-        .grupo-botones .btn {
-            width: 100%;
-        }
-}
-
-
-.grupo-botones .btn {
-    white-space: nowrap;
-    padding: 4px 10px;
-    font-size: 0.85rem;
-    display: flex;
-    align-items: center;
-    justify-content: center; /* 👈 Centra horizontalmente */
-}
 
 
 .modal-edicion {
@@ -227,21 +159,6 @@ input:-webkit-autofill {
 }
 
 
-.filter-bar {
-    background: rgba(255,255,255,.03);
-    border: 1px solid rgba(255,255,255,.08);
-}
-
-    .filter-bar .form-label {
-        margin-bottom: .25rem;
-        font-weight: 600;
-    }
-
-@media (max-width: 575.98px) {
-    #formFiltros .btn {
-        width: 100%;
-    }
-}
 
 
 /* Fila especial de saldo anterior */

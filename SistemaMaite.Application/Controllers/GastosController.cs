@@ -23,9 +23,14 @@ namespace SistemaMaite.Application.Controllers
 
         // GET: /Gastos/Lista
         [HttpGet]
-        public async Task<IActionResult> Lista()
+        public async Task<IActionResult> Lista(DateTime? FechaDesde = null,
+    DateTime? FechaHasta = null,
+    int IdSucursal = -1,
+    int IdCuenta = -1,
+    int idCategoria = -1,
+    string Concepto = "")
         {
-            var gastos = await _gastosService.ObtenerTodos();
+            var gastos = await _gastosService.ObtenerTodos(FechaDesde, FechaHasta, IdSucursal, IdCuenta, idCategoria, Concepto);
 
             // Mapear entidad -> VM
             var lista = gastos.Select(g => new VMGasto

@@ -142,10 +142,47 @@ namespace SistemaMaite.DAL.Repository
             return model;
         }
 
-        public async Task<IQueryable<Gasto>> ObtenerTodos()
+        public async Task<List<Gasto>> ObtenerTodos(DateTime? fechaDesde,
+                                             DateTime? fechaHasta,
+                                             int idSucursal,
+                                             int idCuenta,
+                                             int idCategoria,
+                                             string concepto)
         {
-            IQueryable<Gasto> query = _dbcontext.Gastos;
-            return await Task.FromResult(query);
+            var query = _dbcontext.Gastos
+                .Include(g => g.IdSucursalNavigation)
+                .Include(g => g.IdCuentaNavigation)
+                .Include(g => g.IdCategoriaNavigation)
+                .AsNoTracking()
+                .AsQueryable();
+
+            if (fechaDesde.HasValue)
+                query = query.Where(x => x.Fecha >= fechaDesde.Value.Date);
+
+            if (fechaHasta.HasValue)
+            {
+                var hasta = fechaHasta.Value.Date.AddDays(1).AddTicks(-1);
+                query = query.Where(x => x.Fecha <= hasta);
+            }
+
+            if (idSucursal != -1)
+                query = query.Where(x => x.IdSucursal == idSucursal);
+
+            if (idCuenta != -1)
+                query = query.Where(x => x.IdCuenta == idCuenta);
+
+            if (idCategoria != -1)
+                query = query.Where(x => x.IdCategoria == idCategoria);
+
+
+            if (!string.IsNullOrWhiteSpace(concepto))
+                query = query.Where(x => EF.Functions.Like(x.Concepto ?? "", $"%{concepto}%"));
+
+            return await query
+                .OrderByDescending(x => x.Fecha)
+                .ThenByDescending(x => x.Id)
+                .ToListAsync();
         }
+
     }
 }
