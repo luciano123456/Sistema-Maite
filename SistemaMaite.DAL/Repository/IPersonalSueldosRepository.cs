@@ -1,19 +1,35 @@
-﻿using SistemaMaite.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
+﻿// SistemaMaite.DAL/Repository/IPersonalSueldosRepository.cs
+using SistemaMaite.Models;
 
 namespace SistemaMaite.DAL.Repository
 {
-    public interface IPersonalSueldosRepository<TEntityModel> where TEntityModel : class
+    public interface IPersonalSueldosRepository<TEntity> where TEntity : class
     {
-        Task<bool> Eliminar(int id);
-        Task<bool> Actualizar(PersonalSueldo model);
+        // Sueldos
         Task<bool> Insertar(PersonalSueldo model);
-        Task<PersonalSueldo> Obtener(int id);
+        Task<bool> Actualizar(PersonalSueldo model);
+        Task<bool> Eliminar(int id);
+        Task<PersonalSueldo?> Obtener(int id);
         Task<IQueryable<PersonalSueldo>> ObtenerTodos();
+
+        // >>> NUEVO: listado con filtros
+        Task<List<PersonalSueldo>> Listar(
+            DateTime? fechaDesde,
+            DateTime? fechaHasta,
+            int? idPersonal,
+            string? estado,
+            string? concepto
+        );
+
+        // Pagos ...
+        Task<bool> InsertarPago(PersonalSueldosPago pago);
+        Task<bool> ActualizarPago(PersonalSueldosPago pago);
+        Task<bool> EliminarPago(int idPago);
+        Task<PersonalSueldosPago?> ObtenerPago(int idPago);
+        Task<List<PersonalSueldosPago>> ObtenerPagosPorSueldo(int idSueldo);
+
+        // Upserts (si ya los usás)
+        Task<bool> InsertarConPagos(PersonalSueldo sueldo, IEnumerable<PersonalSueldosPago> pagos);
+        Task<bool> ActualizarConPagos(PersonalSueldo sueldo, IEnumerable<PersonalSueldosPago> pagos);
     }
 }

@@ -18,7 +18,7 @@ namespace SistemaMaite.Models
 
         public decimal ImporteAbonado { get; set; }
 
-        public string Saldo { get; set; } = null!;
+        public decimal Saldo { get; set; }
 
         public string? NotaInterna { get; set; }
 

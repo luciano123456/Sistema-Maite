@@ -1,0 +1,62 @@
+:root {
+    --bg-surface: #0f172a;
+    --card: #111827;
+    --muted: #94a3b8;
+    --text: #e5e7eb;
+    --primary: #6366f1;
+    --success: #22c55e;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+}
+
+body {
+    background: linear-gradient(135deg,#0b1220 0%,#0f172a 100%);
+    color: var(--text);
+}
+
+.page-header {
+    background: linear-gradient(180deg, #0b1220 0%, #0f172a 100%);
+    border: 1px solid rgba(255,255,255,.06);
+    box-shadow: 0 10px 30px rgba(0,0,0,.3), inset 0 1px 0 rgba(255,255,255,.02);
+    color: var(--text);
+}
+
+.btn-ghost {
+    background: rgba(255,255,255,.06);
+    border: 1px solid rgba(255,255,255,.08);
+    color: var(--text);
+}
+
+    .btn-ghost:hover {
+        background: rgba(255,255,255,.12);
+    }
+
+.card-glass {
+    background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.015));
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 1rem;
+    color: var(--text);
+    box-shadow: 0 10px 30px rgba(3,7,18,.35);
+}
+
+.stat-card {
+    background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+    border: 1px solid rgba(255,255,255,.08);
+    color: var(--text);
+    border-radius: 1rem;
+}
+
+    .stat-card .label {
+        color: var(--muted);
+        font-size: .85rem;
+    }
+
+    .stat-card .value {
+        font-size: 1.35rem;
+        font-weight: 700;
+    }
+
+
+#modalPago .modal-dialog {
+    max-width: 800px; /* o el ancho que quieras */
+}
