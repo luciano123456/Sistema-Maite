@@ -41,12 +41,13 @@ body {
     padding-bottom: 10px;
     background-attachment: fixed;
     background-position: center center;
-    background-color: #1B2631;
     background-repeat: no-repeat no-repeat;
     background-size: cover;
     width: 99%;
     height: 98%;
     margin-left: 5px;
+    background: linear-gradient(135deg,#0b1220 0%,#0f172a 100%);
+    color: var(--text);
 }
 
 
@@ -592,7 +593,8 @@ input:disabled {
 }
 
 .card {
-    background-color: #1B2631 !important;
+    background: linear-gradient(135deg,#0b1220 0%,#0f172a 100%);
+    color: var(--text);
     border-radius: 50px;
 }
 

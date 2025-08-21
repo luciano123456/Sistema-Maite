@@ -1,115 +1,174 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SistemaMaite.Application.Models;
+using Microsoft.EntityFrameworkCore;
 using SistemaMaite.Application.Models.ViewModels;
 using SistemaMaite.BLL.Service;
 using SistemaMaite.Models;
-using System.Diagnostics;
 
 namespace SistemaMaite.Application.Controllers
 {
     [Authorize]
     public class PersonalSueldosController : Controller
     {
-        private readonly IPersonalSueldosService _PersonalSueldosService;
+        private readonly IPersonalSueldosService _srv;
+        public PersonalSueldosController(IPersonalSueldosService srv) { _srv = srv; }
 
-        public PersonalSueldosController(IPersonalSueldosService PersonalSueldosService)
+        public IActionResult Index() => View();
+
+        public IActionResult NuevoModif(int? id)
         {
-            _PersonalSueldosService = PersonalSueldosService;
+            if (id.HasValue) ViewBag.Data = id.Value;
+            return View();
         }
 
         [HttpGet]
-        public async Task<IActionResult> Lista()
+        public async Task<IActionResult> Lista(
+            DateTime? fechaDesde,
+            DateTime? fechaHasta,
+            int? idPersonal = null,
+            string? estado = null,
+            string? concepto = null)
         {
-            var PersonalSueldos = await _PersonalSueldosService.ObtenerTodos();
+            var data = await _srv.Listar(fechaDesde, fechaHasta, idPersonal, estado, concepto);
 
-            var lista = PersonalSueldos.Select(c => new VMPersonalSueldo
+            var vm = data.Select(s => new VMPersonalSueldo
             {
-                Id = c.Id,
-                IdPersonal = c.IdPersonal,
-                Fecha = c.Fecha,
-                Concepto = c.Concepto,
-                Importe = c.Importe,
-                ImporteAbonado = c.ImporteAbonado,
-                Saldo = c.Saldo,
-                NotaInterna = c.NotaInterna
+                Id = s.Id,
+                IdPersonal = s.IdPersonal,
+                Personal = s.IdPersonalNavigation?.Nombre ?? "",
+                Fecha = s.Fecha,
+                Concepto = s.Concepto,
+                Importe = s.Importe,
+                ImporteAbonado = s.ImporteAbonado,
+                Saldo = s.Saldo,
+                NotaInterna = s.NotaInterna
             }).ToList();
 
-            return Ok(lista);
-        }
-
-
-        [HttpPost]
-        public async Task<IActionResult> Insertar([FromBody] VMPersonalSueldo model)
-        {
-            var result = new PersonalSueldo
-            {
-                Id = model.Id,
-                IdPersonal = model.IdPersonal,
-                Fecha = model.Fecha,
-                Concepto = model.Concepto,
-                Importe = model.Importe,
-                ImporteAbonado = model.ImporteAbonado,
-                Saldo = model.Saldo,
-                NotaInterna = model.NotaInterna
-            };
-
-            bool respuesta = await _PersonalSueldosService.Insertar(result);
-
-            return Ok(new { valor = respuesta });
-        }
-
-        [HttpPut]
-        public async Task<IActionResult> Actualizar([FromBody] VMPersonalSueldo model)
-        {
-            var result = new PersonalSueldo
-            {
-                Id = model.Id,
-                IdPersonal = model.IdPersonal,
-                Fecha = model.Fecha,
-                Concepto = model.Concepto,
-                Importe = model.Importe,
-                ImporteAbonado = model.ImporteAbonado,
-                Saldo = model.Saldo,
-                NotaInterna = model.NotaInterna
-            };
-
-            bool respuesta = await _PersonalSueldosService.Actualizar(result);
-
-            return Ok(new { valor = respuesta });
-        }
-
-        [HttpDelete]
-        public async Task<IActionResult> Eliminar(int id)
-        {
-            bool respuesta = await _PersonalSueldosService.Eliminar(id);
-
-            return StatusCode(StatusCodes.Status200OK, new { valor = respuesta });
+            return Ok(vm);
         }
 
         [HttpGet]
         public async Task<IActionResult> EditarInfo(int id)
         {
-             var result = await _PersonalSueldosService.Obtener(id);
+            var s = await _srv.Obtener(id);
+            if (s is null) return NotFound();
 
-            if (result != null)
+            var pagos = await _srv.ObtenerPagosPorSueldo(id);
+
+            var vm = new VMPersonalSueldo
             {
-                return StatusCode(StatusCodes.Status200OK, result);
-            }
-            else
-            {
-                return StatusCode(StatusCodes.Status404NotFound);
-            }
-        }
-        public IActionResult Privacy()
-        {
-            return View();
+                Id = s.Id,
+                IdPersonal = s.IdPersonal,
+                Personal = s.IdPersonalNavigation?.Nombre ?? "",
+                Fecha = s.Fecha,
+                Concepto = s.Concepto,
+                Importe = s.Importe,
+                ImporteAbonado = s.ImporteAbonado,
+                Saldo = s.Saldo,
+                NotaInterna = s.NotaInterna,
+                Pagos = pagos.Select(p => new VMPersonalSueldosPago
+                {
+                    Id = p.Id,
+                    IdSueldo = p.IdSueldo,
+                    Fecha = p.Fecha,
+                    IdCuenta = p.IdCuenta,
+                    Cuenta = p.IdCuentaNavigation?.Nombre ?? "",
+                    Importe = p.Importe,
+                    NotaInterna = p.NotaInterna
+                }).ToList()
+            };
+            return Ok(vm);
         }
 
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
+        // ----------- API: SUELDOS (UPSERT TODO JUNTO) -----------
+        // Insertar TODO: sueldo + pagos
+        [HttpPost]
+        public async Task<IActionResult> Insertar([FromBody] VMPersonalSueldo vm)
         {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+            if (vm is null) return BadRequest("Payload inválido");
+
+            var sueldo = new PersonalSueldo
+            {
+                IdPersonal = vm.IdPersonal,
+                Fecha = vm.Fecha,
+                Concepto = vm.Concepto,
+                Importe = vm.Importe,
+                NotaInterna = vm.NotaInterna
+            };
+
+            var pagos = (vm.Pagos ?? new List<VMPersonalSueldosPago>()).Select(p => new PersonalSueldosPago
+            {
+                Fecha = p.Fecha,
+                IdCuenta = p.IdCuenta,
+                Importe = p.Importe,
+                NotaInterna = p.NotaInterna
+            }).ToList();
+
+            try
+            {
+                var ok = await _srv.InsertarConPagos(sueldo, pagos);
+                return Ok(new { valor = ok });
+            }
+            catch (Exception ex) { return BadRequest(ex.Message); }
+        }
+
+        // Actualizar TODO: sueldo + pagos (agrega/actualiza/elimina)
+        [HttpPut]
+        public async Task<IActionResult> Actualizar([FromBody] VMPersonalSueldo vm)
+        {
+            if (vm is null || vm.Id <= 0) return BadRequest("Id inválido");
+
+            var sueldo = new PersonalSueldo
+            {
+                Id = vm.Id,
+                IdPersonal = vm.IdPersonal,
+                Fecha = vm.Fecha,
+                Concepto = vm.Concepto,
+                Importe = vm.Importe,
+                NotaInterna = vm.NotaInterna
+            };
+
+            var pagos = (vm.Pagos ?? new List<VMPersonalSueldosPago>()).Select(p => new PersonalSueldosPago
+            {
+                Id = p.Id,
+                IdSueldo = vm.Id,
+                Fecha = p.Fecha,
+                IdCuenta = p.IdCuenta,
+                Importe = p.Importe,
+                NotaInterna = p.NotaInterna
+            }).ToList();
+
+            try
+            {
+                var ok = await _srv.ActualizarConPagos(sueldo, pagos);
+                return Ok(new { valor = ok });
+            }
+            catch (Exception ex) { return BadRequest(ex.Message); }
+        }
+
+        [HttpDelete]
+        public async Task<IActionResult> Eliminar(int id)
+        {
+            var ok = await _srv.Eliminar(id);
+            return Ok(new { valor = ok });
+        }
+
+        // ----------- API auxiliares (si las seguís usando) -----------
+        [HttpGet]
+        public async Task<IActionResult> PagosLista(int idSueldo)
+        {
+            var list = await _srv.ObtenerPagosPorSueldo(idSueldo);
+            var vm = list.Select(p => new VMPersonalSueldosPago
+            {
+                Id = p.Id,
+                IdSueldo = p.IdSueldo,
+                Fecha = p.Fecha,
+                IdCuenta = p.IdCuenta,
+                Cuenta = p.IdCuentaNavigation?.Nombre ?? "",
+                Importe = p.Importe,
+                NotaInterna = p.NotaInterna
+            }).ToList();
+            return Ok(vm);
         }
     }
 }

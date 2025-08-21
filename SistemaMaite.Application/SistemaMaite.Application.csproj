@@ -13,6 +13,8 @@
     <Content Remove="wwwroot\js\Gastos.js" />
     <Content Remove="wwwroot\js\Login.js" />
     <Content Remove="wwwroot\js\NavBarLogin.js" />
+    <Content Remove="wwwroot\js\PagosSueldos.js" />
+    <Content Remove="wwwroot\js\PagosSueldosNuevoModif.js" />
     <Content Remove="wwwroot\js\Personal.js" />
     <Content Remove="wwwroot\js\Productos.js" />
     <Content Remove="wwwroot\js\Usuarios.js" />
@@ -24,6 +26,8 @@
     <None Include="wwwroot\Imagenes\Clientes.png" />
     <None Include="wwwroot\js\Cajas.js" />
     <None Include="wwwroot\js\Gastos.js" />
+    <None Include="wwwroot\js\PagosSueldosNuevoModif.js" />
+    <None Include="wwwroot\js\PagosSueldos.js" />
     <None Include="wwwroot\js\Productos.js" />
     <None Include="wwwroot\js\Personal.js" />
     <None Include="wwwroot\js\Login.js" />
