@@ -339,15 +339,25 @@ async function guardarTodo() {
     mark("#txtConcepto", !concepto);
     mark("#txtImporte", !(importe > 0));
 
+    // Validación de requeridos
     if (!(fecha && idPersonal && concepto && importe > 0)) {
-        document.getElementById("errorCampos")?.classList.remove("d-none");
+        setErrorCampos("Debes completar los campos obligatorios.");
         isSaving = false;
         return;
     } else {
-        document.getElementById("errorCampos")?.classList.add("d-none");
+        clearErrorCampos();
     }
 
+    // Suma de pagos vs Importe
     const abonado = State.pagos.reduce((a, p) => a + (parseFloat(p.importe) || 0), 0);
+    const EPS = 0.000001; // tolerancia
+    if (abonado - importe > EPS) {
+        // marcar el importe como inválido (opcional) y mostrar error en #errorCampos
+        setErrorCampos(`La suma de pagos (${_fmtNumber(abonado)}) supera el importe del sueldo (${_fmtNumber(importe)}).`);
+        isSaving = false;
+        return;
+    }
+
     const saldo = (importe || 0) - abonado;
 
     const payload = {
@@ -519,3 +529,20 @@ function exportarReciboPdf() {
 
 // --------------------------- Navegación ---------------------------
 function volverIndex() { window.location.href = "/PersonalSueldos/Index"; }
+
+
+// --- helpers para el bloque de errores (campos obligatorios / otras reglas) ---
+function setErrorCampos(msg) {
+    const el = document.getElementById("errorCampos");
+    if (!el) return;
+    el.textContent = msg || "Debes completar los campos obligatorios.";
+    el.classList.remove("d-none");
+    // opcional: llevar el scroll al bloque de error
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+function clearErrorCampos() {
+    const el = document.getElementById("errorCampos");
+    if (!el) return;
+    el.textContent = "Debes completar los campos obligatorios.";
+    el.classList.add("d-none");
+}

@@ -525,3 +525,33 @@ background: #240370;
         max-width: 98%; /* o lo que necesites */
     }
 }
+
+
+
+.btnMenu {
+    border: none;
+    border-radius: 14px;
+    padding: 14px 20px;
+    font-weight: 700;
+    font-size: 1rem;
+    background: linear-gradient(135deg, #1e3a8a, #1d4ed8);
+    color: #fff;
+    box-shadow: 0 6px 14px rgba(0,0,0,.35);
+    transition: all 0.25s ease;
+}
+
+    .btnMenu:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 24px rgba(0,0,0,.45);
+        filter: brightness(1.1);
+    }
+
+
+    .btnMenu img {
+        display: block;
+        margin: 0 auto 8px auto;
+        width: 56px;
+        height: 56px;
+        object-fit: contain;
+        filter: drop-shadow(0 4px 8px rgba(0,0,0,.25));
+    }
