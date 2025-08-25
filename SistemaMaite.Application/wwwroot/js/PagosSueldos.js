@@ -124,31 +124,47 @@ async function configurarDataTableSueldos(data) {
             initComplete: async function () {
                 const api = this.api();
 
-                for (const cfg of columnConfig) {
-                    const cell = $('.filters th').eq(cfg.index);
-                    if (cfg.filterType === 'select') {
-                        const select = $(`<select><option value="">Seleccionar</option></select>`)
+                // Filtros por columna
+                for (const config of columnConfig) {
+                    const cell = $('.filters th').eq(config.index);
+
+                    if (config.filterType === "select") {
+                        const select = $(`<select id="filter${config.index}"><option value="">Seleccionar</option></select>`)
                             .appendTo(cell.empty())
                             .on("change", async function () {
-                                const text = $(this).find("option:selected").text();
-                                await api.column(cfg.index).search(text ? "^" + escapeRegex(text) + "$" : "", true, false).draw();
+                                const val = this.value;
+                                if (val === "") {
+                                    await api.column(config.index).search("").draw();
+                                    return;
+                                }
+                                const selectedText = $(this).find("option:selected").text();
+                                await api
+                                    .column(config.index)
+                                    .search("^" + escapeRegex(selectedText) + "$", true, false)
+                                    .draw();
                             });
 
-                        const items = await cfg.fetchDataFunc();
-                        items.forEach(x => select.append(`<option value="${x.Id}">${x.Nombre}</option>`));
-                    } else {
+                        const items = await config.fetchDataFunc();
+                        items.forEach(item => {
+                            select.append('<option value="' + item.Id + '">' + (item.Nombre ?? '') + '</option>');
+                        });
+
+                    } else if (config.filterType === 'text') {
                         const input = $('<input type="text" placeholder="Buscar..." />')
                             .appendTo(cell.empty())
+                            .off('keyup change')
                             .on('keyup change', function (e) {
                                 e.stopPropagation();
-                                const cursor = this.selectionStart;
-                                api.column(cfg.index)
-                                    .search(this.value ? `((( ${escapeRegex(this.value)} )))` : '', !!this.value, !this.value)
+                                const regexr = '({search})';
+                                const cursorPosition = this.selectionStart;
+                                api.column(config.index)
+                                    .search(this.value !== '' ? regexr.replace('{search}', '(((' + escapeRegex(this.value) + ')))') : '', this.value !== '', this.value === '')
                                     .draw();
-                                $(this).focus()[0].setSelectionRange(cursor, cursor);
+                                $(this).focus()[0].setSelectionRange(cursorPosition, cursorPosition);
                             });
                     }
                 }
+
                 $('.filters th').eq(0).html('');
 
                 configurarOpcionesColumnas('#grd_Sueldos', '#configColumnasMenu', 'Sueldos_Columnas');
@@ -177,20 +193,31 @@ function calcularTotalesSueldos() {
 
 /* ------ Filtros superiores ------ */
 
+// --- Sueldos: initFiltros con misma estructura que Gastos ---
 async function initFiltros() {
+    // 1) Cargar combos del panel superior (si existen en el DOM)
     try {
-        const pers = await fetch('/Personal/Lista', { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json());
+        const [personal] = await Promise.all([
+            fetch('/Personal/Lista', { headers: { 'Authorization': 'Bearer ' + token } }).then(r => r.json())
+        ]);
+
         if ($('#fltPersonal').length) {
             const $p = $('#fltPersonal').empty().append('<option value="">Todos</option>');
-            pers.forEach(x => $p.append(`<option value="${x.Id}">${x.Nombre}</option>`));
+            personal.forEach(x => $p.append(`<option value="${x.Id}">${x.Nombre}</option>`));
         }
-    } catch { }
+    } catch { /* ignora fallos de combos */ }
 
+    // 2) Crear FilterManager (misma estructura que Gastos)
     window._fmSueldo = new Filters.FilterManager({
         form: '#formFiltros',
         debounce: 300,
-        buttons: { search: '#btnBuscar', clear: '#btnLimpiar', keepDefaultsOnClear: true },
+        buttons: {
+            search: '#btnBuscar',
+            clear: '#btnLimpiar',
+            keepDefaultsOnClear: true,
+        },
         fields: {
+            // alias             // selector     // nombre de parámetro en back
             desde: { el: '#fltDesde', param: 'fechaDesde', parse: v => v || null, default: Filters.FilterManager.firstOfMonthISO },
             hasta: { el: '#fltHasta', param: 'fechaHasta', parse: v => v || null, default: Filters.FilterManager.todayISO },
             personal: { el: '#fltPersonal', param: 'idPersonal', parse: v => v ? Number(v) : null },
@@ -198,24 +225,33 @@ async function initFiltros() {
             concepto: { el: '#fltConcepto', param: 'concepto', parse: v => (v || '').trim() || null },
         },
         onSearch: async (params) => {
-            window._fmSueldo.currentParams = params;
+            window._fmSueldo.currentParams = params; // por si lo usás al recargar
             await listaSueldos(params);
         },
+        // autoSearch: true, // si querés búsqueda automática al cambiar filtros
     });
 
+    // 3) Defaults + bind
     window._fmSueldo.applyDefaults();
     window._fmSueldo.bind();
+
+    // 4) Primera carga respetando defaults
     await window._fmSueldo.search();
 
+    // 5) Toggle de panel de filtros (sin tocar la fila del header)
     FiltersUI.init({
         storageKey: 'Sueldos_FiltrosVisibles',
         panelSelector: '#formFiltros',
-        headerFiltersSelector: '#grd_Sueldos thead tr.filters',
         buttonSelector: '#btnToggleFiltros',
         iconSelector: '#iconFiltros',
         defaultVisible: true
     });
+
+    // (Opcional) Por si alguna vez quedó oculto por CSS/estado previo:
+    const $row = $('#grd_Sueldos thead tr.filters');
+    $row.show().css('display', 'table-row').removeAttr('hidden');
 }
+
 
 /* ------ Helpers / Selects ------ */
 async function listaPersonalFilter() {

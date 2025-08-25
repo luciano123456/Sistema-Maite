@@ -3,7 +3,7 @@
 <Project>
   <PropertyGroup>
     <_PublishTargetUrl>D:\Publicaciones Webs\Sistema Maite</_PublishTargetUrl>
-    <History>True|2025-08-20T07:21:33.6499260Z||;True|2025-08-18T03:19:32.3723767-03:00||;True|2025-08-18T03:16:01.7993740-03:00||;True|2025-08-18T03:09:19.3695566-03:00||;True|2025-08-18T03:06:10.4638872-03:00||;True|2025-08-15T23:00:55.4995320-03:00||;</History>
+    <History>True|2025-08-21T06:47:50.6988622Z||;True|2025-08-21T03:35:32.8726451-03:00||;True|2025-08-20T04:21:33.6499260-03:00||;True|2025-08-18T03:19:32.3723767-03:00||;True|2025-08-18T03:16:01.7993740-03:00||;True|2025-08-18T03:09:19.3695566-03:00||;True|2025-08-18T03:06:10.4638872-03:00||;True|2025-08-15T23:00:55.4995320-03:00||;</History>
     <LastFailureDetails />
   </PropertyGroup>
   <ItemGroup>
@@ -11,22 +11,31 @@
       <publishTime>08/11/2025 23:47:33</publishTime>
     </File>
     <File Include="Views/Cajas/Index.cshtml">
-      <publishTime>08/20/2025 04:20:49</publishTime>
+      <publishTime>08/21/2025 03:22:41</publishTime>
     </File>
     <File Include="Views/Clientes/Index.cshtml">
-      <publishTime>08/20/2025 04:20:53</publishTime>
+      <publishTime>08/21/2025 03:22:44</publishTime>
+    </File>
+    <File Include="Views/Gastos/Index.cshtml">
+      <publishTime>08/21/2025 03:22:48</publishTime>
     </File>
     <File Include="Views/Home/Index.cshtml">
-      <publishTime>08/20/2025 04:20:58</publishTime>
+      <publishTime>08/21/2025 03:35:10</publishTime>
     </File>
     <File Include="Views/Home/Privacy.cshtml">
       <publishTime>08/14/2025 03:07:12</publishTime>
     </File>
     <File Include="Views/Login/Index.cshtml">
-      <publishTime>08/12/2025 14:15:54</publishTime>
+      <publishTime>08/21/2025 03:22:57</publishTime>
     </File>
     <File Include="Views/Personal/Index.cshtml">
-      <publishTime>08/20/2025 04:21:02</publishTime>
+      <publishTime>08/21/2025 03:23:01</publishTime>
+    </File>
+    <File Include="Views/PersonalSueldos/Index.cshtml">
+      <publishTime>08/21/2025 03:47:39</publishTime>
+    </File>
+    <File Include="Views/PersonalSueldos/NuevoModif.cshtml">
+      <publishTime>08/21/2025 02:59:07</publishTime>
     </File>
     <File Include="Views/Productos/Index.cshtml">
       <publishTime>08/18/2025 23:36:22</publishTime>
@@ -74,9 +83,12 @@
       <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/css/Login.css">
-      <publishTime>12/08/2025 14:12:39</publishTime>
+      <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/css/NavBarLogin.css">
+      <publishTime>01/01/0001 00:00:00</publishTime>
+    </File>
+    <File Include="wwwroot/css/PagosSueldosNuevoModif.css">
       <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/css/Personal.css">
@@ -86,7 +98,7 @@
       <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/css/site.css">
-      <publishTime>12/08/2025 13:44:37</publishTime>
+      <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/css/Usuarios.css">
       <publishTime>12/08/2025 01:08:53</publishTime>
@@ -145,6 +157,9 @@
     <File Include="wwwroot/Imagenes/Menu Principal/Configuraciones.png">
       <publishTime>11/08/2025 23:47:33</publishTime>
     </File>
+    <File Include="wwwroot/Imagenes/Menu Principal/Gastos.png">
+      <publishTime>01/01/0001 00:00:00</publishTime>
+    </File>
     <File Include="wwwroot/Imagenes/Menu Principal/historialprecios.png">
       <publishTime>11/08/2025 23:47:33</publishTime>
     </File>
@@ -161,19 +176,22 @@
       <publishTime>11/08/2025 23:47:33</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Nueva Venta.png">
-      <publishTime>08/11/2025 23:47:33</publishTime>
+      <publishTime>11/08/2025 23:47:33</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Nueva Zona.png">
       <publishTime>11/08/2025 23:47:33</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Nuevo Cliente.png">
-      <publishTime>08/11/2025 23:47:33</publishTime>
+      <publishTime>11/08/2025 23:47:33</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Nuevo Pedido.png">
       <publishTime>11/08/2025 23:47:33</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Nuevo Usuario.png">
       <publishTime>11/08/2025 23:47:33</publishTime>
+    </File>
+    <File Include="wwwroot/Imagenes/Menu Principal/Pagos Personal.png">
+      <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Pedidos.png">
       <publishTime>11/08/2025 23:47:33</publishTime>
@@ -203,7 +221,7 @@
       <publishTime>11/08/2025 23:47:33</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/productos.png">
-      <publishTime>08/11/2025 23:47:33</publishTime>
+      <publishTime>11/08/2025 23:47:33</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/proveedores.png">
       <publishTime>11/08/2025 23:47:33</publishTime>
@@ -232,6 +250,9 @@
     <File Include="wwwroot/js/Clientes.js">
       <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
+    <File Include="wwwroot/js/Gastos.js">
+      <publishTime>01/01/0001 00:00:00</publishTime>
+    </File>
     <File Include="wwwroot/js/Home.js">
       <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
@@ -239,6 +260,12 @@
       <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/js/NavBarLogin.js">
+      <publishTime>01/01/0001 00:00:00</publishTime>
+    </File>
+    <File Include="wwwroot/js/PagosSueldos.js">
+      <publishTime>01/01/0001 00:00:00</publishTime>
+    </File>
+    <File Include="wwwroot/js/PagosSueldosNuevoModif.js">
       <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/js/Personal.js">

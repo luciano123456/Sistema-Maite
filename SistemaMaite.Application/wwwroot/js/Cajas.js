@@ -106,18 +106,41 @@ function nuevoCaja() {
     limpiarModal("#modalEdicion", "#errorCampos");
 
     Promise.all([listaSucursales(), listaCuentas()]).then(() => {
-        const hoy = new Date();
-        $("#dtpFecha").val(hoy.toISOString().slice(0, 10));
+        const hoyISO = new Date().toISOString().slice(0, 10);
+
+        // valores por defecto
+        $("#txtId").val(0);                    // <- importante: indica que NO existe aún
+        $("#cmbSucursal").val("").trigger("change");
+        $("#cmbCuenta").val("").trigger("change");
+        $("#dtpFecha").val(hoyISO);
         $("#cmbTipoMov").val("");
         $("#numImporte").val("");
         $("#txtConcepto").val("");
 
-        $("#modalEdicion").modal("show");
-        $("#btnGuardar").text("Registrar");
+        // UI modal
         $("#modalEdicionLabel").text("Nuevo Movimiento");
+        $("#btnGuardar").text("Registrar");
+
+        // editable = true y sin botón Eliminar
+        setModalEditableMovimiento(true);
+        const btnDel = document.getElementById("btnEliminarMov");
+        if (btnDel) btnDel.classList.add("d-none");
+
+        $("#modalEdicion").modal("show");
     });
 }
 
+
+
+// habilita/deshabilita campos y el botón Guardar
+function setModalEditableMovimiento(editable) {
+    const $m = $("#modalEdicion");
+    $m.find("#cmbSucursal, #cmbCuenta, #dtpFecha, #cmbTipoMov, #txtConcepto, #numImporte")
+        .prop("disabled", !editable);
+    $("#btnGuardar").toggleClass("d-none", !editable);
+}
+
+// en mostrarModalCaja ocultá Eliminar si no existe Id o si no es editable
 async function mostrarModalCaja(modelo) {
     limpiarModal("#modalEdicion", "#errorCampos");
     await Promise.all([listaSucursales(), listaCuentas()]);
@@ -130,15 +153,23 @@ async function mostrarModalCaja(modelo) {
     $("#txtConcepto").val(modelo.Concepto ?? "");
     $("#numImporte").val(formatearMiles(modelo.Importe) ?? "");
 
+    const esTransfer = !!modelo.EsTransferencia;
+    const esUsuario = modelo.IdMov === null;
+    const puedeEditar = !!modelo.PuedeEditar;
+    const editable = esUsuario || esTransfer || puedeEditar;
+
+    setModalEditableMovimiento(editable);
+
     const btnDel = document.getElementById("btnEliminarMov");
     if (btnDel) {
-        if (modelo.PuedeEliminar) btnDel.classList.remove("d-none");
-        else btnDel.classList.add("d-none");
+        const existe = !!modelo.Id && modelo.Id > 0;
+        const mostrarEliminar = editable && existe;
+        btnDel.classList.toggle("d-none", !mostrarEliminar);
     }
 
+    $("#modalEdicionLabel").text(editable ? "Editar movimiento" : "Ver movimiento");
+    $("#btnGuardar").text(editable ? "Guardar" : "Guardar");
     $("#modalEdicion").modal("show");
-    $("#btnGuardar").text("Guardar");
-    $("#modalEdicionLabel").text("Ver movimiento");
 }
 
 /* ========== Lista principal (DataTable) ========== */
@@ -207,20 +238,27 @@ async function configurarDataTableCaja(data) {
                     data: "Id",
                     title: "",
                     width: "1%",
-                    render: (data) => `
-            <div class="acciones-menu" data-id="${data}">
-              <button class='btn btn-sm btnacciones' type='button' onclick='toggleAcciones(${data})' title='Acciones'>
-                <i class='fa fa-ellipsis-v fa-lg text-white'></i>
-              </button>
-              <div class="acciones-dropdown" style="display:none;">
-                <button class='btn btn-sm btneditar' type='button' onclick='verMovimiento(${data})' title='Ver movimiento'>
-                  <i class='fa fa-eye fa-lg text-info'></i> Ver movimiento
-                </button>
-              </div>
-            </div>`,
                     orderable: false,
                     searchable: false,
+                    render: (data, type, row) => {
+                        // Sin acciones para la fila virtual de saldo
+                        if (row.__isSaldo) return "";
+
+                        // Acciones normales
+                        return `
+      <div class="acciones-menu" data-id="${data}">
+        <button class='btn btn-sm btnacciones' type='button' onclick='toggleAcciones(${data})' title='Acciones'>
+          <i class='fa fa-ellipsis-v fa-lg text-white'></i>
+        </button>
+        <div class="acciones-dropdown" style="display:none;">
+          <button class='btn btn-sm btneditar' type='button' onclick='verMovimiento(${data})' title='Ver movimiento'>
+            <i class='fa fa-eye fa-lg text-info'></i> Ver movimiento
+          </button>
+        </div>
+      </div>`;
+                    }
                 },
+
                 {
                     data: "Fecha",
                     title: "Fecha",
