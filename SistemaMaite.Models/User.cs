@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace SistemaMaite.Models {
+namespace SistemaMaite.Models;
 
 public partial class User
 {
@@ -12,13 +12,12 @@ public partial class User
     public string? Nombre { get; set; }
 
     public string? Apellido { get; set; }
-    public string? Correo { get; set; }
 
     public string? Dni { get; set; }
 
-    public string? Telefono { get; set; }
+    public string Telefono { get; set; } = null!;
 
-    public string? Direccion { get; set; }
+    public string Direccion { get; set; } = null!;
 
     public int IdRol { get; set; }
 
@@ -26,9 +25,11 @@ public partial class User
 
     public int IdEstado { get; set; }
 
+    public string? Correo { get; set; }
+
     public virtual EstadosUsuario IdEstadoNavigation { get; set; } = null!;
 
     public virtual Rol IdRolNavigation { get; set; } = null!;
-}
-}
 
+    public virtual ICollection<UsuariosSucursal> UsuariosSucursales { get; set; } = new List<UsuariosSucursal>();
+}
