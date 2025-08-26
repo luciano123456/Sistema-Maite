@@ -93,6 +93,9 @@ builder.Services.AddScoped<ITransferenciasCajasService, TransferenciasCajasServi
 builder.Services.AddScoped<IGastosRepository<Gasto>, GastosRepository>();
 builder.Services.AddScoped<IGastosService, GastosService>();
 
+builder.Services.AddScoped<IVentasRepository<Venta>, VentasRepository>();
+builder.Services.AddScoped<IVentasService, VentasService>();
+
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(o =>
     {

@@ -20,12 +20,16 @@
     <Content Remove="wwwroot\js\Usuarios.js" />
     <Content Remove="wwwroot\js\UsuariosConfiguracion.js" />
     <Content Remove="wwwroot\js\Utils\moment.js" />
+    <Content Remove="wwwroot\js\Ventas.js" />
+    <Content Remove="wwwroot\js\VentasNuevoModif.js" />
   </ItemGroup>
 
   <ItemGroup>
     <None Include="wwwroot\Imagenes\Clientes.png" />
     <None Include="wwwroot\js\Cajas.js" />
     <None Include="wwwroot\js\Gastos.js" />
+    <None Include="wwwroot\js\VentasNuevoModif.js" />
+    <None Include="wwwroot\js\Ventas.js" />
     <None Include="wwwroot\js\PagosSueldosNuevoModif.js" />
     <None Include="wwwroot\js\PagosSueldos.js" />
     <None Include="wwwroot\js\Productos.js" />

@@ -1,0 +1,103 @@
+﻿@{
+    ViewData["Title"] = "Ventas";
+}
+@section Estilos {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css" />
+    <link rel="stylesheet" href="~/css/usuarios.css" />
+}
+
+<div class="container-fluid mt-5">
+    <partial name="~/Views/Shared/Partials/BotonMenu.cshtml" />
+    <div class="card" style="width: 88%; position: absolute; left: 7vw; border: none;">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>Ventas</span>
+            <div class="d-flex align-items-center gap-2">
+                <button class="btn btn-outline-primary d-flex align-items-center" type="button" id="btnToggleFiltros">
+                    <i class="fa fa-arrow-up me-2" id="iconFiltros"></i> Filtros
+                </button>
+                <div class="dropdown">
+                    <button class="btn btn-secondary dropdown-toggle d-flex align-items-center" type="button" id="dropdownColumnas" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa fa-cog me-2"></i> Config. Columnas
+                    </button>
+                    <ul class="dropdown-menu" id="configColumnasMenu"></ul>
+                </div>
+                <button class="btn btn-success" onclick="nuevaVenta()"><i class="fa fa-plus"></i> Nueva Venta</button>
+            </div>
+        </div>
+
+        <div class="card-body">
+            <form id="formFiltros" class="filter-bar shadow-sm rounded-3 mb-3 p-3 d-none">
+                <div class="row g-2 align-items-end">
+                    <div class="col-6 col-md-3">
+                        <label class="form-label">Desde</label>
+                        <input type="date" id="fltDesde" class="form-control">
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label">Hasta</label>
+                        <input type="date" id="fltHasta" class="form-control">
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label">Cliente</label>
+                        <select id="fltCliente" class="form-select"><option value="">Todos</option></select>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label">Vendedor</label>
+                        <select id="fltVendedor" class="form-select"><option value="">Todos</option></select>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label class="form-label">Estado</label>
+                        <select id="fltEstado" class="form-select">
+                            <option value="">Todos</option>
+                            <option value="CON_SALDO">Con saldo</option>
+                            <option value="SALDADO">Saldado</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-3">
+                        <label class="form-label">Buscar texto</label>
+                        <input type="text" id="fltTexto" class="form-control" placeholder="Cliente, notas...">
+                    </div>
+                    <div class="col-12 col-md-4 d-flex gap-2 mt-2 mt-md-0">
+                        <button type="button" id="btnBuscar" class="btn btn-primary flex-fill"><i class="fa fa-search me-1"></i> Buscar</button>
+                        <button type="button" id="btnLimpiar" class="btn btn-outline-secondary"><i class="fa fa-eraser me-1"></i> Limpiar</button>
+                    </div>
+                </div>
+            </form>
+
+            <table class="display nowrap" id="grd_Ventas" style="width:100%">
+                <thead>
+                    <tr>
+                        <th></th>
+                        <th>Fecha</th>
+                        <th>Cliente</th>
+                        <th>Vendedor</th>
+                        <th>Subtotal</th>
+                        <th>Descuentos</th>
+                        <th>IVA</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+
+        <div class="totales-botones-container mb-4">
+            <div class="grupo-totales">
+                <div class="form-group mb-0">
+                    <label class="form-label fw-bold">Suma Total</label>
+                    <input type="text" class="form-control form-control-sm text-start" id="txtTotalVentas" readonly>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
+    <script src="~/js/site.js"></script>
+    <script src="~/js/utils/moment.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
+    <script src="~/js/Ventas.js"></script>
+}
