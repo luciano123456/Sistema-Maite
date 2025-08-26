@@ -6,6 +6,7 @@ using SistemaMaite.Application.Models.ViewModels;
 using SistemaMaite.BLL.Service;
 using SistemaMaite.Models;
 using System.Diagnostics;
+using Microsoft.EntityFrameworkCore;
 
 namespace SistemaMaite.Application.Controllers
 {
@@ -13,7 +14,6 @@ namespace SistemaMaite.Application.Controllers
     public class UsuariosController : Controller
     {
         private readonly IUsuariosService _Usuarioservice;
-        private readonly SessionHelper _sessionHelper;  // Inyección de SessionHelper
 
         public UsuariosController(IUsuariosService Usuarioservice)
         {
@@ -21,18 +21,13 @@ namespace SistemaMaite.Application.Controllers
         }
 
         [AllowAnonymous]
-        public IActionResult Index()
-        {
-            return View();
-        }
+        public IActionResult Index() => View();
 
-       
         public async Task<IActionResult> Configuracion()
         {
             int idUsuario;
             string usuario;
 
-            // 1. Intentar recuperar de la sesión
             var idUsuarioStr = HttpContext.Session.GetString("IdUsuario");
             usuario = HttpContext.Session.GetString("Usuario");
 
@@ -42,30 +37,18 @@ namespace SistemaMaite.Application.Controllers
             }
             else
             {
-                // 2. Si no hay sesión, recuperar desde los claims del token JWT
                 var idClaim = User.FindFirst("Id")?.Value;
-                usuario = usuario ?? User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
-
+                usuario ??= User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value;
                 if (string.IsNullOrEmpty(idClaim) || !int.TryParse(idClaim, out idUsuario))
-                {
-                    // No hay sesión ni token válido
                     return RedirectToAction("Index", "Login");
-                }
             }
 
-            // 3. Buscar usuario en base de datos
             var user = await _Usuarioservice.Obtener(idUsuario);
-            if (user == null)
-            {
-                return RedirectToAction("Index", "Login");
-            }
+            if (user == null) return RedirectToAction("Index", "Login");
 
-            // 4. Pasar usuario a la vista
             ViewBag.Usuario = usuario;
             return View(user);
         }
-
-
 
         [HttpGet]
         public async Task<IActionResult> Lista()
@@ -90,13 +73,10 @@ namespace SistemaMaite.Application.Controllers
             return Ok(lista);
         }
 
-
         [HttpPost]
         public async Task<IActionResult> Insertar([FromBody] VMUser model)
         {
-
             var passwordHasher = new PasswordHasher<User>();
-
 
             var Usuario = new User
             {
@@ -111,8 +91,8 @@ namespace SistemaMaite.Application.Controllers
                 Contrasena = passwordHasher.HashPassword(null, model.Contrasena)
             };
 
-            bool respuesta = await _Usuarioservice.Insertar(Usuario);
-
+            // ✔️ Insert con sucursales
+            bool respuesta = await _Usuarioservice.Insertar(Usuario, model.IdSucursales ?? new List<int>());
             return Ok(new { valor = respuesta });
         }
 
@@ -121,31 +101,24 @@ namespace SistemaMaite.Application.Controllers
         {
             var passwordHasher = new PasswordHasher<User>();
 
-            // Obtiene el usuario de la base de datos
             User userbase = await _Usuarioservice.Obtener(model.Id);
+            if (userbase == null) return Ok(new { valor = "Error" });
 
             User nombreUsuario = await _Usuarioservice.ObtenerUsuario(model.Usuario);
-
             if (nombreUsuario != null && nombreUsuario.Id != model.Id)
-            {
                 return Ok(new { valor = "Usuario" });
-            }
 
-                if (model.CambioAdmin != 1) //YA QUE DESDE EL EDITAR DESDE EL ADMIN, NO VAMOS A MANDARLE LA CONTRASENA, SE LA CAMBIA DE UNA
+            if (model.CambioAdmin != 1)
             {
                 var result = passwordHasher.VerifyHashedPassword(null, userbase.Contrasena, model.Contrasena);
                 if (result != PasswordVerificationResult.Success)
-                {
                     return Ok(new { valor = "Contrasena" });
-                }
             }
 
-            // Si se proporciona una contraseña nueva, úsala; de lo contrario, mantén la contraseña actual
             var passnueva = !string.IsNullOrEmpty(model.ContrasenaNueva)
-                ? passwordHasher.HashPassword(null, model.ContrasenaNueva) // Hashea la nueva contraseña si es proporcionada
-                : userbase.Contrasena; // Mantén la contraseña actual si no se proporciona una nueva
+                ? passwordHasher.HashPassword(null, model.ContrasenaNueva)
+                : userbase.Contrasena;
 
-            // Actualiza las propiedades del objeto ya cargado
             userbase.Nombre = model.Nombre;
             userbase.Usuario = model.Usuario;
             userbase.Apellido = model.Apellido;
@@ -154,52 +127,51 @@ namespace SistemaMaite.Application.Controllers
             userbase.Direccion = model.Direccion;
             userbase.IdRol = model.IdRol;
             userbase.IdEstado = model.IdEstado;
-            userbase.Contrasena = passnueva; // Asigna la nueva contraseña hasheada
+            userbase.Contrasena = passnueva;
 
-            // Realiza la actualización en la base de datos
-            bool respuesta = await _Usuarioservice.Actualizar(userbase);
-
+            // ✔️ Update con sucursales
+            bool respuesta = await _Usuarioservice.Actualizar(userbase, model.IdSucursales ?? new List<int>());
             return Ok(new { valor = respuesta ? "OK" : "Error" });
         }
-
-
-
 
         [HttpDelete]
         public async Task<IActionResult> Eliminar(int id)
         {
             bool respuesta = await _Usuarioservice.Eliminar(id);
-
             return StatusCode(StatusCodes.Status200OK, new { valor = respuesta });
         }
 
         [HttpGet]
         public async Task<IActionResult> EditarInfo(int id)
         {
-            var Usuario = await _Usuarioservice.Obtener(id);
+            // ✔️ Traemos el usuario con sus sucursales y devolvemos VMUser
+            var u = await _Usuarioservice.ObtenerConSucursales(id);
+            if (u == null) return StatusCode(StatusCodes.Status404NotFound);
 
-            if (Usuario != null)
+            var vm = new VMUser
             {
-                return StatusCode(StatusCodes.Status200OK, Usuario);
-            }
-            else
-            {
-                return StatusCode(StatusCodes.Status404NotFound);
-            }
+                Id = u.Id,
+                Usuario = u.Usuario,
+                Nombre = u.Nombre,
+                Apellido = u.Apellido,
+                Dni = u.Dni,
+                Telefono = u.Telefono,
+                Direccion = u.Direccion,
+                IdRol = u.IdRol,
+                IdEstado = u.IdEstado,
+                Rol = u.IdRolNavigation?.Nombre ?? "",
+                Estado = u.IdEstadoNavigation?.Nombre ?? "",
+                IdSucursales = u.UsuariosSucursales?.Select(s => s.IdSucursal).Distinct().ToList() ?? new List<int>(),
+                CambioAdmin = 1 // para que no valide contraseña desde admin
+            };
+
+            return Ok(vm);
         }
 
-
-
-
-        public IActionResult Privacy()
-        {
-            return View();
-        }
+        public IActionResult Privacy() => View();
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
-        {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
-        }
+            => View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
     }
 }

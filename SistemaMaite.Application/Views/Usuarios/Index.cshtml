@@ -118,27 +118,43 @@
                         <input type="text" class="form-control" id="txtDireccion" >
                     </div>
 
-                    <div class="col-md-4">
+                    <!-- SUCURSALES -->
+                    <div class="col-md-3 position-relative">
+                        <label class="form-label">Sucursales</label>
+                        <div id="btnSucursales" class="form-select text-truncate" style="cursor:pointer" tabindex="0"
+                             onclick="toggleChecklist('btnSucursales','listaSucursales')">
+                            Seleccionar sucursales
+                        </div>
+
+                        <div id="listaSucursales" class="select-checklist shadow p-2 d-none">
+                            <!-- Se renderiza por JS -->
+                        </div>
+                        <small class="text-muted">Podés seleccionar múltiples sucursales</small>
+                    </div>
+
+
+
+                    <div class="col-md-3">
                         <label id="lblRoles" for="Roles" class="form-label">Rol</label>
                         <select id="Roles" name="select" class="form-control">
                             <option value="" selected>Rol</option>
                         </select>
                     </div>
 
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <label id="lblEstado" for="Estados" class="form-label">Estado</label>
                         <select id="Estados" name="select" class="form-control">
                             <option value="" selected>Rol</option>
                         </select>
                     </div>
 
-                    <div class="col-md-4" id="divContrasena">
+                    <div class="col-md-3" id="divContrasena">
                         <label id="lblContrasena" for="txtContrasena" class="form-label">Contrasena</label>
                         <input type="text" class="form-control" id="txtContrasena" required>
                         <div class="invalid-feedback">Campo obligatorio</div>
                     </div>
 
-                    <div class="col-md-4" id="divContrasenaNueva">
+                    <div class="col-md-3" id="divContrasenaNueva">
                         <label id="lblContrasenaNueva" for="txtContrasenaNueva" class="form-label">Contrasena Nueva</label>
                         <input type="text" class="form-control" id="txtContrasenaNueva">
                     </div>

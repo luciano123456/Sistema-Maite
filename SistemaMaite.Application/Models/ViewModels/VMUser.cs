@@ -28,6 +28,6 @@ namespace SistemaMaite.Application.Models.ViewModels
 
         public int IdEstado { get; set; }
 
-
+        public List<int> IdSucursales { get; set; } = new();  // IDs de Color
     }
 }

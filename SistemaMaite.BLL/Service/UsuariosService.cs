@@ -5,45 +5,28 @@ namespace SistemaMaite.BLL.Service
 {
     public class UsuariosService : IUsuariosService
     {
+        private readonly IUsuariosRepository<User> _repo;
 
-        private readonly IUsuariosRepository<User> _contactRepo;
-
-        public UsuariosService(IUsuariosRepository<User> contactRepo)
+        public UsuariosService(IUsuariosRepository<User> repo)
         {
-            _contactRepo = contactRepo;
-        }
-        public async Task<bool> Actualizar(User model)
-        {
-            return await _contactRepo.Actualizar(model);
+            _repo = repo;
         }
 
-        public async Task<bool> Eliminar(int id)
-        {
-            return await _contactRepo.Eliminar(id);
-        }
+        public Task<bool> Eliminar(int id) => _repo.Eliminar(id);
 
-        public async Task<bool> Insertar(User model)
-        {
-            return await _contactRepo.Insertar(model);
-        }
+        // ✔️ con sucursales
+        public Task<bool> Insertar(User u, IEnumerable<int> idSucursales) => _repo.Insertar(u, idSucursales);
+        public Task<bool> Actualizar(User u, IEnumerable<int> idSucursales) => _repo.Actualizar(u, idSucursales);
 
-        public async Task<User> Obtener(int id)
-        {
-            return await _contactRepo.Obtener(id);
-        }
+        // compat
+        public Task<bool> Insertar(User u) => _repo.Insertar(u);
+        public Task<bool> Actualizar(User u) => _repo.Actualizar(u);
 
-        public async Task<User> ObtenerUsuario(string usuario)
-        {
-            return await _contactRepo.ObtenerUsuario(usuario);
-        }
+        public Task<User> Obtener(int id) => _repo.Obtener(id);
+        public Task<User> ObtenerUsuario(string usuario) => _repo.ObtenerUsuario(usuario);
 
+        public Task<User?> ObtenerConSucursales(int id) => _repo.ObtenerConSucursales(id);
 
-        public async Task<IQueryable<User>> ObtenerTodos()
-        {
-            return await _contactRepo.ObtenerTodos();
-        }
-
-
-
+        public Task<IQueryable<User>> ObtenerTodos() => _repo.ObtenerTodos();
     }
 }
