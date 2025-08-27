@@ -141,6 +141,32 @@ namespace SistemaMaite.Application.Controllers
             return StatusCode(StatusCodes.Status200OK, new { valor = respuesta });
         }
 
+
+        [HttpGet]
+        public async Task<IActionResult> ObtenerSucursales(int id)
+        {
+            // Traemos el usuario con sus sucursales + navegación
+            var u = await _Usuarioservice.ObtenerConSucursales(id);
+            if (u == null) return StatusCode(StatusCodes.Status404NotFound);
+
+            // Devolvemos SOLO la lista {Id, Nombre}
+            var sucursales = u.UsuariosSucursales?
+                .Where(s => s.IdSucursalNavigation != null)
+                .GroupBy(s => new { s.IdSucursal, s.IdSucursalNavigation.Nombre })
+                .Select(g => new VMSucursales
+                {
+                    Id = g.Key.IdSucursal,
+                    Nombre = g.Key.Nombre
+                })
+                .OrderBy(x => x.Nombre)
+                .ToList() ?? new List<VMSucursales>();
+
+            return Ok(sucursales);
+
+        }
+
+
+
         [HttpGet]
         public async Task<IActionResult> EditarInfo(int id)
         {

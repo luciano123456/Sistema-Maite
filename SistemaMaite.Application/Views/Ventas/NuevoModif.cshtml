@@ -33,24 +33,35 @@
                     <div class="col-md-4">
                         <label class="form-label">Fecha</label>
                         <input type="date" id="dtpFecha" class="form-control" required />
+                        <div class="invalid-feedback">Campo obligatorio</div>
                     </div>
                     <div class="col-md-8">
                         <label class="form-label">Cliente</label>
                         <select id="cmbCliente" class="form-select" required>
                             <option value="">Seleccione</option>
                         </select>
+                        <div class="invalid-feedback">Campo obligatorio</div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Vendedor</label>
                         <select id="cmbVendedor" class="form-select" required>
                             <option value="">Seleccione</option>
                         </select>
+                        <div class="invalid-feedback">Campo obligatorio</div>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">Lista de Precios</label>
                         <select id="cmbListaPrecio" class="form-select" required>
                             <option value="">Seleccione</option>
                         </select>
+                        <div class="invalid-feedback">Campo obligatorio</div>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Sucursal</label>
+                        <select id="cmbSucursal" class="form-select" required>
+                            <option value="">Seleccione</option>
+                        </select>
+                        <div class="invalid-feedback">Campo obligatorio</div>
                     </div>
                     <div class="col-12">
                         <label class="form-label">Nota interna</label>
@@ -109,6 +120,10 @@
                     <button id="btnGuardarVenta" class="btn btn-primary btn-lg" type="button" onclick="guardarVenta()">
                         <i class="fa fa-check me-1"></i> Registrar
                     </button>
+                    <button type="button" class="btn btn-outline-light mt-2" onclick="exportarVentaPdf()">
+                        <i class="fa fa-file-pdf-o me-1"></i> Exportar PDF
+                    </button>
+
                     <button type="button" id="btnEliminarVenta" class="btn btn-danger mt-2 d-none" onclick="eliminarVenta()">
                         <i class="fa fa-trash me-1"></i> Eliminar
                     </button>
@@ -255,7 +270,14 @@
                         <input type="text" id="txtPagoNota" class="form-control" />
                     </div>
                 </form>
+
+                <!-- 🚨 Aviso de validación -->
+                <div id="errorCamposPago" class="alert alert-danger py-2 px-3 mt-2 d-none" role="alert">
+                    <i class="fa fa-exclamation-triangle me-1"></i>
+                    Debes completar los campos obligatorios.
+                </div>
             </div>
+
             <div class="modal-footer border-0">
                 <button class="btn btn-secondary" data-bs-dismiss="modal"><i class="fa fa-times me-1"></i> Cancelar</button>
                 <button class="btn btn-success" id="btnGuardarPago" onclick="guardarPago()"><i class="fa fa-check me-1"></i> Registrar</button>
@@ -268,6 +290,9 @@
 <partial name="~/Views/Utils/Modals.cshtml" />
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>

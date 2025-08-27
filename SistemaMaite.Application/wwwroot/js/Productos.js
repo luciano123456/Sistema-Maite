@@ -1,172 +1,124 @@
-﻿// =========================
-// Usuarios.js (completo con Sucursales checklist)
-// =========================
+﻿/* =========================
+   Productos.js (adaptado)
+   ========================= */
 
-let gridUsuarios;
+let gridProductos;
 
-// ---------- Config de filtros (header de DataTable) ----------
-const columnConfig = [
-    { index: 1, filterType: 'text' },      // Usuario
-    { index: 2, filterType: 'text' },      // Nombre
-    { index: 3, filterType: 'text' },      // Apellido
-    { index: 4, filterType: 'text' },      // DNI
-    { index: 5, filterType: 'text' },      // Teléfono
-    { index: 6, filterType: 'text' },      // Dirección
-    { index: 7, filterType: 'select', fetchDataFunc: listaRolesFilter },
-    { index: 8, filterType: 'select', fetchDataFunc: listaEstadosFilter },
-    { index: 9, filterType: 'text' },      // (si tu grilla tuviera una 10ma visible)
-];
-
-// ---------- Catálogos (cache en memoria) ----------
+/* ---------- Catálogos (cache en memoria) ---------- */
 const Catalogos = {
-    sucursales: [],
-    sucursalesMap: new Map(),
+    categorias: [],
+    categoriasMap: new Map(),
+    talles: [],
+    tallesMap: new Map(),
+    colores: [],
+    coloresMap: new Map()
 };
 
-// ===== Estado de selección (checklist) =====
-const MultiState = (window.MultiState || {});
-MultiState.sucursales = MultiState.sucursales || new Set();
+/* ---------- Configuración de filtros para DataTable ---------- */
+const columnConfig = [
+    { index: 1, filterType: 'text' },                          // Descripción
+    { index: 2, filterType: 'select', fetchDataFunc: listaCategoriasFilter }, // Categoría (nombre)
+    { index: 3, filterType: 'text' },                          // Precio
+];
 
-function getSucursalesSeleccionadas() {
-    return [...MultiState.sucursales].map(Number);
-}
+$(document).ready(async () => {
+    // Cargar catálogos base en paralelo
+    await Promise.all([
+        cargarCategorias(),
+        cargarColores(),
+        cargarTalles() // lista completa por defecto
+    ]);
 
-function updateChecklistButtonLabel(btnId, map, emptyText) {
-    const btn = document.getElementById(btnId);
-    if (!btn) return;
-    const nombres = [...MultiState.sucursales].map(id => map.get(Number(id))).filter(Boolean);
-    btn.textContent = nombres.length ? nombres.join(', ') : emptyText;
-    btn.title = nombres.join(', ');
-}
+    await listaProductos();
 
-// Render genérico de checklist en un panel
-function renderChecklist(panelId, items, stateSet, btnId, allLabel = 'Seleccionar todos') {
-    const panel = document.getElementById(panelId);
-    if (!panel) return;
+    attachLiveValidation('#modalEdicion');
+});
 
-    const selected = stateSet;
-    const allChecked = items.length > 0 && items.every(it => selected.has(Number(it.Id)));
+/* =========================
+   Crear / Editar
+   ========================= */
+function getMultiSelectValues(selectId) {
+    const el = document.getElementById(selectId);
+    // Si no existe, devolvé []
+    if (!el) return [];
 
-    const html = [
-        `<div class="form-check">
-           <input class="form-check-input" type="checkbox" id="${panelId}-all" ${allChecked ? 'checked' : ''}>
-           <label class="form-check-label" for="${panelId}-all">${allLabel}</label>
-         </div>
-         <hr class="my-2" />`
-    ];
-
-    for (const it of items) {
-        const checked = selected.has(Number(it.Id)) ? 'checked' : '';
-        html.push(`
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" id="${panelId}-opt-${it.Id}" data-id="${it.Id}" ${checked}>
-            <label class="form-check-label" for="${panelId}-opt-${it.Id}">${it.Nombre}</label>
-          </div>
-        `);
+    // Caso <select>: usar selectedOptions si existe (soporta plugins)
+    if (el.tagName?.toLowerCase() === 'select') {
+        const opts = Array.from(el.selectedOptions ?? []);
+        return opts
+            .map(o => Number(o.value))
+            .filter(v => Number.isFinite(v)); // saca "", NaN, etc.
     }
 
-    panel.innerHTML = html.join('');
-
-    // Eventos
-    document.getElementById(`${panelId}-all`)?.addEventListener('change', ev => {
-        selected.clear();
-        if (ev.target.checked) items.forEach(it => selected.add(Number(it.Id)));
-        items.forEach(it => {
-            const cb = document.getElementById(`${panelId}-opt-${it.Id}`);
-            if (cb) cb.checked = ev.target.checked;
-        });
-        updateChecklistButtonLabel(btnId, Catalogos.sucursalesMap, 'Seleccionar sucursales');
-    });
-
-    items.forEach(it => {
-        const cb = document.getElementById(`${panelId}-opt-${it.Id}`);
-        if (!cb) return;
-        cb.addEventListener('change', ev => {
-            const id = Number(ev.target.getAttribute('data-id'));
-            if (ev.target.checked) selected.add(id); else selected.delete(id);
-
-            // actualizar “seleccionar todos”
-            const allC = items.length > 0 && items.every(x => selected.has(Number(x.Id)));
-            const allBox = document.getElementById(`${panelId}-all`);
-            if (allBox) allBox.checked = allC;
-
-            updateChecklistButtonLabel(btnId, Catalogos.sucursalesMap, 'Seleccionar sucursales');
-        });
-    });
-
-    updateChecklistButtonLabel(btnId, Catalogos.sucursalesMap, 'Seleccionar sucursales');
+    // Fallback: si te pasan un contenedor con checkboxes (por si usás checklist)
+    const checks = el.querySelectorAll?.('input[type="checkbox"]:checked') ?? [];
+    return Array.from(checks)
+        .map(cb => Number(cb.value ?? cb.dataset.id))
+        .filter(v => Number.isFinite(v));
 }
 
-// Cerrar panel si clic fuera
-document.addEventListener('click', (e) => {
-    const panel = document.getElementById('listaSucursales');
-    const btn = document.getElementById('btnSucursales');
-    if (!panel || panel.classList.contains('d-none')) return;
-    if (!panel.contains(e.target) && !btn.contains(e.target)) panel.classList.add('d-none');
-});
 
-// Abrir/cerrar panel (tu HTML usa esto)
-function toggleChecklist(btnId, panelId) {
-    const panel = document.getElementById(panelId);
-    panel?.classList.toggle('d-none');
-}
-
-// ---------- Ready ----------
-$(document).ready(() => {
-    listaUsuarios();
-
-    // validación live en el modal
-    document.querySelectorAll("#modalEdicion input, #modalEdicion select, #modalEdicion textarea").forEach(el => {
-        el.setAttribute("autocomplete", "off");
-        el.addEventListener("input", () => validarCampoIndividual(el));
-        el.addEventListener("change", () => validarCampoIndividual(el));
-        el.addEventListener("blur", () => validarCampoIndividual(el));
+function setMultiSelectValues(selectId, values) {
+    const sel = document.getElementById(selectId);
+    if (!sel) return;
+    const set = new Set((values || []).map(v => Number(v)));
+    Array.from(sel.options).forEach(opt => {
+        opt.selected = set.has(Number(opt.value));
     });
-});
-
-// ---------- Catálogo Sucursales ----------
-function cargarSucursales() {
-    return fetch("/Sucursales/Lista", {
-        headers: {
-            'Authorization': 'Bearer ' + token,
-            'Content-Type': 'application/json'
-        }
-    })
-        .then(r => r.ok ? r.json() : [])
-        .then(data => {
-            const norm = data.map(x => ({ Id: Number(x.Id ?? 0), Nombre: String(x.Nombre ?? '') }));
-            Catalogos.sucursales = norm;
-            Catalogos.sucursalesMap = new Map(norm.map(x => [x.Id, x.Nombre]));
-            // Renderizar el checklist en el panel del modal
-            renderChecklist('listaSucursales', Catalogos.sucursales, MultiState.sucursales, 'btnSucursales', 'Seleccionar todos');
-        });
 }
 
-// ---------- Guardar ----------
-function guardarCambios() {
-    if (!validarCampos()) return false;
+/* Validación modal de producto */
+function validarCampos() {
+    const nombre = $("#txtNombre").val().trim();
+    const categoria = $("#cmbCategoria").val();
+    const precio = $("#txtPrecio").val();
 
-    const idUsuario = $("#txtId").val();
+    const tallesSel = getTallesSeleccionados();   // usa MultiState o <select multiple>
+    const coloresSel = getColoresSeleccionados();
+
+    const okNombre = nombre !== '';
+    const okCategoria = categoria !== '';
+    const okPrecio = precio !== '' && !isNaN(parseFloat(precio));
+    const okTalles = Array.isArray(tallesSel) && tallesSel.length > 0;
+    const okColores = Array.isArray(coloresSel) && coloresSel.length > 0;
+
+    // estilos / feedback
+    $("#errorCampos")
+        .toggleClass('d-none', (okNombre && okCategoria && okPrecio && okTalles && okColores))
+        .text(!okTalles || !okColores
+            ? 'Debes seleccionar al menos un talle y un color.'
+            : 'Debes completar los campos obligatorios.');
+
+    // bordes rojos en los “botones” checklist (son <div class="form-select">)
+    document.getElementById('btnTalles')?.classList.toggle('is-invalid', !okTalles);
+    document.getElementById('btnColores')?.classList.toggle('is-invalid', !okColores);
+
+    // también marcamos inputs base
+    $("#txtNombre").toggleClass("is-invalid", !okNombre);
+    $("#cmbCategoria").toggleClass("is-invalid", !okCategoria);
+    $("#txtPrecio").toggleClass("is-invalid", !okPrecio);
+
+    return okNombre && okCategoria && okPrecio && okTalles && okColores;
+}
+
+
+async function guardarCambios() {
+    if (!validarCampos()) return;
+
+    const idProducto = $("#txtId").val();
     const nuevoModelo = {
-        Id: idUsuario !== "" ? Number(idUsuario) : 0,
-        Usuario: $("#txtUsuario").val(),
-        Nombre: $("#txtNombre").val(),
-        Apellido: $("#txtApellido").val(),
-        DNI: $("#txtDni").val(),
-        Telefono: $("#txtTelefono").val(),
-        Direccion: $("#txtDireccion").val(),
-        IdRol: Number($("#Roles").val() || 0),
-        IdEstado: Number($("#Estados").val() || 0),
-        // Contraseñas
-        Contrasena: idUsuario === "" ? $("#txtContrasena").val() : "",
-        ContrasenaNueva: $("#txtContrasenaNueva").val(),
-        CambioAdmin: 1,
-        // >>> NUEVO: sucursales del usuario (desde checklist)
-        IdSucursales: getSucursalesSeleccionadas() // Array<int>
+        Id: idProducto !== "" ? parseInt(idProducto) : 0,
+        Descripcion: $("#txtNombre").val().trim(),
+        IdCategoria: parseInt($("#cmbCategoria").val()),
+        PrecioUnitario: parseFloat($("#txtPrecio").val()),
+        IdTalles: getTallesSeleccionados("cmbTalles"),
+        IdColores: getColoresSeleccionados("cmbColores"),
+        GenerarVariantes: $("#chkVariantes").is(":checked"),
+        PreciosPorLista: getPreciosPorListaFromUI()   // ← NUEVO
     };
 
-    const url = idUsuario === "" ? "/Usuarios/Insertar" : "/Usuarios/Actualizar";
-    const method = idUsuario === "" ? "POST" : "PUT";
+    const url = idProducto === "" ? "/Productos/Insertar" : "/Productos/Actualizar";
+    const method = idProducto === "" ? "POST" : "PUT";
 
     fetch(url, {
         method,
@@ -176,92 +128,93 @@ function guardarCambios() {
         },
         body: JSON.stringify(nuevoModelo)
     })
-        .then(response => {
-            if (!response.ok) throw new Error(response.statusText);
-            return response.json();
+        .then(r => {
+            if (!r.ok) throw new Error(r.statusText);
+            return r.json();
         })
-        .then(dataJson => {
-            let mensaje = idUsuario === "" ? "Usuario registrado correctamente" : "Usuario modificado correctamente";
-            if (dataJson.valor === 'Contrasena') {
-                errorModal("Contrasena incorrecta");
-                return false;
-            } else {
-                $('#modalEdicion').modal('hide');
-                exitoModal(mensaje);
-            }
-            listaUsuarios();
+        .then((resp) => {
+            $('#modalEdicion').modal('hide');
+            exitoModal(idProducto === "" ? "Producto registrado correctamente" : "Producto modificado correctamente");
+            listaProductos();
         })
-        .catch(error => {
-            console.error('Error:', error);
-            errorModal("No se pudo guardar el usuario.");
+        .catch(err => {
+            console.error('Error:', err);
+            errorModal("No se pudo guardar el producto.");
         });
 }
 
-// ---------- Nuevo ----------
-function nuevoUsuario() {
-    limpiarModal();
+function nuevoProducto() {
+    limpiarModal('#modalEdicion', '#errorCampos');
 
-    // limpiar selección de sucursales
-    MultiState.sucursales.clear();
+    MultiState.talles.clear();
+    MultiState.colores.clear();
+    renderPreciosListas([]);
 
-    Promise.all([listaEstados(), listaRoles(), cargarSucursales()])
-        .then(() => {
-            // recién cargado el catálogo, queda checklist sin selección
-            updateChecklistButtonLabel('btnSucursales', Catalogos.sucursalesMap, 'Seleccionar sucursales');
-        });
+    // categorías/colores ya los cargás
+    if (document.getElementById('cmbCategoria')) llenarSelect('cmbCategoria', Catalogos.categorias);
 
-    $('#modalEdicion').modal('show');
-    $("#btnGuardar").text("Registrar");
-    $("#modalEdicionLabel").text("Nuevo Usuario");
+    // render inicial (sin selección)
+    renderChecklist('listaTalles', Catalogos.talles, 'talles', 'btnTalles');
+    renderChecklist('listaColores', Catalogos.colores, 'colores', 'btnColores');
 
-    document.getElementById("divContrasena").removeAttribute("hidden");
-    document.getElementById("divContrasenaNueva").setAttribute("hidden", "hidden");
-}
-
-// ---------- Editar ----------
-async function mostrarModal(modelo) {
-    limpiarModal();
-
-    // Campos simples
-    const campos = ["Id", "Usuario", "Nombre", "Apellido", "Dni", "Telefono", "Direccion", "Contrasena", "ContrasenaNueva"];
-    campos.forEach(campo => {
-        $(`#txt${campo}`).val(modelo[campo]);
+    // cuando cambie categoría -> recargar talles por categoría y resetear selección
+    $("#cmbCategoria").off('change').on('change', async function () {
+        const idCat = parseInt(this.value || 0);
+        await recargarTallesPorCategoria(idCat); // esta función la ajustamos abajo
     });
 
-    // limpiar selección previa
-    MultiState.sucursales.clear();
+    $("#chkVariantes").prop("checked", true);
+    $('#modalEdicion').modal('show');
+    $("#btnGuardar").text("Registrar");
+    $("#modalEdicionLabel").text("Nuevo Producto");
+}
 
-    // Cargar catálogos necesarios
-    await Promise.all([listaEstados(), listaRoles(), cargarSucursales()]);
+async function mostrarModal(modelo) {
+    limpiarModal('#modalEdicion', '#errorCampos');
 
-    // Seleccionar rol/estado
-    $("#Roles").val(modelo.IdRol ?? "").trigger('change');
-    $("#Estados").val(modelo.IdEstado ?? "").trigger('change');
+    if (document.getElementById('cmbCategoria')) llenarSelect('cmbCategoria', Catalogos.categorias);
 
-    // >>> Restaurar sucursales seleccionadas (dos formatos posibles del back)
-    const idsSucursales =
-        (Array.isArray(modelo.IdSucursales) && modelo.IdSucursales.map(Number)) ||
-        (Array.isArray(modelo.Sucursales) && modelo.Sucursales.map(s => Number(s.Id))) ||
-        [];
+    $("#txtId").val(modelo.Id ?? 0);
+    $("#txtNombre").val(modelo.Descripcion ?? '');
+    $("#txtPrecio").val(modelo.PrecioUnitario ?? '');
+    $("#cmbCategoria").val(modelo.IdCategoria ?? '').trigger('change');
+    $("#chkVariantes").prop("checked", true);
 
-    idsSucursales.forEach(id => MultiState.sucursales.add(Number(id)));
-    // volver a renderizar (por si el render inicial ya corrió)
-    renderChecklist('listaSucursales', Catalogos.sucursales, MultiState.sucursales, 'btnSucursales', 'Seleccionar todos');
+    const idCat = Number(modelo.IdCategoria || 0);
+    await recargarTallesPorCategoria(idCat); // esto renderiza listaTalles
+
+    renderPreciosListas(modelo.PreciosPorLista || []);
+
+    // setear selección desde el modelo
+    MultiState.talles = new Set(modelo.IdTalles || []);
+    MultiState.colores = new Set(modelo.IdColores || []);
+
+    // Render con selección aplicada
+    renderChecklist('listaTalles', Catalogos.talles, 'talles', 'btnTalles');
+    renderChecklist('listaColores', Catalogos.colores, 'colores', 'btnColores');
+
+    // listener al cambiar categoría
+    $("#cmbCategoria").off('change').on('change', async function () {
+        const idCatChange = parseInt(this.value || 0);
+        await recargarTallesPorCategoria(idCatChange);
+        MultiState.talles.clear(); // limpiar selección de talles al cambiar cat
+        renderChecklist('listaTalles', Catalogos.talles, 'talles', 'btnTalles');
+    });
 
     $('#modalEdicion').modal('show');
     $("#btnGuardar").text("Guardar");
-    $("#modalEdicionLabel").text("Editar Usuario");
-
-    document.getElementById("divContrasena").setAttribute("hidden", "hidden");
-    document.getElementById("divContrasenaNueva").removeAttribute("hidden");
+    $("#modalEdicionLabel").text("Editar Producto");
 }
 
-// ---------- Listado / EditarInfo / Eliminar ----------
-async function listaUsuarios() {
-    let paginaActual = gridUsuarios != null ? gridUsuarios.page() : 0;
-    const url = `/Usuarios/Lista`;
 
-    const response = await fetch(url, {
+/* =========================
+   Listado / EditarInfo / Eliminar
+   ========================= */
+
+async function listaProductos() {
+    let paginaActual = gridProductos != null ? gridProductos.page() : 0;
+
+    const response = await fetch("/Productos/Lista", {
         method: 'GET',
         headers: {
             'Authorization': 'Bearer ' + token,
@@ -269,39 +222,53 @@ async function listaUsuarios() {
         }
     });
 
-    if (!response.ok) throw new Error(`Error en la solicitud: ${response.statusText}`);
+    if (!response.ok) {
+        errorModal("Error obteniendo productos.");
+        return;
+    }
 
-    const data = await response.json();
-    await configurarDataTable(data);
+    // El back devuelve: Id, Descripcion, IdCategoria, PrecioUnitario
+    // Mapear a DTO de grilla agregando CategoriaNombre desde cache
+    const productos = await response.json();
+    const data = productos.map(p => ({
+        Id: p.Id,
+        Descripcion: p.Descripcion,
+        CategoriaNombre: Catalogos.categoriasMap.get(Number(p.IdCategoria)) || p.IdCategoria,
+        PrecioUnitario: p.PrecioUnitario
+    }));
 
-    if (paginaActual > 0) gridUsuarios.page(paginaActual).draw('page');
+    await configurarDataTableProductos(data);
+
+    if (paginaActual > 0) {
+        gridProductos.page(paginaActual).draw('page');
+    }
 }
 
-const editarUsuario = id => {
+const editarProducto = id => {
     $('.acciones-dropdown').hide();
 
-    fetch("/Usuarios/EditarInfo?id=" + id, {
+    fetch("/Productos/EditarInfo?id=" + id, {
         method: 'GET',
         headers: {
             'Authorization': 'Bearer ' + token,
             'Content-Type': 'application/json'
         }
     })
-        .then(response => {
-            if (!response.ok) throw new Error("Ha ocurrido un error.");
-            return response.json();
+        .then(r => {
+            if (!r.ok) throw new Error("Ha ocurrido un error.");
+            return r.json();
         })
         .then(dataJson => dataJson ? mostrarModal(dataJson) : (() => { throw new Error("Ha ocurrido un error."); })())
         .catch(() => errorModal("Ha ocurrido un error."));
 };
 
-async function eliminarUsuario(id) {
+async function eliminarProducto(id) {
     $('.acciones-dropdown').hide();
-    const confirmado = await confirmarModal("¿Desea eliminar este usuario?");
+    const confirmado = await confirmarModal("¿Desea eliminar este Producto?");
     if (!confirmado) return;
 
     try {
-        const response = await fetch("/Usuarios/Eliminar?id=" + id, {
+        const response = await fetch("/Productos/Eliminar?id=" + id, {
             method: "DELETE",
             headers: {
                 'Authorization': 'Bearer ' + token,
@@ -309,23 +276,28 @@ async function eliminarUsuario(id) {
             }
         });
 
-        if (!response.ok) throw new Error("Error al eliminar el Usuario.");
+        if (!response.ok) throw new Error("Error al eliminar el Producto.");
 
         const dataJson = await response.json();
         if (dataJson.valor) {
-            listaUsuarios();
-            exitoModal("Usuario eliminado correctamente");
+            listaProductos();
+            exitoModal("Producto eliminado correctamente");
         }
     } catch (error) {
         console.error("Ha ocurrido un error:", error);
+        errorModal("No se pudo eliminar.");
     }
 }
 
-// ---------- DataTable ----------
-async function configurarDataTable(data) {
-    if (!gridUsuarios) {
-        $('#grd_Usuarios thead tr').clone(true).addClass('filters').appendTo('#grd_Usuarios thead');
-        gridUsuarios = $('#grd_Usuarios').DataTable({
+/* =========================
+   DataTable
+   ========================= */
+
+async function configurarDataTableProductos(data) {
+    if (!gridProductos) {
+        $('#grd_Productos thead tr').clone(true).addClass('filters').appendTo('#grd_Productos thead');
+
+        gridProductos = $('#grd_Productos').DataTable({
             data,
             language: {
                 sLengthMenu: "Mostrar MENU registros",
@@ -335,7 +307,7 @@ async function configurarDataTable(data) {
             scrollX: "100px",
             scrollCollapse: true,
             columns: [
-                {
+                {   // 0: Acciones
                     data: "Id",
                     title: '',
                     width: "1%",
@@ -346,10 +318,10 @@ async function configurarDataTable(data) {
                         <i class='fa fa-ellipsis-v fa-lg text-white' aria-hidden='true'></i>
                     </button>
                     <div class="acciones-dropdown" style="display: none;">
-                        <button class='btn btn-sm btneditar' type='button' onclick='editarUsuario(${data})' title='Editar'>
+                        <button class='btn btn-sm btneditar' type='button' onclick='editarProducto(${data})' title='Editar'>
                             <i class='fa fa-pencil-square-o fa-lg text-success' aria-hidden='true'></i> Editar
                         </button>
-                        <button class='btn btn-sm btneliminar' type='button' onclick='eliminarUsuario(${data})' title='Eliminar'>
+                        <button class='btn btn-sm btneliminar' type='button' onclick='eliminarProducto(${data})' title='Eliminar'>
                             <i class='fa fa-trash-o fa-lg text-danger' aria-hidden='true'></i> Eliminar
                         </button>
                     </div>
@@ -358,42 +330,33 @@ async function configurarDataTable(data) {
                     orderable: false,
                     searchable: false,
                 },
-                { data: 'Usuario', title: 'Usuario' },
-                { data: 'Nombre', title: 'Nombre' },
-                { data: 'Apellido', title: 'Apellido' },
-                { data: 'Dni', title: 'DNI' },
-                { data: 'Telefono', title: 'Teléfono' },
-                { data: 'Direccion', title: 'Dirección' },
-                { data: 'Rol', title: 'Rol' },
-                {
-                    data: 'Estado',
-                    title: 'Estado',
-                    render: (data) => data === "Bloqueado" ? `<span style="color: red">${data}</span>` : data
-                }
+                { data: 'Descripcion', title: 'Descripción' },      // 1
+                { data: 'CategoriaNombre', title: 'Categoría' },     // 2
+                { data: 'PrecioUnitario', title: 'Precio' }          // 3
             ],
             dom: 'Bfrtip',
             buttons: [
                 {
                     extend: 'excelHtml5',
                     text: 'Exportar Excel',
-                    filename: 'Reporte Usuarios',
+                    filename: 'Productos',
                     title: '',
-                    exportOptions: { columns: [1, 2, 3, 4, 5, 6, 7, 8] },
+                    exportOptions: { columns: [1, 2, 3] },
                     className: 'btn-exportar-excel',
                 },
                 {
                     extend: 'pdfHtml5',
                     text: 'Exportar PDF',
-                    filename: 'Reporte Usuarios',
+                    filename: 'Productos',
                     title: '',
-                    exportOptions: { columns: [1, 2, 3, 4, 5, 6, 7, 8] },
+                    exportOptions: { columns: [1, 2, 3] },
                     className: 'btn-exportar-pdf',
                 },
                 {
                     extend: 'print',
                     text: 'Imprimir',
                     title: '',
-                    exportOptions: { columns: [1, 2, 3, 4, 5, 6, 7, 8] },
+                    exportOptions: { columns: [1, 2, 3] },
                     className: 'btn-exportar-print'
                 },
                 'pageLength'
@@ -407,15 +370,31 @@ async function configurarDataTable(data) {
                 // Filtros por columna
                 for (const config of columnConfig) {
                     const cell = $('.filters th').eq(config.index);
-                    if (config.filterType === 'select') {
+
+                    if (config.filterType === "select") {
                         const select = $(`<select id="filter${config.index}"><option value="">Seleccionar</option></select>`)
                             .appendTo(cell.empty())
-                            .on('change', async function () {
-                                const selectedText = $(this).find('option:selected').text();
-                                await api.column(config.index).search(this.value ? '^' + escapeRegex(selectedText) + '$' : '', true, false).draw();
+                            .on("change", async function () {
+                                const val = this.value; // '' si es el placeholder
+                                if (val === "") {
+                                    // limpiar filtro
+                                    await api.column(config.index).search("").draw();
+                                    return;
+                                }
+
+                                // si la columna muestra el texto
+                                const selectedText = $(this).find("option:selected").text();
+                                await api
+                                    .column(config.index)
+                                    .search("^" + escapeRegex(selectedText) + "$", true, false)
+                                    .draw();
                             });
-                        const data = await config.fetchDataFunc();
-                        data.forEach(item => select.append(`<option value="${item.Id}">${item.Nombre}</option>`));
+
+                        const items = await config.fetchDataFunc();
+                        items.forEach(item => {
+                            select.append('<option value="' + item.Id + '">' + (item.Nombre ?? '') + '</option>');
+                        });
+
                     } else if (config.filterType === 'text') {
                         const input = $('<input type="text" placeholder="Buscar..." />')
                             .appendTo(cell.empty())
@@ -432,202 +411,311 @@ async function configurarDataTable(data) {
                     }
                 }
 
-                // La celda de acciones no lleva filtro
+                // La celda de acciones (índice 0) no lleva filtro
                 $('.filters th').eq(0).html('');
 
-                configurarOpcionesColumnas();
+                // Configuración de columnas (dropdown)
+                configurarOpcionesColumnas('#grd_Productos', '#configColumnasMenu', 'Productos_Columnas');
 
-                setTimeout(() => gridUsuarios.columns.adjust(), 10);
-
-                // marcador de mapa (si lo usás en algún render futuro)
-                $('body').on('mouseenter', '#grd_Usuarios .fa-map-marker', function () {
-                    $(this).css('cursor', 'pointer');
-                });
-                $('body').on('click', '#grd_Usuarios .fa-map-marker', function () {
-                    const locationText = $(this).parent().text().trim().replace(' ', ' ');
-                    const url = 'https://www.google.com/maps?q=' + encodeURIComponent(locationText);
-                    window.open(url, '_blank');
-                });
+                setTimeout(() => gridProductos.columns.adjust(), 10);
             },
         });
     } else {
-        gridUsuarios.clear().rows.add(data).draw();
+        gridProductos.clear().rows.add(data).draw();
     }
 }
 
-// ---------- Combos: Roles / Estados ----------
-async function listaRoles() {
-    const url = `/Roles/Lista`;
-    const response = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
-    const data = await response.json();
+/* =========================
+   Carga de catálogos (combos)
+   ========================= */
 
-    const sel = document.getElementById("Roles");
-    if (sel) {
-        sel.innerHTML = '';
-        data.forEach(x => {
-            const opt = document.createElement("option");
-            opt.value = x.Id;
-            opt.text = x.Nombre;
-            sel.appendChild(opt);
+function llenarSelectConCatalogo(selectId, items) {
+    const sel = document.getElementById(selectId);
+    if (!sel) return;
+    const isMultiple = sel.hasAttribute('multiple');
+    sel.innerHTML = isMultiple ? '' : '<option value="">Seleccione</option>';
+    for (const x of items) {
+        sel.insertAdjacentHTML('beforeend', `<option value="${x.Id}">${x.Nombre}</option>`);
+    }
+}
+
+
+// Reemplaza la función que inventé por tus llamadas a llenarSelect:
+
+function cargarCategorias() {
+    return fetch("/ProductosCategoria/Lista", {
+        headers: {
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json'
+        }
+    })
+        .then(r => r.json())
+        .then(data => {
+            Catalogos.categorias = data;
+            Catalogos.categoriasMap = new Map(data.map(x => [Number(x.Id), x.Nombre]));
+            if (document.getElementById('cmbCategoria')) llenarSelect('cmbCategoria', data);
         });
-    }
 }
 
-async function listaEstados() {
-    const url = `/EstadosUsuarios/Lista`;
-    const response = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
-    const data = await response.json();
-
-    const sel = document.getElementById("Estados");
-    if (sel) {
-        sel.innerHTML = '';
-        data.forEach(x => {
-            const opt = document.createElement("option");
-            opt.value = x.Id;
-            opt.text = x.Nombre;
-            sel.appendChild(opt);
+function cargarColores() {
+    return fetch("/Colores/Lista", {
+        headers: {
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json'
+        }
+    })
+        .then(r => r.json())
+        .then(data => {
+            Catalogos.colores = data;
+            Catalogos.coloresMap = new Map(data.map(x => [Number(x.Id), x.Nombre]));
+            if (document.getElementById('cmbColores')) {
+                llenarSelect('cmbColores', data);
+                const sel = document.getElementById('cmbColores');
+                if (sel && sel.multiple && sel.options[0]?.value === "") sel.remove(0);
+            }
         });
-    }
 }
 
-async function listaEstadosFilter() {
-    const url = `/EstadosUsuarios/Lista`;
-    const response = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
-    const data = await response.json();
-    return data.map(estado => ({ Id: estado.Id, Nombre: estado.Nombre }));
-}
 
-async function listaRolesFilter() {
-    const url = `/Roles/Lista`;
-    const response = await fetch(url, { headers: { 'Authorization': 'Bearer ' + token } });
-    const data = await response.json();
-    return data.map(rol => ({ Id: rol.Id, Nombre: rol.Nombre }));
-}
-
-// ---------- Configurar columnas visibles ----------
-function configurarOpcionesColumnas() {
-    const grid = $('#grd_Usuarios').DataTable();
-    const columnas = grid.settings().init().columns;
-    const container = $('#configColumnasMenu');
-    const storageKey = `Usuarios_Columnas`;
-
-    const savedConfig = JSON.parse(localStorage.getItem(storageKey) || '{}');
-    container.empty();
-
-    columnas.forEach((col, index) => {
-        if (col.data && col.data !== "Id") {
-            const isChecked = savedConfig[`col_${index}`] !== undefined ? savedConfig[`col_${index}`] : true;
-            grid.column(index).visible(isChecked);
-
-            const columnName = col.title || col.data;
-
-            container.append(`
-                <li>
-                    <label class="dropdown-item">
-                        <input type="checkbox" class="toggle-column" data-column="${index}" ${isChecked ? 'checked' : ''}>
-                        ${columnName}
-                    </label>
-                </li>
-            `);
+function cargarTalles() {
+    return fetch("/ProductosCategoriasTalle/Lista", {
+        headers: {
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json'
         }
-    });
-
-    $('.toggle-column').on('change', function () {
-        const columnIdx = parseInt($(this).data('column'), 10);
-        const isChecked = $(this).is(':checked');
-        savedConfig[`col_${columnIdx}`] = isChecked;
-        localStorage.setItem(storageKey, JSON.stringify(savedConfig));
-        grid.column(columnIdx).visible(isChecked);
-    });
+    })
+        .then(r => r.ok ? r.json() : [])
+        .then(data => {
+            const norm = data.map(x => ({ Id: x.Id ?? x.IdTalle ?? 0, Nombre: x.Nombre ?? x.TalleNombre ?? '' }));
+            Catalogos.talles = norm;
+            Catalogos.tallesMap = new Map(norm.map(x => [Number(x.Id), x.Nombre]));
+            if (document.getElementById('cmbTalles')) {
+                llenarSelect('cmbTalles', norm);
+                const sel = document.getElementById('cmbTalles');
+                if (sel && sel.multiple && sel.options[0]?.value === "") sel.remove(0);
+                if (typeof $ !== 'undefined' && $.fn.selectpicker) $('#cmbTalles').selectpicker('refresh');
+            }
+        });
 }
 
-// ---------- Dropdown acciones ----------
-function toggleAcciones(id) {
-    const $dropdown = $(`.acciones-menu[data-id="${id}"] .acciones-dropdown`);
-    if ($dropdown.is(":visible")) $dropdown.hide();
-    else { $('.acciones-dropdown').hide(); $dropdown.show(); }
-}
-$(document).on('click', function (e) {
-    if (!$(e.target).closest('.acciones-menu').length) $('.acciones-dropdown').hide();
-});
 
-// ---------- Limpieza/Validación ----------
-function limpiarModal() {
-    const formulario = document.querySelector("#modalEdicion");
-    if (!formulario) return;
-
-    formulario.querySelectorAll("input, select, textarea").forEach(el => {
-        if (el.tagName === "SELECT") el.selectedIndex = 0;
-        else el.value = "";
-        el.classList.remove("is-invalid", "is-valid");
-    });
-
-    // limpiar checklist sucursales
-    MultiState.sucursales.clear();
-    const panel = document.getElementById('listaSucursales');
-    if (panel) panel.innerHTML = '';
-    const btn = document.getElementById('btnSucursales');
-    if (btn) { btn.textContent = 'Seleccionar sucursales'; btn.title = ''; }
-
-    const errorMsg = document.getElementById("errorCampos");
-    if (errorMsg) errorMsg.classList.add("d-none");
-}
-
-function validarCampoIndividual(el) {
-    const tag = el.tagName.toLowerCase();
-    const id = el.id;
-    const valor = el.value ? el.value.trim() : "";
-    const feedback = el.nextElementSibling;
-
-    if (id !== "txtNombre" && id !== "txtContrasena" && id !== "txtUsuario") return;
-
-    if (tag === "input" || tag === "select" || tag === "textarea") {
-        if (feedback && feedback.classList.contains("invalid-feedback")) {
-            feedback.textContent = "Campo obligatorio";
-        }
-        if (valor === "" || valor === "Seleccionar") {
-            el.classList.remove("is-valid");
-            el.classList.add("is-invalid");
+async function recargarTallesPorCategoria(idCategoria) {
+    let data = [];
+    try {
+        if (idCategoria && idCategoria > 0) {
+            const r = await fetch(`/ProductosCategoriasTalle/ListaPorCategoria?idCategoria=${idCategoria}`, {
+                headers: {
+                    'Authorization': 'Bearer ' + token,
+                    'Content-Type': 'application/json'
+                }
+            });
+            const rel = await r.json();
+            data = rel.map(r => ({ Id: r.IdTalle ?? r.Id ?? 0, Nombre: r.TalleNombre ?? r.Nombre ?? '' }));
         } else {
-            el.classList.remove("is-invalid");
-            el.classList.add("is-valid");
+            data = Catalogos.talles;
         }
+    } catch {
+        data = Catalogos.talles;
     }
-    verificarErroresGenerales();
+
+    Catalogos.talles = data;
+    Catalogos.tallesMap = new Map(data.map(x => [Number(x.Id), x.Nombre]));
+    renderChecklist('listaTalles', Catalogos.talles, 'talles', 'btnTalles');
 }
 
-function verificarErroresGenerales() {
-    const errorMsg = document.getElementById("errorCampos");
-    const hayInvalidos = document.querySelectorAll("#modalEdicion .is-invalid").length > 0;
-    if (!errorMsg) return;
-    if (!hayInvalidos) errorMsg.classList.add("d-none");
+
+
+
+/* =========================
+   Filtros (selects del header)
+   ========================= */
+
+async function listaCategoriasFilter() {
+    // ya están en memoria
+    return Catalogos.categorias.map(item => ({ Id: item.Id, Nombre: item.Nombre }));
 }
 
-function validarCampos() {
-    const campos = ["#txtNombre", "#txtUsuario", "#txtContrasena"];
-    let valido = true;
+/* =========================
+   Endpoints auxiliares (editar)
+   ========================= */
 
-    campos.forEach(selector => {
-        const campo = document.querySelector(selector);
-        const valor = campo?.value?.trim();
-        const feedback = campo?.nextElementSibling;
-
-        if (!campo || !valor || valor === "Seleccionar") {
-            campo?.classList.add("is-invalid");
-            campo?.classList.remove("is-valid");
-            if (feedback) feedback.textContent = "Campo obligatorio";
-            valido = false;
-        } else {
-            campo.classList.remove("is-invalid");
-            campo.classList.add("is-valid");
-        }
-    });
-
-    document.getElementById("errorCampos")?.classList.toggle("d-none", valido);
-    return valido;
+async function listaTallesPorProducto(idProducto) {
+    try {
+        const r = await fetch(`/ProductosTalles/ListaPorProducto?id=${idProducto}`, {
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        });
+        if (!r.ok) return [];
+        const data = await r.json();
+        return data.map(x => Number(x.IdTalle ?? x.Id));
+    } catch { return []; }
 }
 
-// ---------- Helper ----------
+async function listaColoresPorProducto(idProducto) {
+    try {
+        const r = await fetch(`/ProductosColores/ListaPorProducto?id=${idProducto}`, {
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        });
+        if (!r.ok) return [];
+        const data = await r.json();
+        return data.map(x => Number(x.IdColor ?? x.Id));
+    } catch { return []; }
+}
+
+
+/* =========================
+   Utilidades varias
+   ========================= */
+
 function escapeRegex(text) {
     return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+}
+
+
+/* ===== Estado de selección (sin plugins) ===== */
+const MultiState = {
+    talles: new Set(),   // guarda IDs seleccionados
+    colores: new Set()
+};
+
+/* Abrir/cerrar panel */
+function toggleChecklist(btnId, panelId) {
+    const panel = document.getElementById(panelId);
+    panel.classList.toggle('d-none');
+}
+
+/* Cerrar al hacer click afuera (una vez) */
+document.addEventListener('click', (e) => {
+    ['listaTalles', 'listaColores'].forEach(pid => {
+        const panel = document.getElementById(pid);
+        const btn = document.getElementById(pid === 'listaTalles' ? 'btnTalles' : 'btnColores');
+        if (!panel || panel.classList.contains('d-none')) return;
+        if (!panel.contains(e.target) && !btn.contains(e.target)) panel.classList.add('d-none');
+    });
+});
+
+/* Render genérico del checklist */
+function renderChecklist(panelId, items, stateKey, btnId, labelTodos = 'Seleccionar todos') {
+    const panel = document.getElementById(panelId);
+    const selected = MultiState[stateKey];
+
+    const html = [];
+    // seleccionar todos
+    const allChecked = items.length > 0 && items.every(it => selected.has(Number(it.Id)));
+    html.push(`
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" id="${panelId}-all" ${allChecked ? 'checked' : ''}>
+      <label class="form-check-label" for="${panelId}-all">${labelTodos}</label>
+    </div>
+    <hr class="my-2" />
+  `);
+
+    for (const it of items) {
+        const checked = selected.has(Number(it.Id)) ? 'checked' : '';
+        html.push(`
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" id="${panelId}-opt-${it.Id}" data-id="${it.Id}" ${checked}>
+        <label class="form-check-label" for="${panelId}-opt-${it.Id}">${it.Nombre}</label>
+      </div>
+    `);
+    }
+    panel.innerHTML = html.join('');
+
+    // eventos
+    document.getElementById(`${panelId}-all`).addEventListener('change', (ev) => {
+        selected.clear();
+        if (ev.target.checked) items.forEach(it => selected.add(Number(it.Id)));
+        // marcar visualmente
+        items.forEach(it => {
+            const cb = document.getElementById(`${panelId}-opt-${it.Id}`);
+            if (cb) cb.checked = ev.target.checked;
+        });
+        updateChecklistButtonLabel(btnId, stateKey);
+        validarCampos(); // ⬅️ nuevo
+    });
+
+    items.forEach(it => {
+        const cb = document.getElementById(`${panelId}-opt-${it.Id}`);
+        if (!cb) return;
+        cb.addEventListener('change', (ev) => {
+            const id = Number(ev.target.getAttribute('data-id'));
+            if (ev.target.checked) selected.add(id); else selected.delete(id);
+            updateChecklistButtonLabel(btnId, stateKey);
+            validarCampos(); // ⬅️ nuevo
+            // actualizar "seleccionar todos"
+            const allC = items.length > 0 && items.every(x => selected.has(Number(x.Id)));
+            const allBox = document.getElementById(`${panelId}-all`);
+            if (allBox) allBox.checked = allC;
+        });
+    });
+
+    // actualizar etiqueta del botón
+    updateChecklistButtonLabel(btnId, stateKey);
+}
+
+/* Etiqueta del "botón" (muestra nombres o contador) */
+function updateChecklistButtonLabel(btnId, stateKey) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    const set = MultiState[stateKey];
+    const ids = [...set];
+
+    // map para mostrar nombres
+    const map = stateKey === 'talles' ? Catalogos.tallesMap : Catalogos.coloresMap;
+    const textos = ids.map(id => map.get(Number(id))).filter(Boolean);
+
+    btn.textContent = textos.length ? textos.join(', ') : (stateKey === 'talles' ? 'Seleccionar talles' : 'Seleccionar colores');
+    btn.title = textos.join(', ');
+}
+
+/* Helpers para el flujo actual (mínimo cambio) */
+function getTallesSeleccionados() {
+    return MultiState.talles.size ? [...MultiState.talles] : getMultiSelectValues('cmbTalles'); // fallback si mantenés el <select multiple>
+}
+function getColoresSeleccionados() {
+    return MultiState.colores.size ? [...MultiState.colores] : getMultiSelectValues('cmbColores');
+}
+
+
+// cache
+Catalogos.listasPrecios = Catalogos.listasPrecios || [];
+
+async function renderPreciosListas(valores = []) {
+    if (!Catalogos.listasPrecios.length) {
+        const r = await fetch('/ListasPrecios/Lista', {
+            headers: {
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }
+        });
+        Catalogos.listasPrecios = await r.json(); // [{Id, Nombre}]
+    }
+    const mapValores = new Map(valores.map(x => [Number(x.IdListaPrecio), Number(x.PrecioUnitario)]));
+
+    const wrap = document.getElementById('wrapPreciosListas');
+    wrap.innerHTML = '';
+    Catalogos.listasPrecios.forEach(lp => {
+        const value = mapValores.get(Number(lp.Id)) ?? '';
+        wrap.insertAdjacentHTML('beforeend', `
+      <div class="col-md-3">
+        <div class="input-group">
+          <span class="input-group-text">${lp.Nombre}</span>
+          <input type="number" step="0.01" min="0" class="form-control" id="lp_${lp.Id}" value="${value}">
+        </div>
+      </div>
+    `);
+    });
+}
+
+// tomar valores para el payload
+function getPreciosPorListaFromUI() {
+    return (Catalogos.listasPrecios || []).map(lp => {
+        const v = parseFloat(document.getElementById('lp_' + lp.Id)?.value);
+        return isNaN(v) ? null : { idListaPrecio: Number(lp.Id), precioUnitario: v };
+    }).filter(Boolean);
 }

@@ -1,4 +1,4 @@
-/* ====== Tema oscuro base ====== */
+Ôªø/* ====== Tema oscuro base ====== */
 :root {
     --bg: #0b1220;
     --bg2: #0f172a;
@@ -146,7 +146,7 @@ table.dataTable {
     width: 70px
 }
 
-/* Mensaje vacÌo de DataTables */
+/* Mensaje vac√≠o de DataTables */
 table.dataTable tbody td.dataTables_empty {
     background: rgba(30,41,59,.6) !important;
     color: #cbd5e1 !important;
@@ -255,7 +255,7 @@ table.dataTable tbody td.dataTables_empty {
         font-weight: 700
     }
 
-/* Select oscuro ñ popup */
+/* Select oscuro ‚Äì popup */
 .form-select {
     appearance: none;
  
@@ -268,7 +268,7 @@ table.dataTable tbody td.dataTables_empty {
         color: #e5e7eb
     }
 
-/* PequeÒas utilidades */
+/* Peque√±as utilidades */
 .section-locked {
     opacity: .55
 }
@@ -290,7 +290,7 @@ table.dataTable tbody td.dataTables_empty {
     }
 
 
-/* Mensaje ìno tiene variantesî en dark */
+/* Mensaje ‚Äúno tiene variantes‚Äù en dark */
 #variantesEmpty {
     display: flex;
     align-items: center;
@@ -303,7 +303,7 @@ table.dataTable tbody td.dataTables_empty {
     font-size: .9rem;
 }
 
-/* Inputs deshabilitados ñ dark uniforme */
+/* Inputs deshabilitados ‚Äì dark uniforme */
 .form-control:disabled,
 .form-control[readonly],
 .form-select:disabled {
@@ -357,7 +357,7 @@ table.dataTable tbody td.dataTables_empty {
     border: 1px solid var(--border) !important;
 }
 
-/* --- Aviso de variantes vacÌo (full-width lindo) --- */
+/* --- Aviso de variantes vac√≠o (full-width lindo) --- */
 #variantesContainer {
     margin-top: .25rem;
 }
@@ -378,3 +378,56 @@ table.dataTable tbody td.dataTables_empty {
     .alert-ghost i {
         opacity: .9;
     }
+
+
+#modalPago .modal-dialog {
+    max-width: 800px; /* o el ancho que quieras */
+}
+
+
+#modalItem .modal-dialog {
+    max-width: 1000px; /* o el ancho que quieras */
+}
+
+/* --- Validaci√≥n visual para Select2 (Bootstrap 5) --- */
+.select2-container .select2-selection {
+    position: relative;
+    transition: box-shadow .15s, border-color .15s;
+}
+
+    .select2-container .select2-selection.is-invalid {
+        border-color: #dc3545 !important;
+        box-shadow: 0 0 0 .25rem rgba(220,53,69,.25);
+    }
+
+    .select2-container .select2-selection.is-valid {
+        border-color: #198754 !important;
+        box-shadow: 0 0 0 .25rem rgba(25,135,84,.25);
+    }
+
+        /* Iconito (‚ö† / ‚úì) como Bootstrap, pero para Select2 */
+        .select2-container .select2-selection.is-invalid::after,
+        .select2-container .select2-selection.is-valid::after {
+            position: absolute;
+            right: .75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-weight: 700;
+            pointer-events: none;
+            font-size: 14px;
+        }
+
+    .select2-container .select2-selection.is-invalid::after {
+        content: "‚ö†";
+        color: #dc3545;
+    }
+
+    .select2-container .select2-selection.is-valid::after {
+        content: "‚úì";
+        color: #198754;
+    }
+
+/* Feedback debajo del Select2 */
+.select2-container + .invalid-feedback {
+    display: block;
+}

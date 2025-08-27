@@ -115,7 +115,7 @@ namespace SistemaMaite.Application.Controllers
         [HttpPost]
         public async Task<IActionResult> Insertar([FromBody] VMVenta vm)
         {
-            if (vm is null) return BadRequest("Payload inválido");
+          
             var venta = MapVenta(vm);
             var (items, variantes) = MapItems(vm);
             var pagos = MapPagos(vm, venta);
@@ -126,7 +126,7 @@ namespace SistemaMaite.Application.Controllers
         [HttpPut]
         public async Task<IActionResult> Actualizar([FromBody] VMVenta vm)
         {
-            if (vm is null || vm.Id <= 0) return BadRequest("Id inválido");
+         
             var venta = MapVenta(vm);
             var (items, variantes) = MapItems(vm);
             var pagos = MapPagos(vm, venta, keepIds: true);
