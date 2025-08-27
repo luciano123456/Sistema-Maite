@@ -59,6 +59,8 @@ namespace SistemaMaite.Application.Models.ViewModels
         public int IdProducto { get; set; }
         public int IdProductoVariante { get; set; }
         public string Variante { get; set; } = ""; // (Color/Talle)
+        public string Talle { get; set; } = ""; // (Color/Talle)
+        public string Color { get; set; } = ""; // (Color/Talle)
         public decimal Cantidad { get; set; }
     }
 
