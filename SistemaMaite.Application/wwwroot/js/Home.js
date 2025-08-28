@@ -803,14 +803,6 @@ function validarCamposProducto() {
 
 
 
-precioZonaInput.addEventListener('blur', function () {
-    const rawValue = this.value.replace(/[^0-9.,]/g, '').replace(',', '.');
-    const parsedValue = parseFloat(rawValue) || 0;
-
-    // Formatear el número al finalizar la edición
-    this.value = formatNumber(parsedValue);
-
-});
 
 function formatNumber(number) {
     return '$' + number.toLocaleString('es-AR');
