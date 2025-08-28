@@ -1,4 +1,9 @@
-﻿// ---------------- Estado global ----------------
+﻿// ===================== VentasNuevoModif.js (COMPLETO) =====================
+// Requiere: jQuery, Bootstrap 5, DataTables, Select2, moment.js y *site.js*
+// Usa: token, confirmarModal, exitoModal, errorModal, advertenciaModal,
+// formatearMiles, formatearSinMiles, etc. (definidas en site.js)
+
+// ---------------- Estado global ----------------
 let gridItems = null;
 let gridPagos = null;
 let isSaving = false;
@@ -49,18 +54,15 @@ function isSelect2(el) { return !!(window.jQuery && $(el).hasClass("select2-hidd
 function getSelect2Selection(el) { return $(el).next(".select2").find(".select2-selection").get(0) || null; }
 function getFeedbackAnchor(el) { return isSelect2(el) ? $(el).next(".select2").get(0) : el; }
 
+// ¡No eliminamos feedback del servidor! Si no existe, lo creamos (p/Select2).
 function ensureInvalidFeedback(el) {
     if (!el) return null;
-    // si quedó un feedback "viejo" del control original, lo saco
-    const prev = el.nextElementSibling;
-    if (prev && prev.classList?.contains("invalid-feedback")) prev.remove();
-
     const anchor = getFeedbackAnchor(el);
     let fb = anchor?.nextElementSibling;
     if (!(fb && fb.classList?.contains("invalid-feedback"))) {
         fb = document.createElement("div");
         fb.className = "invalid-feedback";
-        fb.style.display = "none"; // oculto por defecto
+        fb.style.display = "none";
         anchor?.parentNode?.insertBefore(fb, anchor.nextSibling);
     }
     return fb;
@@ -101,7 +103,7 @@ function addComboSync(selector, stateKey, { extra = null } = {}) {
         State[stateKey] = v ? (isFinite(+v) ? +v : v) : 0;
         if (wasSubmitVenta) {
             State[stateKey] ? setValid(selector) : setInvalid(selector);
-            updateFormErrorBanner(); // oculta/mostrar alerta general
+            updateFormErrorBanner();
         } else {
             clearValidation(selector);
         }
@@ -110,17 +112,14 @@ function addComboSync(selector, stateKey, { extra = null } = {}) {
     };
     ["change", "input"].forEach(evt => el.addEventListener(evt, sync));
     if ($.fn.select2) $(el).on("select2:select select2:clear", sync);
-    // primer sync (por si ya vino seleccionado del servidor)
     sync();
 }
 
 function syncStateFromUI() {
     const dtp = document.getElementById("dtpFecha");
     if (dtp) { if (wasSubmitVenta) (dtp.value ? setValid(dtp) : setInvalid(dtp)); else clearValidation(dtp); }
-    ["#cmbCliente", "#cmbVendedor", "#cmbListaPrecio", "#cmbSucursal"].forEach((sel) => {
-        const el = document.querySelector(sel);
-        if (!el) return;
-        const key = sel === "#cmbCliente" ? "clienteId" : sel === "#cmbVendedor" ? "vendedorId" : sel === "#cmbListaPrecio" ? "listaPrecioId" : "sucursalId";
+    [["#cmbCliente", "clienteId"], ["#cmbVendedor", "vendedorId"], ["#cmbListaPrecio", "listaPrecioId"], ["#cmbSucursal", "sucursalId"]].forEach(([sel, key]) => {
+        const el = document.querySelector(sel); if (!el) return;
         State[key] = el.value ? (isFinite(+el.value) ? +el.value : el.value) : 0;
         if (wasSubmitVenta) (State[key] ? setValid(el) : setInvalid(el)); else clearValidation(el);
     });
@@ -130,24 +129,17 @@ function syncStateFromUI() {
 
 // Apaga TODA la validación visible (para la 1ra apertura o un reset manual)
 async function hideInitialRequiredHints(root = document) {
-    wasSubmitVenta = false;                // no mostrar tildes/errores hasta que intenten guardar
-    ["#dtpFecha", "#cmbCliente", "#cmbVendedor", "#cmbListaPrecio", "#cmbSucursal"]
-        .forEach(clearValidation);           // quita is-valid / is-invalid y oculta el feedback creado por JS
-
-    // Si hay mensajes "Campo obligatorio" renderizados por el server, también ocultalos
+    wasSubmitVenta = false;
+    ["#dtpFecha", "#cmbCliente", "#cmbVendedor", "#cmbListaPrecio", "#cmbSucursal"].forEach(clearValidation);
     root.querySelectorAll(".invalid-feedback").forEach(fb => fb.style.display = "none");
-
-    // Banner general
     document.getElementById("errorCamposVenta")?.classList.add("d-none");
-
-    // (opcional) re-evaluá gates de botones por si quedaron deshabilitados
     updateGates();
 }
 
-
 // ---------------- Gates de botones ----------------
+// Habilitar si hay Cliente + Vendedor + Lista Precio
 function updateGates() {
-    const ok = !!State.clienteId && !!State.listaPrecioId;
+    const ok = !!State.clienteId && !!State.vendedorId && !!State.listaPrecioId;
     const btnItem = document.querySelector('button[onclick="abrirModalItem()"]');
     const btnPago = document.querySelector('button[onclick="abrirModalPago()"]');
     [btnItem, btnPago].forEach(b => { if (!b) return; b.disabled = !ok; b.classList.toggle("disabled", !ok); b.style.opacity = ok ? 1 : .6; b.style.pointerEvents = ok ? "auto" : "none"; });
@@ -159,20 +151,16 @@ document.addEventListener("DOMContentLoaded", async () => {
         const dtp = document.getElementById("dtpFecha");
         if (dtp && !dtp.value) dtp.value = hoyISO();
 
-
         // Select2
         initSelect2Base("#cmbCliente");
         initSelect2Base("#cmbVendedor");
         initSelect2Base("#cmbListaPrecio");
         initSelect2Base("#cmbSucursal");
-
         removeEmptyOptionOnSelect("#cmbCliente");
         removeEmptyOptionOnSelect("#cmbVendedor");
         removeEmptyOptionOnSelect("#cmbListaPrecio");
         removeEmptyOptionOnSelect("#cmbSucursal");
 
-      
-      
         // listeners de revalidación (fecha)
         document.getElementById("dtpFecha")?.addEventListener("change", () => {
             if (!wasSubmitVenta) { clearValidation("#dtpFecha"); return; }
@@ -180,7 +168,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             updateFormErrorBanner();
         });
 
-        // listeners de sincronización de combos (nativo + select2)
+        // listeners de sincronización de combos
         addComboSync("#cmbCliente", "clienteId", {
             extra: () => { if (State.pagos.length) { State.pagos = []; refrescarPagos(); } }
         });
@@ -190,15 +178,11 @@ document.addEventListener("DOMContentLoaded", async () => {
         addComboSync("#cmbVendedor", "vendedorId");
         addComboSync("#cmbSucursal", "sucursalId");
 
-
-
         // Cargar datos de combos/maestros
         await Promise.all([
             cargarClientes(), cargarVendedores(), cargarListasPrecios(),
             cargarProductos(), cargarCuentas(), cargarSucursalesUsuario()
         ]);
-
-
 
         // Grillas
         configurarTablaItems();
@@ -216,15 +200,12 @@ document.addEventListener("DOMContentLoaded", async () => {
             setGuardarButtonMode("editar");
         } else {
             setGuardarButtonMode("crear");
-            clearAllValidationVenta(); // limpiar marcas al abrir una nueva venta
+            clearAllValidationVenta();
         }
 
         // Sync final por si vino con valores del servidor
         syncStateFromUI();
-          await hideInitialRequiredHints();
-
-
-     
+        await hideInitialRequiredHints();
 
     } catch (e) { console.error(e); }
 });
@@ -410,7 +391,6 @@ async function cargarVentaExistente(id) {
     }
     if ($.fn.select2) $("#cmbCliente, #cmbVendedor, #cmbListaPrecio").trigger("change.select2");
 
-    // sincronizar estado y validar si corresponde
     syncStateFromUI();
 
     document.getElementById("txtNota").value = v.NotaInterna || "";
@@ -512,8 +492,15 @@ function refrescarPagos() { if (!gridPagos) return; gridPagos.clear().rows.add(S
 
 // ---------------- Modal Producto ----------------
 window.abrirModalItem = async function () {
-    if (!(State.clienteId && State.listaPrecioId)) return;
+    if (!(State.clienteId && State.vendedorId && State.listaPrecioId)) {
+        advertenciaModal?.("Completá Cliente, Vendedor y Lista de Precios antes de agregar ítems.");
+        return;
+    }
     State.editItemIndex = -1;
+
+    // Botón verde → Registrar
+    const btn = document.querySelector("#modalItem .modal-footer .btn.btn-success");
+    if (btn) btn.innerHTML = `<i class="fa fa-check me-1"></i> Registrar`;
 
     const cmbHtml = `<option value="">Seleccione</option>` + State.productos.map(p => `<option value="${p.Id}">${p.Descripcion}</option>`).join("");
     const cmb = document.getElementById("cmbItemProducto"); cmb.innerHTML = cmbHtml;
@@ -529,6 +516,8 @@ window.abrirModalItem = async function () {
 
     renderVariantesUI([]);
     attachItemEvents();
+    document.getElementById("errorCamposItem")?.classList.add("d-none");
+
     new bootstrap.Modal(document.getElementById("modalItem")).show();
 };
 function setItemInputsEnabled(enabled) {
@@ -607,6 +596,10 @@ window.editarItem = async function (idx) {
     const it = State.items[idx]; if (!it) return;
     State.editItemIndex = idx;
 
+    // Botón verde → Guardar
+    const btn = document.querySelector("#modalItem .modal-footer .btn.btn-success");
+    if (btn) btn.innerHTML = `<i class="fa fa-check me-1"></i> Guardar`;
+
     const cmb = document.getElementById("cmbItemProducto");
     cmb.innerHTML = `<option value="">Seleccione</option>` + State.productos.map(p => `<option value="${p.Id}">${p.Descripcion}</option>`).join("");
     initSelect2Base("#cmbItemProducto", { dropdownParent: $("#modalItem") });
@@ -625,6 +618,7 @@ window.editarItem = async function (idx) {
     const info = await obtenerProductoInfoVenta(it.idProducto, State.listaPrecioId);
     renderVariantesUI(info.variantes || [], it.variantes || []);
 
+    document.getElementById("errorCamposItem")?.classList.add("d-none");
     new bootstrap.Modal(document.getElementById("modalItem")).show();
 };
 window.eliminarItem = async function (idx) {
@@ -660,10 +654,17 @@ function attachPagoLiveValidation() {
 }
 
 window.abrirModalPago = function () {
-    if (!(State.clienteId && State.listaPrecioId)) return;
+    if (!(State.clienteId && State.vendedorId && State.listaPrecioId)) {
+        advertenciaModal?.("Completá Cliente, Vendedor y Lista de Precios antes de registrar pagos.");
+        return;
+    }
     State.editPagoIndex = -1;
     wasSubmitPago = false;
     resetPagoValidation();
+
+    // Título → Registrar Pago
+    const title = document.querySelector("#modalPago .modal-title");
+    if (title) title.innerHTML = `<i class="fa fa-plus-circle me-2 text-success"></i>Registrar Pago`;
 
     document.getElementById("dtpPagoFecha").value = hoyISO();
     const cmb = document.getElementById("cmbCuenta");
@@ -701,6 +702,10 @@ window.editarPago = function (idx) {
     State.editPagoIndex = idx;
     wasSubmitPago = false;
     resetPagoValidation();
+
+    // Título → Editar Pago
+    const title = document.querySelector("#modalPago .modal-title");
+    if (title) title.innerHTML = `<i class="fa fa-pen-to-square me-2 text-success"></i>Editar Pago`;
 
     document.getElementById("dtpPagoFecha").value = dateToInputValue(p.fecha) || hoyISO();
     const cmb = document.getElementById("cmbCuenta");
@@ -771,11 +776,8 @@ function clearAllValidationVenta() {
 window.guardarVenta = async function () {
     if (isSaving) return;
 
-    wasSubmitVenta = true; // ← a partir de acá se muestran errores y tildes
-
-    // validar requeridos
+    wasSubmitVenta = true;
     if (!updateFormErrorBanner()) return;
-
     if (State.items.length === 0) { errorModal?.("Agregá al menos un producto."); return; }
 
     const fecha = document.getElementById("dtpFecha").value;
@@ -883,7 +885,7 @@ async function exportarVentaPdf() {
 
     let y = 135;
     doc.setTextColor(...TXT); doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.text("Datos de la operación", padX, y); y += 16;
-    const clienteTxt = _textSel("cmbCliente") || "—"; const vendedorTxt = _textSel("cmbVendedor") || "—"; const listaTxt = _textSel("cmbListaPrecio") || "—";
+    const clienteTxt = _textSel("cmbCliente") || "—"; const vendedorTxt = _textSel("cmbVendedor") || "—";
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold"); doc.text("Cliente:", padX, y); doc.setFont("helvetica", "normal"); doc.text(clienteTxt, padX + 55, y);
     doc.setFont("helvetica", "bold"); doc.text("Vendedor:", padX + 300, y); doc.setFont("helvetica", "normal"); doc.text(vendedorTxt, padX + 370, y);
