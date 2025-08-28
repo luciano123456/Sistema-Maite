@@ -1,5 +1,4 @@
-﻿// SistemaMaite.DAL/Repository/VentasRepository.cs
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using SistemaMaite.DAL.DataContext;
 using SistemaMaite.Models;
 
@@ -10,8 +9,9 @@ namespace SistemaMaite.DAL.Repository
         private readonly SistemaMaiteContext _db;
         public VentasRepository(SistemaMaiteContext db) { _db = db; }
 
-        private const string CONCEPTO_VENTA = "VENTA";
-        private const string CONCEPTO_COBRO = "COBRO VENTA";
+        // Tipo de movimiento de CC (de negocio)
+        private const string TIPO_VENTA = "VENTA";            // <-- antes ponías DEBE
+        private const string TIPO_COBRO = "COBRO VENTA";      // <-- antes ponías HABER / "COBRO"
 
         // -------------------------------- LISTADO / OBTENER --------------------------------
 
@@ -42,28 +42,36 @@ namespace SistemaMaite.DAL.Repository
                     EF.Functions.Like(v.IdClienteNavigation.Nombre ?? "", $"%{t}%"));
             }
 
+            // estado: con_saldo / saldado usando CC por TipoMov
             if (!string.IsNullOrWhiteSpace(estado))
             {
                 var st = estado.Trim().ToLowerInvariant();
+
+                // pagos (haber) imputados a esta venta (IdMov = v.Id y TipoMov = COBRO VENTA)
+                var pagosHaber = _db.ClientesCuentaCorrientes
+                    .Where(cc => cc.IdMov == EF.Property<int>(cc, "IdMov"));// dummy para permitir siguiente closure
+
                 if (st == "con_saldo")
                 {
-                    q = q.Where(v => _db.ClientesCuentaCorrientes
-                        .Where(cc => cc.IdCliente == v.IdCliente && cc.IdSucursal == v.IdSucursal && cc.IdMov == v.Id && cc.Concepto == CONCEPTO_VENTA)
-                        .Select(cc => cc.Debe - (_db.ClientesCuentaCorrientes
-                            .Where(h => h.IdCliente == v.IdCliente && h.IdSucursal == v.IdSucursal && h.Concepto == CONCEPTO_COBRO && h.IdMov == v.Id)
-                            .Sum(h => (decimal?)h.Haber) ?? 0m))
-                        .FirstOrDefault() > 0m);
+                    q = q.Where(v =>
+                        v.ImporteTotal - (
+                            _db.ClientesCuentaCorrientes
+                                .Where(cc => cc.IdCliente == v.IdCliente
+                                          && cc.IdSucursal == v.IdSucursal
+                                          && cc.IdMov == v.Id
+                                          && cc.TipoMov == TIPO_COBRO)
+                                .Sum(cc => (decimal?)cc.Haber) ?? 0m) > 0m);
                 }
                 else if (st == "saldado")
                 {
-                    q = q.Where(v => (_db.ClientesCuentaCorrientes
-                            .Where(cc => cc.IdCliente == v.IdCliente && cc.IdSucursal == v.IdSucursal && cc.IdMov == v.Id && cc.Concepto == CONCEPTO_VENTA)
-                            .Select(cc => cc.Debe)
-                            .FirstOrDefault())
-                        <=
-                        (_db.ClientesCuentaCorrientes
-                            .Where(h => h.IdCliente == v.IdCliente && h.IdSucursal == v.IdSucursal && h.Concepto == CONCEPTO_COBRO && h.IdMov == v.Id)
-                            .Sum(h => (decimal?)h.Haber) ?? 0m));
+                    q = q.Where(v =>
+                        v.ImporteTotal - (
+                            _db.ClientesCuentaCorrientes
+                                .Where(cc => cc.IdCliente == v.IdCliente
+                                          && cc.IdSucursal == v.IdSucursal
+                                          && cc.IdMov == v.Id
+                                          && cc.TipoMov == TIPO_COBRO)
+                                .Sum(cc => (decimal?)cc.Haber) ?? 0m) <= 0m);
                 }
             }
 
@@ -72,50 +80,40 @@ namespace SistemaMaite.DAL.Repository
 
         public Task<Venta?> Obtener(int id)
         {
-            var result = _db.Ventas
+            return _db.Ventas
                 .Include(v => v.IdClienteNavigation)
                 .Include(v => v.IdVendedorNavigation)
                 .Include(v => v.VentasProductos).ThenInclude(p => p.VentasProductosVariantes)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(v => v.Id == id);
-            return result;
         }
 
         public Task<List<ClientesCobro>> ObtenerPagosPorVenta(int idVenta)
         {
-            var result = _db.ClientesCobros
+            return _db.ClientesCobros
                 .Include(c => c.IdCuentaNavigation)
                 .Where(c => c.IdVenta == idVenta)
                 .OrderByDescending(c => c.Fecha).ThenByDescending(c => c.Id)
                 .AsNoTracking()
                 .ToListAsync();
-
-            return result;
         }
 
         public Task<List<VentasProducto>> ObtenerItemsPorVenta(int idVenta)
         {
-            var result = _db.VentasProductos
+            return _db.VentasProductos
                 .Where(i => i.IdVenta == idVenta)
-
-                // Producto
                 .Include(i => i.IdProductoNavigation)
-
                 .Include(i => i.VentasProductosVariantes)
                     .ThenInclude(v => v.IdProductoVarianteNavigation)
                         .ThenInclude(pv => pv.IdColorNavigation)
                             .ThenInclude(pc => pc.IdColorNavigation)
-
                 .Include(i => i.VentasProductosVariantes)
                     .ThenInclude(v => v.IdProductoVarianteNavigation)
                         .ThenInclude(pv => pv.IdTalleNavigation)
                             .ThenInclude(pt => pt.IdTalleNavigation)
-
                 .AsNoTracking()
                 .ToListAsync();
-            return result; 
         }
-
 
         public Task<decimal?> ObtenerPrecioPorLista(int idProducto, int idListaPrecio)
         {
@@ -128,13 +126,12 @@ namespace SistemaMaite.DAL.Repository
 
         public Task<List<ProductosVariante>> ObtenerVariantesPorProducto(int idProducto)
         {
-            var result = _db.ProductosVariantes
-                 .Where(v => v.IdProducto == idProducto)
-                 .Include(v => v.IdColorNavigation).ThenInclude(pc => pc.IdColorNavigation)
-                 .Include(v => v.IdTalleNavigation).ThenInclude(pt => pt.IdTalleNavigation)
-                 .AsNoTracking()
-                 .ToListAsync();
-            return result;
+            return _db.ProductosVariantes
+                .Where(v => v.IdProducto == idProducto)
+                .Include(v => v.IdColorNavigation).ThenInclude(pc => pc.IdColorNavigation)
+                .Include(v => v.IdTalleNavigation).ThenInclude(pt => pt.IdTalleNavigation)
+                .AsNoTracking()
+                .ToListAsync();
         }
 
         // -------------------------------- INSERTAR --------------------------------
@@ -148,11 +145,11 @@ namespace SistemaMaite.DAL.Repository
             using var trx = await _db.Database.BeginTransactionAsync();
             try
             {
-                // 1) Venta
+                // (1) Venta
                 _db.Ventas.Add(venta);
                 await _db.SaveChangesAsync();
 
-                // 2) Items + variantes (agregar sin borrar)
+                // (2) Items + variantes
                 var listItems = items?.ToList() ?? new List<VentasProducto>();
                 var listVars = variantes?.ToList() ?? new List<VentasProductosVariante>();
 
@@ -175,39 +172,34 @@ namespace SistemaMaite.DAL.Repository
                         Subtotal = inIt.Subtotal
                     };
                     _db.VentasProductos.Add(it);
-                    await _db.SaveChangesAsync(); // necesito Id del item para variantes
+                    await _db.SaveChangesAsync();
 
-                    // variantes para este item:
-                    // 1) si vienen con IdVentaProducto == inIt.Id (id temporal) o
-                    // 2) si no viene referencia, matcheo por IdProducto
                     var varForItem = listVars.Where(v =>
-                            (v.IdVentaProducto > 0 && v.IdVentaProducto == inIt.Id) ||
-                            (v.IdVentaProducto == 0 && v.IdProducto == inIt.IdProducto))
-                        .ToList();
+                        (v.IdVentaProducto > 0 && v.IdVentaProducto == inIt.Id) ||
+                        (v.IdVentaProducto == 0 && v.IdProducto == inIt.IdProducto)).ToList();
 
                     foreach (var vr in varForItem)
                     {
-                        var nuevoVr = new VentasProductosVariante
+                        _db.VentasProductosVariantes.Add(new VentasProductosVariante
                         {
                             IdVentaProducto = it.Id,
                             IdProducto = vr.IdProducto,
                             IdProductoVariante = vr.IdProductoVariante,
                             Cantidad = vr.Cantidad
-                        };
-                        _db.VentasProductosVariantes.Add(nuevoVr);
+                        });
                     }
                     await _db.SaveChangesAsync();
                 }
 
-                // 3) CC Debe por la venta
+                // (3) CC: movimiento de VENTA (Debe)
                 var ccDebe = new ClientesCuentaCorriente
                 {
                     IdSucursal = venta.IdSucursal,
                     IdCliente = venta.IdCliente,
                     Fecha = venta.Fecha,
-                    TipoMov = "DEBE",
-                    IdMov = venta.Id,
-                    Concepto = CONCEPTO_VENTA,
+                    TipoMov = TIPO_VENTA,                          // <-- VENTA
+                    IdMov = venta.Id,                               // referencia de negocio: la venta
+                    Concepto = $"VENTA NRO {venta.Id}",             // <-- legible
                     Debe = venta.ImporteTotal,
                     Haber = 0m
                 };
@@ -217,10 +209,10 @@ namespace SistemaMaite.DAL.Repository
                 venta.IdCuentaCorriente = ccDebe.Id;
                 await _db.SaveChangesAsync();
 
-                // 4) Pagos => Cobro + CC(HABER) + Caja(INGRESO con IdMov = IdCobro)
+                // (4) Pagos => Cobro + CC(HABER: COBRO VENTA) + Caja(INGRESO con IdMov = IdCobro)
                 foreach (var p in (pagos ?? Enumerable.Empty<ClientesCobro>()))
                 {
-                    // Cobro
+                    // Cobro (entidad propia)
                     var cobro = new ClientesCobro
                     {
                         IdSucursal = venta.IdSucursal,
@@ -234,30 +226,30 @@ namespace SistemaMaite.DAL.Repository
                         NotaInterna = p.NotaInterna
                     };
                     _db.ClientesCobros.Add(cobro);
-                    await _db.SaveChangesAsync(); // ← ya tengo cobro.Id
+                    await _db.SaveChangesAsync(); // cobro.Id
 
-                    // CC Haber
+                    // CC Haber por COBRO VENTA (referenciado por Id de VENTA)
                     _db.ClientesCuentaCorrientes.Add(new ClientesCuentaCorriente
                     {
                         IdSucursal = venta.IdSucursal,
                         IdCliente = venta.IdCliente,
                         Fecha = p.Fecha,
-                        TipoMov = "HABER",
-                        IdMov = venta.Id, // sigo referenciando a la Venta
-                        Concepto = CONCEPTO_COBRO,
+                        TipoMov = TIPO_COBRO,                         // <-- COBRO VENTA
+                        IdMov = venta.Id,                             // referencia a la venta
+                        Concepto = $"COBRO VENTA NRO {venta.Id}",     // <-- legible
                         Debe = 0m,
                         Haber = p.Importe
                     });
 
-                    // Caja (INGRESO) vinculado al COBRO
+                    // Caja: ingreso, referenciada al COBRO (IdMov = cobro.Id)
                     _db.Cajas.Add(new Caja
                     {
                         IdSucursal = venta.IdSucursal,
                         IdCuenta = p.IdCuenta,
                         Fecha = p.Fecha,
                         TipoMov = "INGRESO",
-                        IdMov = cobro.Id, // ← ahora NO es null
-                        Concepto = $"{CONCEPTO_COBRO}",
+                        IdMov = cobro.Id,                              // referencia al cobro
+                        Concepto = "COBRO VENTA",
                         Ingreso = p.Importe,
                         Egreso = 0m
                     });
@@ -305,14 +297,12 @@ namespace SistemaMaite.DAL.Repository
                 ent.ImporteTotal = venta.ImporteTotal;
                 ent.NotaInterna = venta.NotaInterna;
                 ent.NotaCliente = venta.NotaCliente;
-
                 await _db.SaveChangesAsync();
 
-                // Items y Variantes (sin borrar todo)
+                // Items / variantes (ADD/UPD/DEL) ... (igual que lo tenías)
                 var incomingItems = (items ?? Enumerable.Empty<VentasProducto>()).ToList();
                 var incomingVars = (variantes ?? Enumerable.Empty<VentasProductosVariante>()).ToList();
 
-                // 1) Borrar items faltantes
                 var incomingItemIds = incomingItems.Where(x => x.Id > 0).Select(x => x.Id).ToHashSet();
                 var itemsToDelete = ent.VentasProductos.Where(x => !incomingItemIds.Contains(x.Id)).ToList();
                 if (itemsToDelete.Any())
@@ -323,14 +313,12 @@ namespace SistemaMaite.DAL.Repository
                     await _db.SaveChangesAsync();
                 }
 
-                // 2) Agregar/Actualizar items + variantes por item
                 foreach (var inIt in incomingItems)
                 {
                     VentasProducto target;
 
                     if (inIt.Id > 0)
                     {
-                        // actualizar item existente
                         target = ent.VentasProductos.First(i => i.Id == inIt.Id);
                         target.IdProducto = inIt.IdProducto;
                         target.PrecioUnitario = inIt.PrecioUnitario;
@@ -348,7 +336,6 @@ namespace SistemaMaite.DAL.Repository
                     }
                     else
                     {
-                        // nuevo item
                         target = new VentasProducto
                         {
                             IdVenta = ent.Id,
@@ -369,10 +356,6 @@ namespace SistemaMaite.DAL.Repository
                         await _db.SaveChangesAsync();
                     }
 
-                    // ------- Variantes por item (ADD/UPDATE/DELETE) -------
-                    // Match por:
-                    // - IdVentaProducto (si viene)
-                    // - o por IdProducto si IdVentaProducto == 0
                     var inVarsForItem = incomingVars
                         .Where(v => (v.IdVentaProducto > 0 && v.IdVentaProducto == inIt.Id) ||
                                     (v.IdVentaProducto == 0 && v.IdProducto == inIt.IdProducto))
@@ -382,31 +365,24 @@ namespace SistemaMaite.DAL.Repository
                         .Where(v => v.IdVentaProducto == target.Id)
                         .ToListAsync();
 
-                    // Mapas para comparar
                     var mapInById = inVarsForItem.Where(v => v.Id > 0).ToDictionary(v => v.Id, v => v);
-                    var mapExById = exVars.ToDictionary(v => v.Id, v => v);
 
-                    // 2.1) Eliminar las que ya no están
                     var toDelete = exVars.Where(ev =>
-                        !mapInById.ContainsKey(ev.Id) &&  // no viene por Id
-                        !inVarsForItem.Any(iv => iv.Id == 0 && iv.IdProductoVariante == ev.IdProductoVariante) // tampoco por PV
-                    ).ToList();
+                        !mapInById.ContainsKey(ev.Id) &&
+                        !inVarsForItem.Any(iv => iv.Id == 0 && iv.IdProductoVariante == ev.IdProductoVariante)).ToList();
                     if (toDelete.Any())
                     {
                         _db.VentasProductosVariantes.RemoveRange(toDelete);
                         await _db.SaveChangesAsync();
                     }
 
-                    // 2.2) Agregar nuevas (no tienen Id) o las que no matchean por Id pero sí por PV
                     foreach (var iv in inVarsForItem)
                     {
-                        // buscar existente por Id (si trae) o por IdProductoVariante
                         var ex = exVars.FirstOrDefault(ev => ev.Id == iv.Id) ??
                                  exVars.FirstOrDefault(ev => iv.Id == 0 && ev.IdProductoVariante == iv.IdProductoVariante);
 
                         if (ex is null)
                         {
-                            // nueva
                             _db.VentasProductosVariantes.Add(new VentasProductosVariante
                             {
                                 IdVentaProducto = target.Id,
@@ -417,7 +393,6 @@ namespace SistemaMaite.DAL.Repository
                         }
                         else
                         {
-                            // update cantidad / referencia
                             ex.IdProducto = iv.IdProducto;
                             ex.IdProductoVariante = iv.IdProductoVariante;
                             ex.Cantidad = iv.Cantidad;
@@ -426,11 +401,11 @@ namespace SistemaMaite.DAL.Repository
                     await _db.SaveChangesAsync();
                 }
 
-                // 3) CC Debe (VENTA)
+                // (3) CC Debe (VENTA)
                 var ccDebe = await _db.ClientesCuentaCorrientes
                     .FirstOrDefaultAsync(cc => cc.IdCliente == ent.IdCliente &&
                                                cc.IdSucursal == ent.IdSucursal &&
-                                               cc.Concepto == CONCEPTO_VENTA &&
+                                               cc.TipoMov == TIPO_VENTA &&         // <-- buscar por TipoMov
                                                cc.IdMov == ent.Id);
                 if (ccDebe is null)
                 {
@@ -439,9 +414,9 @@ namespace SistemaMaite.DAL.Repository
                         IdSucursal = ent.IdSucursal,
                         IdCliente = ent.IdCliente,
                         Fecha = ent.Fecha,
-                        TipoMov = "DEBE",
+                        TipoMov = TIPO_VENTA,
                         IdMov = ent.Id,
-                        Concepto = CONCEPTO_VENTA,
+                        Concepto = $"VENTA NRO {ent.Id}",
                         Debe = ent.ImporteTotal,
                         Haber = 0m
                     };
@@ -454,30 +429,28 @@ namespace SistemaMaite.DAL.Repository
                 {
                     ccDebe.Fecha = ent.Fecha;
                     ccDebe.Debe = ent.ImporteTotal;
+                    ccDebe.Concepto = $"VENTA NRO {ent.Id}";
                     await _db.SaveChangesAsync();
                 }
 
-                // 4) Pagos (ClientesCobro + CC Haber + Caja)
+                // (4) Pagos (ClientesCobro + CC Haber [COBRO VENTA] + Caja)
                 var incomingPagos = (pagos ?? Enumerable.Empty<ClientesCobro>()).ToList();
                 var incomingPagoIds = incomingPagos.Where(p => p.Id > 0).Select(p => p.Id).ToHashSet();
-
                 var pagosEx = await _db.ClientesCobros.Where(c => c.IdVenta == ent.Id).ToListAsync();
 
-                // 4.1) Borrar los que ya no están + sus haberes y caja
+                // borrar pagos quitados y sus efectos
                 var delPagos = pagosEx.Where(pe => !incomingPagoIds.Contains(pe.Id)).ToList();
                 foreach (var dp in delPagos)
                 {
-                    // CC Haber asociado
                     var haber = await _db.ClientesCuentaCorrientes
                         .FirstOrDefaultAsync(h => h.IdCliente == ent.IdCliente &&
                                                   h.IdSucursal == ent.IdSucursal &&
-                                                  h.Concepto == CONCEPTO_COBRO &&
+                                                  h.TipoMov == TIPO_COBRO &&
                                                   h.IdMov == ent.Id &&
                                                   h.Fecha == dp.Fecha &&
                                                   h.Haber == dp.Importe);
                     if (haber != null) _db.ClientesCuentaCorrientes.Remove(haber);
 
-                    // Caja (por IdMov = IdCobro)
                     var caja = await _db.Cajas.FirstOrDefaultAsync(ca => ca.IdMov == dp.Id && ca.TipoMov == "INGRESO");
                     if (caja != null) _db.Cajas.Remove(caja);
 
@@ -485,16 +458,13 @@ namespace SistemaMaite.DAL.Repository
                 }
                 if (delPagos.Any()) await _db.SaveChangesAsync();
 
-                // 4.2) Agregar/Actualizar
+                // upsert pagos
                 foreach (var p in incomingPagos)
                 {
                     if (p.Id > 0)
                     {
-                        // EDITAR cobro existente
                         var ex = await _db.ClientesCobros.FirstAsync(c => c.Id == p.Id);
-
-                        var oldFecha = ex.Fecha;
-                        var oldImporte = ex.Importe;
+                        var oldFecha = ex.Fecha; var oldImporte = ex.Importe;
 
                         ex.Fecha = p.Fecha;
                         ex.IdCuenta = p.IdCuenta;
@@ -502,11 +472,10 @@ namespace SistemaMaite.DAL.Repository
                         ex.NotaInterna = p.NotaInterna;
                         await _db.SaveChangesAsync();
 
-                        // Actualizar CC Haber (busco por valores viejos)
                         var haber = await _db.ClientesCuentaCorrientes
                             .FirstOrDefaultAsync(h => h.IdCliente == ent.IdCliente &&
                                                       h.IdSucursal == ent.IdSucursal &&
-                                                      h.Concepto == CONCEPTO_COBRO &&
+                                                      h.TipoMov == TIPO_COBRO &&
                                                       h.IdMov == ent.Id &&
                                                       h.Fecha == oldFecha &&
                                                       h.Haber == oldImporte);
@@ -517,9 +486,9 @@ namespace SistemaMaite.DAL.Repository
                                 IdSucursal = ent.IdSucursal,
                                 IdCliente = ent.IdCliente,
                                 Fecha = ex.Fecha,
-                                TipoMov = "HABER",
+                                TipoMov = TIPO_COBRO,
                                 IdMov = ent.Id,
-                                Concepto = CONCEPTO_COBRO,
+                                Concepto = $"COBRO VENTA NRO {ent.Id}",
                                 Debe = 0m,
                                 Haber = ex.Importe
                             });
@@ -528,9 +497,9 @@ namespace SistemaMaite.DAL.Repository
                         {
                             haber.Fecha = ex.Fecha;
                             haber.Haber = ex.Importe;
+                            haber.Concepto = $"COBRO VENTA NRO {ent.Id}";
                         }
 
-                        // Actualizar Caja por IdMov = IdCobro
                         var caja = await _db.Cajas.FirstOrDefaultAsync(ca => ca.IdMov == ex.Id && ca.TipoMov == "INGRESO");
                         if (caja is null)
                         {
@@ -541,7 +510,7 @@ namespace SistemaMaite.DAL.Repository
                                 Fecha = ex.Fecha,
                                 TipoMov = "INGRESO",
                                 IdMov = ex.Id,
-                                Concepto = $"{CONCEPTO_COBRO}",
+                                Concepto = "COBRO VENTA",
                                 Ingreso = ex.Importe,
                                 Egreso = 0m
                             });
@@ -551,7 +520,7 @@ namespace SistemaMaite.DAL.Repository
                             caja.IdSucursal = ent.IdSucursal;
                             caja.IdCuenta = ex.IdCuenta;
                             caja.Fecha = ex.Fecha;
-                            caja.Concepto = $"{CONCEPTO_COBRO}";
+                            caja.Concepto = "COBRO VENTA";
                             caja.Ingreso = ex.Importe;
                             caja.Egreso = 0m;
                         }
@@ -560,7 +529,6 @@ namespace SistemaMaite.DAL.Repository
                     }
                     else
                     {
-                        // NUEVO cobro
                         var nuevo = new ClientesCobro
                         {
                             IdSucursal = ent.IdSucursal,
@@ -574,16 +542,16 @@ namespace SistemaMaite.DAL.Repository
                             NotaInterna = p.NotaInterna
                         };
                         _db.ClientesCobros.Add(nuevo);
-                        await _db.SaveChangesAsync(); // para Id
+                        await _db.SaveChangesAsync();
 
                         _db.ClientesCuentaCorrientes.Add(new ClientesCuentaCorriente
                         {
                             IdSucursal = ent.IdSucursal,
                             IdCliente = ent.IdCliente,
                             Fecha = p.Fecha,
-                            TipoMov = "HABER",
+                            TipoMov = TIPO_COBRO,
                             IdMov = ent.Id,
-                            Concepto = CONCEPTO_COBRO,
+                            Concepto = $"COBRO VENTA NRO {ent.Id}",
                             Debe = 0m,
                             Haber = p.Importe
                         });
@@ -594,8 +562,8 @@ namespace SistemaMaite.DAL.Repository
                             IdCuenta = p.IdCuenta,
                             Fecha = p.Fecha,
                             TipoMov = "INGRESO",
-                            IdMov = nuevo.Id, // ← queda seteado
-                            Concepto = $"{CONCEPTO_COBRO}",
+                            IdMov = nuevo.Id,         // caja referencia al cobro
+                            Concepto = "COBRO VENTA",
                             Ingreso = p.Importe,
                             Egreso = 0m
                         });
@@ -626,13 +594,13 @@ namespace SistemaMaite.DAL.Repository
                     .FirstOrDefaultAsync(v => v.Id == id);
                 if (v is null) return false;
 
-                // Borrar CC (Debe/Haber por venta)
+                // CC por Venta (VENTA / COBRO VENTA)  <-- ahora por TipoMov
                 var ccs = await _db.ClientesCuentaCorrientes
-                    .Where(cc => cc.IdMov == id && (cc.Concepto == CONCEPTO_VENTA || cc.Concepto == CONCEPTO_COBRO))
+                    .Where(cc => cc.IdMov == id && (cc.TipoMov == TIPO_VENTA || cc.TipoMov == TIPO_COBRO))
                     .ToListAsync();
                 if (ccs.Any()) _db.ClientesCuentaCorrientes.RemoveRange(ccs);
 
-                // Borrar cobros + caja por cobro
+                // Cobros + caja por cobro
                 var cobros = await _db.ClientesCobros.Where(c => c.IdVenta == id).ToListAsync();
                 foreach (var c in cobros)
                 {
@@ -641,7 +609,7 @@ namespace SistemaMaite.DAL.Repository
                 }
                 if (cobros.Any()) _db.ClientesCobros.RemoveRange(cobros);
 
-                // Borrar detalles/variantes
+                // Detalles/variantes
                 var vars = v.VentasProductos.SelectMany(i => i.VentasProductosVariantes).ToList();
                 if (vars.Any()) _db.VentasProductosVariantes.RemoveRange(vars);
                 if (v.VentasProductos.Any()) _db.VentasProductos.RemoveRange(v.VentasProductos);
