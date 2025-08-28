@@ -56,14 +56,14 @@ namespace SistemaMaite.DAL.Repository
                 }
                 else if (st == "saldado")
                 {
-                    q = q.Where(v => (_db.ClientesCuentaCorrientes
-                            .Where(cc => cc.IdCliente == v.IdCliente && cc.IdSucursal == v.IdSucursal && cc.IdMov == v.Id && cc.Concepto == CONCEPTO_VENTA)
-                            .Select(cc => cc.Debe)
-                            .FirstOrDefault())
-                        <=
-                        (_db.ClientesCuentaCorrientes
-                            .Where(h => h.IdCliente == v.IdCliente && h.IdSucursal == v.IdSucursal && h.Concepto == CONCEPTO_COBRO && h.IdMov == v.Id)
-                            .Sum(h => (decimal?)h.Haber) ?? 0m));
+                    q = q.Where(v =>
+                        v.ImporteTotal - (
+                            _db.ClientesCuentaCorrientes
+                                .Where(cc => cc.IdCliente == v.IdCliente
+                                          && cc.IdSucursal == v.IdSucursal
+                                          && cc.IdMov == v.Id
+                                          && cc.TipoMov == TIPO_COBRO)
+                                .Sum(cc => (decimal?)cc.Haber) ?? 0m) <= 0m);
                 }
             }
 
