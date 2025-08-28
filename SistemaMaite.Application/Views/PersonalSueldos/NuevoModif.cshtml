@@ -142,8 +142,10 @@
                 <form id="formPago" class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label">Fecha</label>
-                        <input type="date" id="dtpPagoFecha" class="form-control" required/>
+                        <input type="date" id="dtpPagoFecha" class="form-control" required />
+                        <div class="invalid-feedback">Campo obligatorio</div>  <!-- <- FALTABA -->
                     </div>
+
                     <div class="col-md-4">
                         <label class="form-label">Cuenta</label>
                         <select id="cmbCuenta" class="form-select" required>
@@ -154,8 +156,9 @@
                     <div class="col-md-4">
                         <label class="form-label">Importe</label>
                         <input type="text" id="txtPagoImporte" class="form-control Inputmiles" required />
-                        <div class="invalid-feedback">Campo obligatorio</div>
+                      
                     </div>
+
                     <div class="col-md-12">
                         <label class="form-label">Nota</label>
                         <input type="text" id="txtPagoNota" class="form-control" />
@@ -190,5 +193,5 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.1/jspdf.plugin.autotable.min.js"></script>
 
-    <script src="~/js/PagosSueldosNuevoModif.js"></script>
+    <script src="~/js/PagosSueldosNuevoModif.js?v=1.0"></script>
 }
