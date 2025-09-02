@@ -10,8 +10,120 @@ namespace SistemaMaite.DAL.Repository
         public VentasRepository(SistemaMaiteContext db) { _db = db; }
 
         // Tipo de movimiento de CC (de negocio)
-        private const string TIPO_VENTA = "VENTA";            // <-- antes ponías DEBE
-        private const string TIPO_COBRO = "COBRO VENTA";      // <-- antes ponías HABER / "COBRO"
+        private const string TIPO_VENTA = "VENTA";            // Debe
+        private const string TIPO_COBRO = "COBRO VENTA";      // Haber
+
+        // Inventario (movimientos por venta)
+        private const string INV_TIPO_VENTA = "VENTA";
+        // Si tu esquema usa una variante "sin variante", dejá 0. Ajustá si tenés otra convención.
+        private const int VARIANTE_SIN = 0;
+
+        // ------------------------------ HELPERS INVENTARIO ------------------------------
+
+        private async Task<Inventario> EnsureInventario(int idSucursal, int idProducto, int idVariante)
+        {
+            var inv = await _db.Inventarios
+                .FirstOrDefaultAsync(i => i.IdSucursal == idSucursal &&
+                                          i.IdProducto == idProducto &&
+                                          i.IdProductoVariante == idVariante);
+
+            if (inv != null) return inv;
+
+            inv = new Inventario
+            {
+                IdSucursal = idSucursal,
+                IdProducto = idProducto,
+                IdProductoVariante = idVariante,
+                Cantidad = 0m
+            };
+            _db.Inventarios.Add(inv);
+            await _db.SaveChangesAsync();
+            return inv;
+        }
+
+        /// <summary>
+        /// Revierte TODO el impacto de inventario de una venta (borra los movimientos "VENTA"
+        /// e incrementa Inventario.Cantidad con (Salida-Entrada) de esos movimientos).
+        /// </summary>
+        private async Task RevertirImpactoInventarioVenta(int idVenta)
+        {
+            var movs = await _db.InventarioMovimientos
+                .Where(m => m.TipoMov == INV_TIPO_VENTA && m.IdMov == idVenta)
+                .ToListAsync();
+
+            foreach (var m in movs)
+            {
+                var inv = await _db.Inventarios.FirstAsync(i => i.Id == m.IdInventario);
+                inv.Cantidad += (m.Salida - m.Entrada);
+                _db.Inventarios.Update(inv);
+                _db.InventarioMovimientos.Remove(m);
+            }
+            await _db.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Aplica el impacto de inventario de una venta: descuenta por variante (permite negativos)
+        /// y crea movimientos "VENTA".
+        /// </summary>
+        private async Task ImpactarInventarioVenta(Venta venta)
+        {
+            // Tomamos todos los items + sus variantes de la venta
+            var items = await _db.VentasProductos
+                .Where(i => i.IdVenta == venta.Id)
+                .Select(i => new
+                {
+                    Item = i,
+                    Variantes = i.VentasProductosVariantes.ToList()
+                })
+                .ToListAsync();
+
+            foreach (var it in items)
+            {
+                if (it.Variantes != null && it.Variantes.Count > 0)
+                {
+                    // Descontar por cada variante informada
+                    foreach (var vr in it.Variantes)
+                    {
+                        var inv = await EnsureInventario(venta.IdSucursal, vr.IdProducto, vr.IdProductoVariante);
+                        inv.Cantidad -= vr.Cantidad; // permite negativos
+                        _db.Inventarios.Update(inv);
+
+                        _db.InventarioMovimientos.Add(new InventarioMovimiento
+                        {
+                            IdInventario = inv.Id,
+                            IdSucursal = venta.IdSucursal,
+                            Fecha = venta.Fecha,
+                            TipoMov = INV_TIPO_VENTA,
+                            IdMov = venta.Id, // referencia a la venta
+                            Concepto = $"VENTA NRO {venta.Id}",
+                            Entrada = 0m,
+                            Salida = vr.Cantidad
+                        });
+                    }
+                }
+                else
+                {
+                    // Sin variantes informadas: descontar todo el item en una "variante" genérica
+                    var inv = await EnsureInventario(venta.IdSucursal, it.Item.IdProducto, VARIANTE_SIN);
+                    inv.Cantidad -= it.Item.Cantidad;
+                    _db.Inventarios.Update(inv);
+
+                    _db.InventarioMovimientos.Add(new InventarioMovimiento
+                    {
+                        IdInventario = inv.Id,
+                        IdSucursal = venta.IdSucursal,
+                        Fecha = venta.Fecha,
+                        TipoMov = INV_TIPO_VENTA,
+                        IdMov = venta.Id,
+                        Concepto = $"VENTA NRO {venta.Id}",
+                        Entrada = 0m,
+                        Salida = it.Item.Cantidad
+                    });
+                }
+            }
+
+            await _db.SaveChangesAsync();
+        }
 
         // -------------------------------- LISTADO / OBTENER --------------------------------
 
@@ -46,10 +158,6 @@ namespace SistemaMaite.DAL.Repository
             if (!string.IsNullOrWhiteSpace(estado))
             {
                 var st = estado.Trim().ToLowerInvariant();
-
-                // pagos (haber) imputados a esta venta (IdMov = v.Id y TipoMov = COBRO VENTA)
-                var pagosHaber = _db.ClientesCuentaCorrientes
-                    .Where(cc => cc.IdMov == EF.Property<int>(cc, "IdMov"));// dummy para permitir siguiente closure
 
                 if (st == "con_saldo")
                 {
@@ -197,9 +305,9 @@ namespace SistemaMaite.DAL.Repository
                     IdSucursal = venta.IdSucursal,
                     IdCliente = venta.IdCliente,
                     Fecha = venta.Fecha,
-                    TipoMov = TIPO_VENTA,                          // <-- VENTA
-                    IdMov = venta.Id,                               // referencia de negocio: la venta
-                    Concepto = $"VENTA NRO {venta.Id}",             // <-- legible
+                    TipoMov = TIPO_VENTA,
+                    IdMov = venta.Id,
+                    Concepto = $"VENTA NRO {venta.Id}",
                     Debe = venta.ImporteTotal,
                     Haber = 0m
                 };
@@ -209,10 +317,9 @@ namespace SistemaMaite.DAL.Repository
                 venta.IdCuentaCorriente = ccDebe.Id;
                 await _db.SaveChangesAsync();
 
-                // (4) Pagos => Cobro + CC(HABER: COBRO VENTA) + Caja(INGRESO con IdMov = IdCobro)
+                // (4) Pagos => Cobro + CC(HABER) + Caja(INGRESO con IdMov = IdCobro)
                 foreach (var p in (pagos ?? Enumerable.Empty<ClientesCobro>()))
                 {
-                    // Cobro (entidad propia)
                     var cobro = new ClientesCobro
                     {
                         IdSucursal = venta.IdSucursal,
@@ -226,29 +333,27 @@ namespace SistemaMaite.DAL.Repository
                         NotaInterna = p.NotaInterna
                     };
                     _db.ClientesCobros.Add(cobro);
-                    await _db.SaveChangesAsync(); // cobro.Id
+                    await _db.SaveChangesAsync();
 
-                    // CC Haber por COBRO VENTA (referenciado por Id de VENTA)
                     _db.ClientesCuentaCorrientes.Add(new ClientesCuentaCorriente
                     {
                         IdSucursal = venta.IdSucursal,
                         IdCliente = venta.IdCliente,
                         Fecha = p.Fecha,
-                        TipoMov = TIPO_COBRO,                         // <-- COBRO VENTA
-                        IdMov = venta.Id,                             // referencia a la venta
-                        Concepto = $"COBRO VENTA NRO {venta.Id}",     // <-- legible
+                        TipoMov = TIPO_COBRO,
+                        IdMov = venta.Id,
+                        Concepto = $"COBRO VENTA NRO {venta.Id}",
                         Debe = 0m,
                         Haber = p.Importe
                     });
 
-                    // Caja: ingreso, referenciada al COBRO (IdMov = cobro.Id)
                     _db.Cajas.Add(new Caja
                     {
                         IdSucursal = venta.IdSucursal,
                         IdCuenta = p.IdCuenta,
                         Fecha = p.Fecha,
                         TipoMov = "INGRESO",
-                        IdMov = cobro.Id,                              // referencia al cobro
+                        IdMov = cobro.Id,
                         Concepto = "COBRO VENTA",
                         Ingreso = p.Importe,
                         Egreso = 0m
@@ -256,6 +361,9 @@ namespace SistemaMaite.DAL.Repository
 
                     await _db.SaveChangesAsync();
                 }
+
+                // (5) Impacto en INVENTARIO (permite negativos)
+                await ImpactarInventarioVenta(venta);
 
                 await trx.CommitAsync();
                 return true;
@@ -285,6 +393,9 @@ namespace SistemaMaite.DAL.Repository
 
                 if (ent is null) return false;
 
+                // (0) REVERSIÓN de impacto de inventario previo
+                await RevertirImpactoInventarioVenta(ent.Id);
+
                 // Cabecera
                 ent.IdSucursal = venta.IdSucursal;
                 ent.IdVendedor = venta.IdVendedor;
@@ -299,7 +410,7 @@ namespace SistemaMaite.DAL.Repository
                 ent.NotaCliente = venta.NotaCliente;
                 await _db.SaveChangesAsync();
 
-                // Items / variantes (ADD/UPD/DEL) ... (igual que lo tenías)
+                // Items / variantes (ADD/UPD/DEL)
                 var incomingItems = (items ?? Enumerable.Empty<VentasProducto>()).ToList();
                 var incomingVars = (variantes ?? Enumerable.Empty<VentasProductosVariante>()).ToList();
 
@@ -405,7 +516,7 @@ namespace SistemaMaite.DAL.Repository
                 var ccDebe = await _db.ClientesCuentaCorrientes
                     .FirstOrDefaultAsync(cc => cc.IdCliente == ent.IdCliente &&
                                                cc.IdSucursal == ent.IdSucursal &&
-                                               cc.TipoMov == TIPO_VENTA &&         // <-- buscar por TipoMov
+                                               cc.TipoMov == TIPO_VENTA &&
                                                cc.IdMov == ent.Id);
                 if (ccDebe is null)
                 {
@@ -572,6 +683,9 @@ namespace SistemaMaite.DAL.Repository
                     }
                 }
 
+                // (5) Re-impacto INVENTARIO con el estado NUEVO de la venta
+                await ImpactarInventarioVenta(ent);
+
                 await trx.CommitAsync();
                 return true;
             }
@@ -594,7 +708,10 @@ namespace SistemaMaite.DAL.Repository
                     .FirstOrDefaultAsync(v => v.Id == id);
                 if (v is null) return false;
 
-                // CC por Venta (VENTA / COBRO VENTA)  <-- ahora por TipoMov
+                // (0) Revertir INVENTARIO (borra movimientos "VENTA" y repone cantidades)
+                await RevertirImpactoInventarioVenta(id);
+
+                // CC por Venta (VENTA / COBRO VENTA)
                 var ccs = await _db.ClientesCuentaCorrientes
                     .Where(cc => cc.IdMov == id && (cc.TipoMov == TIPO_VENTA || cc.TipoMov == TIPO_COBRO))
                     .ToListAsync();
@@ -616,6 +733,7 @@ namespace SistemaMaite.DAL.Repository
 
                 _db.Ventas.Remove(v);
                 await _db.SaveChangesAsync();
+
                 await trx.CommitAsync();
                 return true;
             }

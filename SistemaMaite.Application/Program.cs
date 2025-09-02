@@ -99,6 +99,8 @@ builder.Services.AddScoped<IVentasService, VentasService>();
 builder.Services.AddScoped<ICuentasCorrientesRepository<ClientesCuentaCorriente>, CuentasCorrientesRepository>();
 builder.Services.AddScoped<ICuentasCorrientesService, CuentasCorrientesService>();
 
+builder.Services.AddScoped<IInventarioRepository<Inventario>, InventarioRepository>();
+builder.Services.AddScoped<IInventarioService, InventarioService>();
 
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(o =>
