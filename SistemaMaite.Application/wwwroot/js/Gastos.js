@@ -475,14 +475,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function calcularGastos() {
     if (!gridGastos) return;
-    const data = gridGastos.rows({ search: "applied" }).data().toArray()
-        .filter(r => !r.__isSaldo);
+    const rows = gridGastos.rows({ search: "applied" }).data().toArray();
 
-    let Importe = 0;
-    for (const r of data) {
-        Importe += parseFloat(r.Importe) || 0;
+    let total = 0;
+    for (const r of rows) total += parseFloat(r.Importe) || 0;
+
+    // KPI estilo Personal
+    $("#kpiTotalGastos").text(formatNumber(total));
+    $("#kpiCantGastos").text(rows.length.toLocaleString("es-AR"));
+
+    // (opcional) si aún dejás el input viejo, lo sigo completando:
+    if (document.getElementById("txtTotalGastos")) {
+        document.getElementById("txtTotalGastos").value = formatNumber(total);
     }
-
-    document.getElementById("txtTotalGastos").value = formatNumber(Importe);
-
 }
