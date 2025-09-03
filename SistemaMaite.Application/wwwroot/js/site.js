@@ -701,3 +701,25 @@ window.FiltersUI = (function () {
 
     return { init };
 })();
+
+
+// Inicialización sugerida (podés adaptarla a tu helper actual)
+function initSelect2(scope) {
+    $(scope || document).find('select.select2').each(function () {
+        const $sel = $(this);
+        $sel.select2({
+            width: '100%',
+            dropdownParent: $sel.closest('.modal').length ? $sel.closest('.modal') : $(document.body)
+        });
+    });
+}
+
+// Reflejar validación al cambiar el valor del select2
+$(document).on('change', 'select.select2-hidden-accessible', function () {
+    // Usá HTML5 checkValidity + clases Bootstrap
+    if (this.checkValidity()) {
+        $(this).removeClass('is-invalid').addClass('is-valid');
+    } else {
+        $(this).removeClass('is-valid').addClass('is-invalid');
+    }
+});
