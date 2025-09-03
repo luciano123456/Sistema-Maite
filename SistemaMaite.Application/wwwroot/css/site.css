@@ -717,16 +717,7 @@ table.dataTable thead tr.filters th {
     border-color: var(--dt-head-b) !important;
 }
 
-    /* Inputs/selects en la fila de filtros */
-    table.dataTable thead tr.filters th input,
-    table.dataTable thead tr.filters th select {
-        background: var(--input-bg) !important;
-        color: var(--dt-text) !important;
-        border: 1px solid var(--input-b) !important;
-        border-radius: .5rem !important;
-        padding: .35rem .55rem !important;
-        height: calc(1.5em + .5rem) !important;
-    }
+   
 
         table.dataTable thead tr.filters th input:focus,
         table.dataTable thead tr.filters th select:focus {
@@ -1258,3 +1249,250 @@ select:disabled + .select2 .select2-selection {
 }
 
 
+/* ===== Íconos de validación para inputs y Select2 ===== */
+.form-field-icon {
+    position: absolute;
+    right: .6rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: "FontAwesome";
+    font-size: 1rem;
+    pointer-events: none;
+    opacity: .95;
+}
+
+/* Inputs nativos: el span está como hermano dentro del contenedor .position-relative */
+.position-relative > input.form-control.is-valid ~ .form-field-icon::before {
+    content: "\f00c";
+    color: #198754;
+}
+/* fa-check */
+.position-relative > input.form-control.is-invalid ~ .form-field-icon::before {
+    content: "\f06a";
+    color: #dc3545;
+}
+/* fa-exclamation-circle */
+
+/* Select2: el span está dentro de .select2-selection */
+select.is-valid + .select2 .select2-selection .form-field-icon::before {
+    content: "\f00c";
+    color: #198754;
+}
+
+select.is-invalid + .select2 .select2-selection .form-field-icon::before {
+    content: "\f06a";
+    color: #dc3545;
+}
+
+
+/* ===== Íconos de validación para inputs y Select2 ===== */
+.form-field-icon{
+  position:absolute;
+  right:.6rem;
+  top:50%;
+  transform:translateY(-50%);
+  font-family:"FontAwesome";
+  font-size:1rem;
+  pointer-events:none;
+  opacity:.95;
+}
+
+/* Inputs nativos: el span está como hermano dentro del contenedor .position-relative */
+.position-relative > input.form-control.is-valid ~ .form-field-icon::before { content:"\f00c"; color:#198754; } /* fa-check */
+.position-relative > input.form-control.is-invalid ~ .form-field-icon::before { content:"\f06a"; color:#dc3545; } /* fa-exclamation-circle */
+
+/* Select2: el span está dentro de .select2-selection */
+select.is-valid + .select2 .select2-selection .form-field-icon::before { content:"\f00c"; color:#198754; }
+select.is-invalid + .select2 .select2-selection .form-field-icon::before { content:"\f06a"; color:#dc3545; }
+
+/* ===== Íconos de validación para inputs y Select2 ===== */
+.form-field-icon {
+    position: absolute;
+    right: .6rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: "FontAwesome";
+    font-size: 1rem;
+    pointer-events: none;
+    opacity: .95;
+}
+
+/* Inputs nativos: el span está como hermano dentro del contenedor .position-relative */
+.position-relative > input.form-control.is-valid ~ .form-field-icon::before {
+    content: "\f00c";
+    color: #198754;
+}
+/* fa-check */
+.position-relative > input.form-control.is-invalid ~ .form-field-icon::before {
+    content: "\f06a";
+    color: #dc3545;
+}
+/* fa-exclamation-circle */
+
+/* Select2: el span está dentro de .select2-selection */
+select.is-valid + .select2 .select2-selection .form-field-icon::before {
+    content: "\f00c";
+    color: #198754;
+}
+
+select.is-invalid + .select2 .select2-selection .form-field-icon::before {
+    content: "\f06a";
+    color: #dc3545;
+}
+
+
+.select2-container--default .select2-results__option--selected {
+     background-color: transparent !important; 
+}
+
+/* --- Validación visual para Select2 (Bootstrap 5) --- */
+.select2-container .select2-selection {
+    position: relative;
+    transition: box-shadow .15s, border-color .15s;
+}
+
+    .select2-container .select2-selection.is-invalid {
+        border-color: #dc3545 !important;
+        box-shadow: 0 0 0 .25rem rgba(220,53,69,.25);
+    }
+
+    .select2-container .select2-selection.is-valid {
+        border-color: #198754 !important;
+        box-shadow: 0 0 0 .25rem rgba(25,135,84,.25);
+    }
+
+        /* Iconito (⚠ / ✓) como Bootstrap, pero para Select2 */
+        .select2-container .select2-selection.is-invalid::after,
+        .select2-container .select2-selection.is-valid::after {
+            position: absolute;
+            right: .75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            font-weight: 700;
+            pointer-events: none;
+            font-size: 14px;
+        }
+
+    .select2-container .select2-selection.is-invalid::after {
+        content: "!";
+        color: #dc3545;
+    }
+
+    .select2-container .select2-selection.is-valid::after {
+        content: "✓";
+        color: #198754;
+    }
+
+/* Feedback debajo del Select2 */
+.select2-container + .invalid-feedback {
+    display: block;
+}
+
+
+/* ---------------------------
+   Inputs y selects nativos
+   (usa las clases is-valid / is-invalid que YA pones desde site.js)
+   --------------------------- */
+
+/* Colores y glow como Bootstrap */
+.form-control.is-valid,
+.form-select.is-valid {
+    border-color: #198754 !important;
+    box-shadow: 0 0 0 .25rem rgba(25,135,84,.25) !important;
+}
+
+.form-control.is-invalid,
+.form-select.is-invalid {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 .25rem rgba(220,53,69,.25) !important;
+}
+
+/* ===== Icono en INPUTs ===== */
+/* (Para tipos de archivo o controles que no aceptan bg, podés excluir con .no-valid-icon) */
+.form-control.is-valid:not([type="file"]):not(.no-valid-icon) {
+    padding-right: 2.25rem; /* lugar para el icono */
+    background-repeat: no-repeat;
+    background-position: right .75rem center;
+    background-size: 1rem 1rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23198754' d='M6.173 13.727a1 1 0 0 1-1.414 0l-3.486-3.486a1 1 0 1 1 1.414-1.414l2.779 2.779 6.758-6.758a1 1 0 0 1 1.414 1.414L6.173 13.727z'/%3E%3C/svg%3E");
+}
+
+.form-control.is-invalid:not([type="file"]):not(.no-valid-icon) {
+    padding-right: 2.25rem;
+    background-repeat: no-repeat;
+    background-position: right .75rem center;
+    background-size: 1rem 1rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23dc3545' d='M7.001 1.5a1 1 0 0 1 1.998 0l-.25 7a.75.75 0 0 1-1.498 0l-.25-7zM8 12a1.25 1.25 0 1 1 0 2.5A1.25 1.25 0 0 1 8 12z'/%3E%3C/svg%3E");
+}
+
+/* ===== Icono en SELECTs nativos ===== */
+/* Doble background: 1) icono de validación, 2) flecha del select */
+.form-select.is-valid {
+    padding-right: 2.6rem; /* espacio para check + flecha */
+    background-repeat: no-repeat, no-repeat;
+    background-position: right .75rem center, right .75rem center;
+    background-size: 1rem 1rem, 16px 12px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23198754' d='M6.173 13.727a1 1 0 0 1-1.414 0l-3.486-3.486a1 1 0 1 1 1.414-1.414l2.779 2.779 6.758-6.758a1 1 0 0 1 1.414 1.414L6.173 13.727z'/%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12' viewBox='0 0 16 12'%3E%3Cpath d='M2 4l6 6 6-6' fill='none' stroke='rgba(255,255,255,.7)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+.form-select.is-invalid {
+    padding-right: 2.6rem;
+    background-repeat: no-repeat, no-repeat;
+    background-position: right .75rem center, right .75rem center;
+    background-size: 1rem 1rem, 16px 12px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23dc3545' d='M7.001 1.5a1 1 0 0 1 1.998 0l-.25 7a.75.75 0 0 1-1.498 0l-.25-7zM8 12a1.25 1.25 0 1 1 0 2.5A1.25 1.25 0 0 1 8 12z'/%3E%3C/svg%3E"), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='12' viewBox='0 0 16 12'%3E%3Cpath d='M2 4l6 6 6-6' fill='none' stroke='rgba(255,255,255,.7)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+/* Evitar superposición si algún tema agrega sus propios íconos */
+.form-control.is-valid, .form-control.is-invalid {
+    background-clip: padding-box;
+}
+
+.alert-danger {
+    background: rgba(239,68,68,.12);
+    color: #fecaca;
+    border: 1px solid rgba(239,68,68,.35);
+    border-radius: .75rem
+}
+
+/* Mantener el icono de validación aunque otras reglas usen 'background' */
+.form-control.is-valid:not([type="file"]):not(.no-valid-icon),
+.form-control.is-valid:not([type="file"]):not(.no-valid-icon):focus {
+    padding-right: 2.25rem;
+    background-repeat: no-repeat !important;
+    background-position: right .75rem center !important;
+    background-size: 1rem 1rem !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23198754' d='M6.173 13.727a1 1 0 0 1-1.414 0l-3.486-3.486a1 1 0 1 1 1.414-1.414l2.779 2.779 6.758-6.758a1 1 0 0 1 1.414 1.414L6.173 13.727z'/%3E%3C/svg%3E") !important;
+}
+
+.form-control.is-invalid:not([type="file"]):not(.no-valid-icon),
+.form-control.is-invalid:not([type="file"]):not(.no-valid-icon):focus {
+    padding-right: 2.25rem;
+    background-repeat: no-repeat !important;
+    background-position: right .75rem center !important;
+    background-size: 1rem 1rem !important;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23dc3545' d='M7.001 1.5a1 1 0 0 1 1.998 0l-.25 7a.75.75 0 0 1-1.498 0l-.25-7zM8 12a1.25 1.25 0 1 1 0 2.5A1.25 1.25 0 0 1 8 12z'/%3E%3C/svg%3E") !important;
+}
+
+/* Glow como Bootstrap (incluye focus) */
+.form-control.is-valid,
+.form-select.is-valid,
+.form-control.is-valid:focus,
+.form-select.is-valid:focus {
+    border-color: #198754 !important;
+    box-shadow: 0 0 0 .25rem rgba(25,135,84,.25) !important;
+}
+
+.form-control.is-invalid,
+.form-select.is-invalid,
+.form-control.is-invalid:focus,
+.form-select.is-invalid:focus {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 .25rem rgba(220,53,69,.25) !important;
+}
+
+/* Selects nativos: reservar espacio para icono + flecha */
+.form-select.is-valid,
+.form-select.is-invalid {
+    padding-right: 2.6rem;
+}
