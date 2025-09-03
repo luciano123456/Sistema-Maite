@@ -175,20 +175,32 @@ async function configurarDataTableSueldos(data) {
         gridSueldos.clear().rows.add(data).draw();
     }
 }
-
 function calcularTotalesSueldos() {
     if (!gridSueldos) return;
+
     const rows = gridSueldos.rows({ search: "applied" }).data().toArray();
 
     let tImp = 0, tAbo = 0, tSal = 0;
     for (const r of rows) {
-        tImp += parseFloat(r.Importe) || 0;
-        tAbo += parseFloat(r.ImporteAbonado) || 0;
-        tSal += parseFloat(r.Saldo) || 0;
+        const importe = parseFloat(r.Importe) || 0;
+        const abonado = parseFloat((r.Abonado ?? r.ImporteAbonado)) || 0;
+        const saldo = (r.Saldo != null) ? (parseFloat(r.Saldo) || 0) : (importe - abonado);
+
+        tImp += importe;
+        tAbo += abonado;
+        tSal += saldo;
     }
-    $("#txtTotalImporte").val(formatNumber(tImp));
-    $("#txtTotalAbonado").val(formatNumber(tAbo));
-    $("#txtTotalSaldo").val(formatNumber(tSal));
+
+    // KPIs (header)
+    $("#kpiCantSueldos").text(rows.length.toLocaleString("es-AR"));
+    $("#kpiImporte").text(formatNumber(tImp));
+    $("#kpiAbonado").text(formatNumber(tAbo));
+    $("#kpiSaldo").text(formatNumber(tSal));
+
+    // Compat: si aún tenés inputs de totales en el pie, los sigo actualizando
+    $("#txtTotalImporte").val?.(formatNumber(tImp));
+    $("#txtTotalAbonado").val?.(formatNumber(tAbo));
+    $("#txtTotalSaldo").val?.(formatNumber(tSal));
 }
 
 /* ------ Filtros superiores ------ */
