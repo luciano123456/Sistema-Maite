@@ -11,16 +11,24 @@ const Catalogos = {
     talles: [],
     tallesMap: new Map(),
     colores: [],
-    coloresMap: new Map()
+    coloresMap: new Map(),
+    listasPrecios: []
 };
 
 /* ---------- Configuración de filtros para DataTable ---------- */
 const columnConfig = [
-    { index: 1, filterType: 'text' },                          // Descripción
+    { index: 1, filterType: 'text' },                                  // Descripción
     { index: 2, filterType: 'select', fetchDataFunc: listaCategoriasFilter }, // Categoría (nombre)
-    { index: 3, filterType: 'text' },                          // Precio
+    { index: 3, filterType: 'text' }                                   // Precio
 ];
 
+/* ---------- Estado selección para checklists ---------- */
+const MultiState = {
+    talles: new Set(),   // IDs
+    colores: new Set()
+};
+
+/* ========== Init ========== */
 $(document).ready(async () => {
     // Cargar catálogos base en paralelo
     await Promise.all([
@@ -31,7 +39,22 @@ $(document).ready(async () => {
 
     await listaProductos();
 
-    attachLiveValidation('#modalEdicion');
+    // Validación live como en otras pantallas (si tu helper existe)
+    if (typeof attachLiveValidation === 'function') {
+        attachLiveValidation('#modalEdicion');
+    }
+
+    // Fallback para toggleAcciones si no está global
+    if (typeof window.toggleAcciones === 'undefined') {
+        window.toggleAcciones = function (id) {
+            const $dd = $(`.acciones-menu[data-id="${id}"] .acciones-dropdown`);
+            if ($dd.is(":visible")) $dd.hide();
+            else { $('.acciones-dropdown').hide(); $dd.show(); }
+        };
+        $(document).on('click', function (e) {
+            if (!$(e.target).closest('.acciones-menu').length) $('.acciones-dropdown').hide();
+        });
+    }
 });
 
 /* =========================
@@ -39,68 +62,54 @@ $(document).ready(async () => {
    ========================= */
 function getMultiSelectValues(selectId) {
     const el = document.getElementById(selectId);
-    // Si no existe, devolvé []
     if (!el) return [];
-
-    // Caso <select>: usar selectedOptions si existe (soporta plugins)
     if (el.tagName?.toLowerCase() === 'select') {
         const opts = Array.from(el.selectedOptions ?? []);
-        return opts
-            .map(o => Number(o.value))
-            .filter(v => Number.isFinite(v)); // saca "", NaN, etc.
+        return opts.map(o => Number(o.value)).filter(Number.isFinite);
     }
-
-    // Fallback: si te pasan un contenedor con checkboxes (por si usás checklist)
     const checks = el.querySelectorAll?.('input[type="checkbox"]:checked') ?? [];
     return Array.from(checks)
         .map(cb => Number(cb.value ?? cb.dataset.id))
-        .filter(v => Number.isFinite(v));
+        .filter(Number.isFinite);
 }
-
 
 function setMultiSelectValues(selectId, values) {
     const sel = document.getElementById(selectId);
     if (!sel) return;
-    const set = new Set((values || []).map(v => Number(v)));
-    Array.from(sel.options).forEach(opt => {
-        opt.selected = set.has(Number(opt.value));
-    });
+    const set = new Set((values || []).map(Number));
+    Array.from(sel.options).forEach(opt => { opt.selected = set.has(Number(opt.value)); });
 }
 
 /* Validación modal de producto */
 function validarCampos() {
-    const nombre = $("#txtNombre").val().trim();
+    const nombre = ($("#txtNombre").val() || '').trim();
     const categoria = $("#cmbCategoria").val();
     const precio = $("#txtPrecio").val();
 
-    const tallesSel = getTallesSeleccionados();   // usa MultiState o <select multiple>
+    const tallesSel = getTallesSeleccionados();
     const coloresSel = getColoresSeleccionados();
 
     const okNombre = nombre !== '';
-    const okCategoria = categoria !== '';
+    const okCategoria = !!categoria;
     const okPrecio = precio !== '' && !isNaN(parseFloat(precio));
     const okTalles = Array.isArray(tallesSel) && tallesSel.length > 0;
     const okColores = Array.isArray(coloresSel) && coloresSel.length > 0;
 
-    // estilos / feedback
     $("#errorCampos")
         .toggleClass('d-none', (okNombre && okCategoria && okPrecio && okTalles && okColores))
-        .text(!okTalles || !okColores
+        .text((!okTalles || !okColores)
             ? 'Debes seleccionar al menos un talle y un color.'
             : 'Debes completar los campos obligatorios.');
 
-    // bordes rojos en los “botones” checklist (son <div class="form-select">)
-    document.getElementById('btnTalles')?.classList.toggle('is-invalid', !okTalles);
-    document.getElementById('btnColores')?.classList.toggle('is-invalid', !okColores);
+    $('#btnTalles').toggleClass('is-invalid', !okTalles);
+    $('#btnColores').toggleClass('is-invalid', !okColores);
 
-    // también marcamos inputs base
     $("#txtNombre").toggleClass("is-invalid", !okNombre);
     $("#cmbCategoria").toggleClass("is-invalid", !okCategoria);
     $("#txtPrecio").toggleClass("is-invalid", !okPrecio);
 
     return okNombre && okCategoria && okPrecio && okTalles && okColores;
 }
-
 
 async function guardarCambios() {
     if (!validarCampos()) return;
@@ -111,10 +120,10 @@ async function guardarCambios() {
         Descripcion: $("#txtNombre").val().trim(),
         IdCategoria: parseInt($("#cmbCategoria").val()),
         PrecioUnitario: parseFloat($("#txtPrecio").val()),
-        IdTalles: getTallesSeleccionados("cmbTalles"),
-        IdColores: getColoresSeleccionados("cmbColores"),
+        IdTalles: getTallesSeleccionados(),
+        IdColores: getColoresSeleccionados(),
         GenerarVariantes: $("#chkVariantes").is(":checked"),
-        PreciosPorLista: getPreciosPorListaFromUI()   // ← NUEVO
+        PreciosPorLista: getPreciosPorListaFromUI()
     };
 
     const url = idProducto === "" ? "/Productos/Insertar" : "/Productos/Actualizar";
@@ -132,7 +141,7 @@ async function guardarCambios() {
             if (!r.ok) throw new Error(r.statusText);
             return r.json();
         })
-        .then((resp) => {
+        .then(() => {
             $('#modalEdicion').modal('hide');
             exitoModal(idProducto === "" ? "Producto registrado correctamente" : "Producto modificado correctamente");
             listaProductos();
@@ -150,23 +159,23 @@ function nuevoProducto() {
     MultiState.colores.clear();
     renderPreciosListas([]);
 
-    // categorías/colores ya los cargás
     if (document.getElementById('cmbCategoria')) llenarSelect('cmbCategoria', Catalogos.categorias);
 
-    // render inicial (sin selección)
     renderChecklist('listaTalles', Catalogos.talles, 'talles', 'btnTalles');
     renderChecklist('listaColores', Catalogos.colores, 'colores', 'btnColores');
 
-    // cuando cambie categoría -> recargar talles por categoría y resetear selección
     $("#cmbCategoria").off('change').on('change', async function () {
         const idCat = parseInt(this.value || 0);
-        await recargarTallesPorCategoria(idCat); // esta función la ajustamos abajo
+        await recargarTallesPorCategoria(idCat);
+        MultiState.talles.clear();
+        renderChecklist('listaTalles', Catalogos.talles, 'talles', 'btnTalles');
+        validarCampos();
     });
 
     $("#chkVariantes").prop("checked", true);
-    $('#modalEdicion').modal('show');
     $("#btnGuardar").text("Registrar");
     $("#modalEdicionLabel").text("Nuevo Producto");
+    $('#modalEdicion').modal('show');
 }
 
 async function mostrarModal(modelo) {
@@ -181,11 +190,10 @@ async function mostrarModal(modelo) {
     $("#chkVariantes").prop("checked", true);
 
     const idCat = Number(modelo.IdCategoria || 0);
-    await recargarTallesPorCategoria(idCat); // esto renderiza listaTalles
+    await recargarTallesPorCategoria(idCat);
 
     renderPreciosListas(modelo.PreciosPorLista || []);
 
-    // setear selección desde el modelo
     MultiState.talles = new Set(modelo.IdTalles || []);
     MultiState.colores = new Set(modelo.IdColores || []);
 
@@ -193,26 +201,29 @@ async function mostrarModal(modelo) {
     renderChecklist('listaTalles', Catalogos.talles, 'talles', 'btnTalles');
     renderChecklist('listaColores', Catalogos.colores, 'colores', 'btnColores');
 
-    // listener al cambiar categoría
+    // 🔧 forzar UI/validación inicial para que NO queden en rojo
+    syncChecklistUI();
+
     $("#cmbCategoria").off('change').on('change', async function () {
         const idCatChange = parseInt(this.value || 0);
         await recargarTallesPorCategoria(idCatChange);
-        MultiState.talles.clear(); // limpiar selección de talles al cambiar cat
+        MultiState.talles.clear();                                 // al cambiar categoría se limpia selección
         renderChecklist('listaTalles', Catalogos.talles, 'talles', 'btnTalles');
+        validarCampos();                                           // actualizar estado de error
     });
 
-    $('#modalEdicion').modal('show');
+    // Etiquetas del modal
     $("#btnGuardar").text("Guardar");
     $("#modalEdicionLabel").text("Editar Producto");
+    $('#modalEdicion').modal('show');
 }
-
 
 /* =========================
    Listado / EditarInfo / Eliminar
    ========================= */
 
 async function listaProductos() {
-    let paginaActual = gridProductos != null ? gridProductos.page() : 0;
+    const paginaActual = gridProductos ? gridProductos.page() : 0;
 
     const response = await fetch("/Productos/Lista", {
         method: 'GET',
@@ -227,8 +238,6 @@ async function listaProductos() {
         return;
     }
 
-    // El back devuelve: Id, Descripcion, IdCategoria, PrecioUnitario
-    // Mapear a DTO de grilla agregando CategoriaNombre desde cache
     const productos = await response.json();
     const data = productos.map(p => ({
         Id: p.Id,
@@ -242,6 +251,9 @@ async function listaProductos() {
     if (paginaActual > 0) {
         gridProductos.page(paginaActual).draw('page');
     }
+
+    // actualizar KPI al cargar por primera vez
+    actualizarKpisProductos();
 }
 
 const editarProducto = id => {
@@ -294,17 +306,17 @@ async function eliminarProducto(id) {
    ========================= */
 
 async function configurarDataTableProductos(data) {
+    const fmt = (n) => (typeof formatNumber === "function")
+        ? formatNumber(n)
+        : Number(n).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
     if (!gridProductos) {
         $('#grd_Productos thead tr').clone(true).addClass('filters').appendTo('#grd_Productos thead');
 
         gridProductos = $('#grd_Productos').DataTable({
             data,
-            language: {
-                sLengthMenu: "Mostrar MENU registros",
-                lengthMenu: "Anzeigen von _MENU_ Einträgen",
-                url: "//cdn.datatables.net/plug-ins/2.0.7/i18n/es-MX.json"
-            },
-            scrollX: "100px",
+            language: { url: "//cdn.datatables.net/plug-ins/2.0.7/i18n/es-MX.json" },
+            scrollX: true,
             scrollCollapse: true,
             columns: [
                 {   // 0: Acciones
@@ -330,9 +342,12 @@ async function configurarDataTableProductos(data) {
                     orderable: false,
                     searchable: false,
                 },
-                { data: 'Descripcion', title: 'Descripción' },      // 1
-                { data: 'CategoriaNombre', title: 'Categoría' },     // 2
-                { data: 'PrecioUnitario', title: 'Precio' }          // 3
+                { data: 'Descripcion', title: 'Descripción' },                 // 1
+                { data: 'CategoriaNombre', title: 'Categoría' },               // 2
+                {
+                    data: 'PrecioUnitario', title: 'Precio', className: 'text-end',
+                    render: n => (n != null ? fmt(n) : '')
+                }                     // 3
             ],
             dom: 'Bfrtip',
             buttons: [
@@ -367,7 +382,7 @@ async function configurarDataTableProductos(data) {
             initComplete: async function () {
                 const api = this.api();
 
-                // Filtros por columna
+                // Filtros por columna en header
                 for (const config of columnConfig) {
                     const cell = $('.filters th').eq(config.index);
 
@@ -375,14 +390,11 @@ async function configurarDataTableProductos(data) {
                         const select = $(`<select id="filter${config.index}"><option value="">Seleccionar</option></select>`)
                             .appendTo(cell.empty())
                             .on("change", async function () {
-                                const val = this.value; // '' si es el placeholder
+                                const val = this.value;
                                 if (val === "") {
-                                    // limpiar filtro
                                     await api.column(config.index).search("").draw();
                                     return;
                                 }
-
-                                // si la columna muestra el texto
                                 const selectedText = $(this).find("option:selected").text();
                                 await api
                                     .column(config.index)
@@ -402,7 +414,7 @@ async function configurarDataTableProductos(data) {
                             .on('keyup change', function (e) {
                                 e.stopPropagation();
                                 const regexr = '({search})';
-                                const cursorPosition = this.selectionStart;
+                                const cursorPosition = this.selectionStart || 0;
                                 api.column(config.index)
                                     .search(this.value !== '' ? regexr.replace('{search}', '(((' + escapeRegex(this.value) + ')))') : '', this.value !== '', this.value === '')
                                     .draw();
@@ -411,13 +423,18 @@ async function configurarDataTableProductos(data) {
                     }
                 }
 
-                // La celda de acciones (índice 0) no lleva filtro
+                // sin filtro en la columna de acciones
                 $('.filters th').eq(0).html('');
 
-                // Configuración de columnas (dropdown)
-                configurarOpcionesColumnas('#grd_Productos', '#configColumnasMenu', 'Productos_Columnas');
+                // Dropdown de columnas (si tu helper existe)
+                if (typeof configurarOpcionesColumnas === 'function') {
+                    configurarOpcionesColumnas('#grd_Productos', '#configColumnasMenu', 'Productos_Columnas');
+                }
 
                 setTimeout(() => gridProductos.columns.adjust(), 10);
+
+                // KPI: actualizar en cada draw (filtrado/paginado/ordenado)
+                $('#grd_Productos').on('draw.dt', actualizarKpisProductos);
             },
         });
     } else {
@@ -425,22 +442,17 @@ async function configurarDataTableProductos(data) {
     }
 }
 
-/* =========================
-   Carga de catálogos (combos)
-   ========================= */
-
-function llenarSelectConCatalogo(selectId, items) {
-    const sel = document.getElementById(selectId);
-    if (!sel) return;
-    const isMultiple = sel.hasAttribute('multiple');
-    sel.innerHTML = isMultiple ? '' : '<option value="">Seleccione</option>';
-    for (const x of items) {
-        sel.insertAdjacentHTML('beforeend', `<option value="${x.Id}">${x.Nombre}</option>`);
-    }
+/* ========== KPI (sumar productos = contar filtrados) ========== */
+function actualizarKpisProductos() {
+    if (!gridProductos) return;
+    const cant = gridProductos.rows({ search: 'applied' }).count();
+    const $kpi = $("#kpiCantProductos");
+    if ($kpi.length) $kpi.text(cant.toLocaleString('es-AR'));
 }
 
-
-// Reemplaza la función que inventé por tus llamadas a llenarSelect:
+/* =========================
+   Carga de catálogos
+   ========================= */
 
 function cargarCategorias() {
     return fetch("/ProductosCategoria/Lista", {
@@ -468,6 +480,7 @@ function cargarColores() {
         .then(data => {
             Catalogos.colores = data;
             Catalogos.coloresMap = new Map(data.map(x => [Number(x.Id), x.Nombre]));
+            // si mantenés <select multiple> como fallback:
             if (document.getElementById('cmbColores')) {
                 llenarSelect('cmbColores', data);
                 const sel = document.getElementById('cmbColores');
@@ -475,7 +488,6 @@ function cargarColores() {
             }
         });
 }
-
 
 function cargarTalles() {
     return fetch("/ProductosCategoriasTalle/Lista", {
@@ -489,6 +501,7 @@ function cargarTalles() {
             const norm = data.map(x => ({ Id: x.Id ?? x.IdTalle ?? 0, Nombre: x.Nombre ?? x.TalleNombre ?? '' }));
             Catalogos.talles = norm;
             Catalogos.tallesMap = new Map(norm.map(x => [Number(x.Id), x.Nombre]));
+            // si mantenés <select multiple> como fallback:
             if (document.getElementById('cmbTalles')) {
                 llenarSelect('cmbTalles', norm);
                 const sel = document.getElementById('cmbTalles');
@@ -497,7 +510,6 @@ function cargarTalles() {
             }
         });
 }
-
 
 async function recargarTallesPorCategoria(idCategoria) {
     let data = [];
@@ -523,22 +535,16 @@ async function recargarTallesPorCategoria(idCategoria) {
     renderChecklist('listaTalles', Catalogos.talles, 'talles', 'btnTalles');
 }
 
-
-
-
 /* =========================
-   Filtros (selects del header)
+   Filtros (header select)
    ========================= */
-
 async function listaCategoriasFilter() {
-    // ya están en memoria
     return Catalogos.categorias.map(item => ({ Id: item.Id, Nombre: item.Nombre }));
 }
 
 /* =========================
    Endpoints auxiliares (editar)
    ========================= */
-
 async function listaTallesPorProducto(idProducto) {
     try {
         const r = await fetch(`/ProductosTalles/ListaPorProducto?id=${idProducto}`, {
@@ -567,29 +573,15 @@ async function listaColoresPorProducto(idProducto) {
     } catch { return []; }
 }
 
-
 /* =========================
-   Utilidades varias
+   Checklists Talles / Colores
    ========================= */
 
-function escapeRegex(text) {
-    return text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
-}
-
-
-/* ===== Estado de selección (sin plugins) ===== */
-const MultiState = {
-    talles: new Set(),   // guarda IDs seleccionados
-    colores: new Set()
-};
-
-/* Abrir/cerrar panel */
 function toggleChecklist(btnId, panelId) {
     const panel = document.getElementById(panelId);
-    panel.classList.toggle('d-none');
+    panel?.classList.toggle('d-none');
 }
 
-/* Cerrar al hacer click afuera (una vez) */
 document.addEventListener('click', (e) => {
     ['listaTalles', 'listaColores'].forEach(pid => {
         const panel = document.getElementById(pid);
@@ -599,13 +591,12 @@ document.addEventListener('click', (e) => {
     });
 });
 
-/* Render genérico del checklist */
 function renderChecklist(panelId, items, stateKey, btnId, labelTodos = 'Seleccionar todos') {
     const panel = document.getElementById(panelId);
+    if (!panel) return;
     const selected = MultiState[stateKey];
 
     const html = [];
-    // seleccionar todos
     const allChecked = items.length > 0 && items.every(it => selected.has(Number(it.Id)));
     html.push(`
     <div class="form-check">
@@ -626,17 +617,15 @@ function renderChecklist(panelId, items, stateKey, btnId, labelTodos = 'Seleccio
     }
     panel.innerHTML = html.join('');
 
-    // eventos
     document.getElementById(`${panelId}-all`).addEventListener('change', (ev) => {
         selected.clear();
         if (ev.target.checked) items.forEach(it => selected.add(Number(it.Id)));
-        // marcar visualmente
         items.forEach(it => {
             const cb = document.getElementById(`${panelId}-opt-${it.Id}`);
             if (cb) cb.checked = ev.target.checked;
         });
         updateChecklistButtonLabel(btnId, stateKey);
-        validarCampos(); // ⬅️ nuevo
+        validarCampos();
     });
 
     items.forEach(it => {
@@ -646,44 +635,37 @@ function renderChecklist(panelId, items, stateKey, btnId, labelTodos = 'Seleccio
             const id = Number(ev.target.getAttribute('data-id'));
             if (ev.target.checked) selected.add(id); else selected.delete(id);
             updateChecklistButtonLabel(btnId, stateKey);
-            validarCampos(); // ⬅️ nuevo
-            // actualizar "seleccionar todos"
+            validarCampos();
             const allC = items.length > 0 && items.every(x => selected.has(Number(x.Id)));
             const allBox = document.getElementById(`${panelId}-all`);
             if (allBox) allBox.checked = allC;
         });
     });
 
-    // actualizar etiqueta del botón
     updateChecklistButtonLabel(btnId, stateKey);
 }
 
-/* Etiqueta del "botón" (muestra nombres o contador) */
 function updateChecklistButtonLabel(btnId, stateKey) {
     const btn = document.getElementById(btnId);
     if (!btn) return;
     const set = MultiState[stateKey];
     const ids = [...set];
-
-    // map para mostrar nombres
     const map = stateKey === 'talles' ? Catalogos.tallesMap : Catalogos.coloresMap;
     const textos = ids.map(id => map.get(Number(id))).filter(Boolean);
-
     btn.textContent = textos.length ? textos.join(', ') : (stateKey === 'talles' ? 'Seleccionar talles' : 'Seleccionar colores');
     btn.title = textos.join(', ');
 }
 
-/* Helpers para el flujo actual (mínimo cambio) */
 function getTallesSeleccionados() {
-    return MultiState.talles.size ? [...MultiState.talles] : getMultiSelectValues('cmbTalles'); // fallback si mantenés el <select multiple>
+    return MultiState.talles.size ? [...MultiState.talles] : getMultiSelectValues('cmbTalles');
 }
 function getColoresSeleccionados() {
     return MultiState.colores.size ? [...MultiState.colores] : getMultiSelectValues('cmbColores');
 }
 
-
-// cache
-Catalogos.listasPrecios = Catalogos.listasPrecios || [];
+/* =========================
+   Precios por lista
+   ========================= */
 
 async function renderPreciosListas(valores = []) {
     if (!Catalogos.listasPrecios.length) {
@@ -698,6 +680,7 @@ async function renderPreciosListas(valores = []) {
     const mapValores = new Map(valores.map(x => [Number(x.IdListaPrecio), Number(x.PrecioUnitario)]));
 
     const wrap = document.getElementById('wrapPreciosListas');
+    if (!wrap) return;
     wrap.innerHTML = '';
     Catalogos.listasPrecios.forEach(lp => {
         const value = mapValores.get(Number(lp.Id)) ?? '';
@@ -712,10 +695,35 @@ async function renderPreciosListas(valores = []) {
     });
 }
 
-// tomar valores para el payload
 function getPreciosPorListaFromUI() {
     return (Catalogos.listasPrecios || []).map(lp => {
         const v = parseFloat(document.getElementById('lp_' + lp.Id)?.value);
         return isNaN(v) ? null : { idListaPrecio: Number(lp.Id), precioUnitario: v };
     }).filter(Boolean);
+}
+
+/* =========================
+   Utils
+   ========================= */
+
+function escapeRegex(text) {
+    return (text + '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+
+
+function syncChecklistUI() {
+    updateChecklistButtonLabel('btnTalles', 'talles');
+    updateChecklistButtonLabel('btnColores', 'colores');
+
+    const okTalles = MultiState.talles.size > 0;
+    const okColores = MultiState.colores.size > 0;
+
+    $('#btnTalles').toggleClass('is-invalid', !okTalles);
+    $('#btnColores').toggleClass('is-invalid', !okColores);
+
+    // Ocultar banner de error si ya está todo OK
+    if (okTalles && okColores) {
+        $('#errorCampos').addClass('d-none').text('');
+    }
 }
