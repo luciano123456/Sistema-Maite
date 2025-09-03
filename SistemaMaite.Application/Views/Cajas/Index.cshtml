@@ -3,55 +3,79 @@
 }
 
 @section Estilos {
-    <link href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css" rel="stylesheet" />
-    <link href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css" rel="stylesheet" />
-    <link href="https://cdn.datatables.net/fixedheader/3.2.2/css/fixedHeader.dataTables.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    <link href="~/css/Cajas.css" rel="stylesheet" />
+    <!-- DataTables -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.2.2/css/buttons.dataTables.min.css" />
+    <link rel="stylesheet" href="https://cdn.datatables.net/fixedheader/3.2.2/css/fixedHeader.dataTables.min.css" />
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
+    <link href="~/css/cajas.css" rel="stylesheet" />
 }
 
-<div class="container-fluid mt-5">
+<div class="container page-99" style="margin-top: 100px">
+    <!-- Header estilo CC -->
+    <div class="cc-header shadow-lg rounded-4 p-4 mb-4">
+        <div class="d-flex align-items-center gap-3 flex-wrap">
+            <div class="d-flex align-items-center gap-3">
+                <span class="cc-badge"><i class="fa fa-money"></i></span>
+                <div>
+                    <h2 class="m-0 fw-800">Movimientos de Caja</h2>
+                    <small class="text-muted-cc">Ingresos, egresos y transferencias</small>
+                </div>
+            </div>
 
-    <div class="row">
-        <div class="col-lg-10">
-            <div class="card" style="width: 88%; position: absolute; left: 7vw; border: none;">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>Movimientos de Caja</span>
+            <div class="ms-auto d-flex gap-3 flex-wrap">
+                <div class="cc-stat">
+                    <div class="label">Ingresos (período)</div>
+                    <div class="value" id="kpiIngresos">$0,00</div>
+                </div>
+                <div class="cc-stat">
+                    <div class="label">Egresos (período)</div>
+                    <div class="value" id="kpiEgresos">$0,00</div>
+                </div>
+                <div class="cc-stat">
+                    <div class="label">Saldo (período)</div>
+                    <div class="value kpi-azul" id="kpiSaldo">$0,00</div>
+                </div>
+                <div class="cc-stat">
+                    <div class="label">Movimientos</div>
+                    <div class="value" id="kpiCantMovs">0</div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-                    <!-- Grupo de acciones a la derecha -->
-                    <div class="d-flex align-items-center gap-2">
-                        <!-- Botón de Filtros -->
+    <!-- Contenido -->
+    <div class="row g-4">
+        <div class="col-12">
+            <div class="card-glass p-3">
+                <div class="tabla-wrap position-relative">
+                    <!-- Acciones superiores -->
+                    <div class="tabla-controls-top d-flex gap-2">
                         <button class="btn btn-outline-primary d-flex align-items-center" type="button" id="btnToggleFiltros">
                             <i class="fa fa-arrow-up me-2" id="iconFiltros"></i> Filtros
                         </button>
 
-                        <!-- Botón de Configuración de Columnas -->
                         <div class="dropdown">
-                            <button class="btn btn-secondary dropdown-toggle d-flex align-items-center" type="button" id="dropdownColumnas" data-bs-toggle="dropdown" aria-expanded="false">
+                            <button class="btn btn-secondary dropdown-toggle d-flex align-items-center" type="button" id="btnConfigCols"
+                                    data-bs-toggle="dropdown" aria-expanded="false">
                                 <i class="fa fa-cog me-2"></i> Config. Columnas
                             </button>
-                            <ul class="dropdown-menu" aria-labelledby="dropdownColumnas" id="configColumnasMenu">
-                            </ul>
+                            <ul class="dropdown-menu" id="configColumnasMenu" aria-labelledby="btnConfigCols"></ul>
                         </div>
                     </div>
-                </div>
 
-
-                <div class="card-body">
-                    <!-- Filtros -->
+                    <!-- Panel de filtros -->
                     <form id="formFiltros" class="filter-bar shadow-sm rounded-3 mb-3 p-3 d-none">
                         <div class="row g-2 align-items-end">
-
                             <div class="col-6 col-md-3">
                                 <label class="form-label">Desde</label>
                                 <input type="date" id="fltDesde" class="form-control">
                             </div>
-
                             <div class="col-6 col-md-3">
                                 <label class="form-label">Hasta</label>
                                 <input type="date" id="fltHasta" class="form-control">
                             </div>
-
                             <div class="col-6 col-md-2">
                                 <label class="form-label">Tipo</label>
                                 <select id="fltTipo" class="form-select">
@@ -60,26 +84,22 @@
                                     <option value="Egreso">Egreso</option>
                                 </select>
                             </div>
-
                             <div class="col-6 col-md-2">
                                 <label class="form-label">Sucursal</label>
                                 <select id="fltSucursal" class="form-select">
                                     <option value="">Todas</option>
                                 </select>
                             </div>
-
                             <div class="col-6 col-md-2">
                                 <label class="form-label">Cuenta</label>
                                 <select id="fltCuenta" class="form-select">
                                     <option value="">Todas</option>
                                 </select>
                             </div>
-
                             <div class="col-12 col-md-4">
                                 <label class="form-label">Concepto</label>
                                 <input type="text" id="fltConcepto" class="form-control" placeholder="Contiene...">
                             </div>
-
                             <div class="col-12 col-md-4 d-flex gap-2 mt-2 mt-md-0">
                                 <button type="button" id="btnBuscar" class="btn btn-primary flex-fill">
                                     <i class="fa fa-search me-1"></i> Buscar
@@ -91,75 +111,45 @@
                         </div>
                     </form>
 
-                    <table class="display nowrap" id="grd_Caja" style="width:100%">
-                        <thead>
-                            <tr>
-                                <th></th>
-                                <th>Fecha</th>
-                                <th>Tipo</th>
-                                <th>Concepto</th>
-                                <th>Ingreso</th>
-                                <th>Egreso</th>
-                                <th>Sucursal</th>
-                                <th>Cuenta</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- DataTable -->
-                        </tbody>
-
-
-                    </table>
-
-
-                </div>
-
-
-
-                <div class="totales-botones-container mb-4">
-
-                    <!-- Sumas -->
-                    <div class="grupo-totales">
-                        <div class="form-group mb-0">
-                            <label class="form-label fw-bold">Suma de ingresos</label>
-                            <input type="text" class="form-control form-control-sm text-start" id="txtTotalIngreso" readonly>
-                        </div>
-
-                        <div class="form-group mb-0">
-                            <label class="form-label fw-bold">Suma de egresos</label>
-                            <input type="text" class="form-control form-control-sm text-start" id="txtTotalEgreso" readonly>
-                        </div>
-
-                        <div class="form-group mb-0">
-                            <label class="form-label fw-bold">Saldo</label>
-                            <input type="text" class="form-control form-control-sm text-start" id="txtTotalSaldo" readonly>
-                        </div>
+                    <!-- Tabla -->
+                    <div class="dt-dark-wrap">
+                        <table class="dt-dark display nowrap compact" id="grd_Caja" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>Fecha</th>
+                                    <th>Tipo</th>
+                                    <th>Concepto</th>
+                                    <th>Ingreso</th>
+                                    <th>Egreso</th>
+                                    <th>Sucursal</th>
+                                    <th>Cuenta</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
                     </div>
 
-                    <!-- Botones -->
-                    <div class="grupo-botones ">
-
+                    <!-- Botonera inferior -->
+                    <div class="d-flex align-items-center justify-content-end mt-3 gap-2">
                         <button class="btn btn-success d-flex align-items-center px-3 py-2 text-center" onclick="nuevoCaja()">
-                            <i class="fa fa-plus-square"></i> Nuevo mov.
+                            <i class="fa fa-plus-square me-2"></i> Nuevo mov.
                         </button>
-
                         <button class="btn btn-success d-flex align-items-center px-3 py-2 text-center" onclick="abrirModalTransfer()">
-                            <i class="fa fa-plus-square"></i>Nueva transferencia
+                            <i class="fa fa-exchange me-2"></i> Nueva transferencia
                         </button>
-
-                  
                     </div>
+
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal -->
+<!-- Modal: Nuevo/Editar movimiento -->
 <div class="modal fade" id="modalEdicion" tabindex="-1" role="dialog" aria-labelledby="modalEdicionLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-edicion" role="document">
         <div class="modal-content">
-
             <div class="modal-header colorEncabezado">
                 <h5 class="modal-title fw-bold" id="modalEdicionLabel">Nuevo Movimiento</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
@@ -209,18 +199,17 @@
 
                     <div class="col-md-3">
                         <label class="form-label">Importe</label>
-                        <input type="text" class="form-control Inputmiles" id="numImporte" />
+                        <input type="text" class="form-control Inputmiles" id="numImporte" required />
+                        <div class="invalid-feedback">El importe debe ser mayor a 0.</div>
                     </div>
 
-
                     <div id="errorCampos" class="alert alert-danger d-none col-12">
-                       Debes completar los campos requeridos.
+                        Debes completar los campos requeridos.
                     </div>
                 </form>
             </div>
 
             <div class="modal-footer">
-                <!-- Botón eliminar a la izquierda -->
                 <button type="button" id="btnEliminarMov" class="btn btn-danger me-auto d-none" onclick="eliminarCajaDesdeModal()">
                     <i class="fa fa-trash"></i> Eliminar
                 </button>
@@ -232,22 +221,19 @@
                     <i class="fa fa-check"></i> Guardar
                 </button>
             </div>
-
-
         </div>
     </div>
 </div>
 
-<!-- Modal Transferencia -->
+<!-- MODAL: Transferencia entre cuentas -->
 <div class="modal fade" id="modalTransfer" tabindex="-1" aria-labelledby="modalTransferLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content shadow-lg rounded-4">
-            <!-- Header con degradé -->
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-edicion">
+        <div class="modal-content">
             <div class="modal-header colorEncabezado">
                 <h5 class="modal-title fw-bold" id="modalTransferLabel">
-                    <i class="bi bi-arrow-left-right me-2"></i> Transferencia entre cuentas
+                    <i class="fa fa-exchange me-2"></i> Transferencia entre cuentas
                 </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
 
             <div class="modal-body">
@@ -257,7 +243,6 @@
                         <label class="form-label">Fecha</label>
                         <div class="input-group">
                             <input type="date" class="form-control" id="dtpFechaTransf" required>
-                            <span class="input-group-text"><i class="bi bi-calendar-event"></i></span>
                         </div>
                         <div class="invalid-feedback">Campo obligatorio</div>
                     </div>
@@ -266,8 +251,9 @@
                     <div class="col-md-3">
                         <label class="form-label">Sucursal</label>
                         <div class="input-group">
-                            <select id="cmbSucursalTransf" class="form-select" required></select>
-                            <span class="input-group-text valid-indicator d-none"><i class="bi bi-check2"></i></span>
+                            <select id="cmbSucursalTransf" class="form-select" required>
+                                <option value="">Seleccione</option>
+                            </select>
                         </div>
                         <div class="invalid-feedback">Campo obligatorio</div>
                     </div>
@@ -276,8 +262,9 @@
                     <div class="col-md-3">
                         <label class="form-label">Cuenta origen</label>
                         <div class="input-group">
-                            <select id="cmbCuentaOrigen" class="form-select" required></select>
-                            <span class="input-group-text valid-indicator d-none"><i class="bi bi-check2"></i></span>
+                            <select id="cmbCuentaOrigen" class="form-select" required>
+                                <option value="">Seleccione</option>
+                            </select>
                         </div>
                         <div class="invalid-feedback">Campo obligatorio</div>
                     </div>
@@ -286,8 +273,9 @@
                     <div class="col-md-3">
                         <label class="form-label">Cuenta destino</label>
                         <div class="input-group">
-                            <select id="cmbCuentaDestino" class="form-select" required></select>
-                            <span class="input-group-text valid-indicator d-none"><i class="bi bi-check2"></i></span>
+                            <select id="cmbCuentaDestino" class="form-select" required>
+                                <option value="">Seleccione</option>
+                            </select>
                         </div>
                         <div class="invalid-feedback">Campo obligatorio</div>
                     </div>
@@ -296,9 +284,8 @@
                     <div class="col-md-3">
                         <label class="form-label">Importe</label>
                         <div class="input-group">
-                            <span class="input-group-text">$</span>
+                     
                             <input type="text" class="form-control Inputmiles" id="numImporteTransf" placeholder="0,00" required>
-                            <span class="input-group-text valid-indicator d-none"><i class="bi bi-check2"></i></span>
                         </div>
                         <div class="invalid-feedback">El importe debe ser mayor a 0.</div>
                     </div>
@@ -306,14 +293,14 @@
                     <!-- Nota -->
                     <div class="col-md-9">
                         <label class="form-label">Nota interna (opcional)</label>
-                        <input type="text" class="form-control" id="txtNotaTransf" maxlength="200">
+                        <input type="text" class="form-control" id="txtNotaTransf" maxlength="200" placeholder="Motivo o referencia interna">
                     </div>
 
-                    <!-- Panel “Historial” -->
+                    <!-- Panel Historial (se mantiene) -->
                     <div class="col-12">
                         <div class="panel-soft mt-2">
-                            <div class="panel-soft__header">
-                                <i class="bi bi-clock-history me-2"></i>
+                            <div class="panel-soft__header d-flex align-items-center">
+                                <i class="fa fa-history me-2"></i>
                                 <span class="fw-semibold">Historial entre estas cuentas</span>
                             </div>
                             <div class="panel-soft__body">
@@ -326,7 +313,7 @@
                                             <th>Destino</th>
                                             <th>Importe</th>
                                             <th>Nota</th>
-                                            <th style="width: 42px;"></th>
+                                            <th style="width:42px;"></th>
                                         </tr>
                                     </thead>
                                     <tbody></tbody>
@@ -340,11 +327,13 @@
                 </form>
             </div>
 
-            <div class="modal-footer bg-body-tertiary">
-                <!-- el botón eliminar se inyecta dinámicamente cuando se edita -->
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Volver</button>
-                <button type="button" class="btn btn-primary" onclick="guardarTransferencia()">
-                    <i class="bi bi-arrow-right-circle me-1"></i> Transferir
+            <div class="modal-footer">
+                <!-- Eliminar se inyecta en edición -->
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fa fa-arrow-left"></i> Volver
+                </button>
+                <button type="button" class="btn btn-success d-flex align-items-center px-3 py-2 text-center" onclick="guardarTransferencia()">
+                    <i class="fa fa-exchange me-2"></i> Transferir
                 </button>
             </div>
         </div>
@@ -354,17 +343,24 @@
 <partial name="~/Views/Utils/Modals.cshtml" />
 
 @section Scripts {
-    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+
+    <!-- DataTables -->
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/fixedheader/3.2.2/js/dataTables.fixedHeader.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.print.min.js"></script>
+
+    <!-- Export opcional -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+
+    <!-- Utils del proyecto -->
     <script src="~/js/site.js"></script>
     <script src="~/js/utils/moment.js"></script>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.print.min.js"></script>
-    <script src="https://cdn.datatables.net/fixedheader/3.2.2/js/dataTables.fixedHeader.min.js"></script>
-
-    <script src="~/js/Cajas.js?v=1.3"></script>
+    <!-- Lógica Cajas -->
+    <script src="~/js/Cajas.js?v=2.2"></script>
 }
