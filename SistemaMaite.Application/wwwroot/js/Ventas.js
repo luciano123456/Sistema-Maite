@@ -177,19 +177,30 @@ function calcularTotalesVentas() {
 
     const rows = gridVentas.rows({ search: 'applied' }).data().toArray();
 
-    let tSub = 0, tDesc = 0, tIva = 0, tTotal = 0;
+    let cant = rows.length;
+    let sub = 0, desc = 0, iva = 0, tot = 0;
+
     for (const r of rows) {
-        tSub += parseFloat(r.Subtotal) || 0;
-        tDesc += parseFloat(r.Descuentos) || 0;
-        tIva += parseFloat(r.TotalIva) || 0;
-        tTotal += parseFloat(r.ImporteTotal) || 0;
+        sub += parseFloat(r.Subtotal) || 0;
+        desc += parseFloat(r.Descuentos) || 0;
+        iva += parseFloat(r.TotalIva) || 0;
+        tot += parseFloat(r.ImporteTotal) || 0;
     }
 
-    $("#txtTotalSubtotal").val(formatNumber(tSub));
-    $("#txtTotalDescuentos").val(formatNumber(tDesc));
-    $("#txtTotalIva").val(formatNumber(tIva));
-    $("#txtTotalGeneral").val(formatNumber(tTotal));
+    // KPIs (header)
+    $("#kpiCantVentas").text(cant.toLocaleString("es-AR"));
+    $("#kpiSubtotal").text(formatNumber(sub));
+    $("#kpiDescuentos").text(formatNumber(desc));
+    $("#kpiIva").text(formatNumber(iva));
+    $("#kpiTotalVentas").text(formatNumber(tot));
+
+    // (Opcional) campos del pie si existen
+    $("#txtTotalSubtotal").length && $("#txtTotalSubtotal").val(formatNumber(sub));
+    $("#txtTotalDescuentos").length && $("#txtTotalDescuentos").val(formatNumber(desc));
+    $("#txtTotalIva").length && $("#txtTotalIva").val(formatNumber(iva));
+    $("#txtTotalGeneral").length && $("#txtTotalGeneral").val(formatNumber(tot));
 }
+
 
 /* ---------------- Panel de filtros superior (FilterManager like sueldos) ---------------- */
 async function initFiltrosVentas() {
