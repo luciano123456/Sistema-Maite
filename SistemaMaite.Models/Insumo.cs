@@ -19,7 +19,7 @@ public partial class Insumo
 
     public virtual InsumosCategoria IdCategoriaNavigation { get; set; } = null!;
 
-    public virtual Proveedore IdProveedorNavigation { get; set; } = null!;
+    public virtual Proveedor IdProveedorNavigation { get; set; } = null!;
 
     public virtual ICollection<OrdenesCorteInsumo> OrdenesCorteInsumos { get; set; } = new List<OrdenesCorteInsumo>();
 }

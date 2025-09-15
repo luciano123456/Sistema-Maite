@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace SistemaMaite.Models;
 
-public partial class Proveedore
+public partial class Proveedor
 {
     public int Id { get; set; }
 

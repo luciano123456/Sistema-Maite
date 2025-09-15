@@ -20,6 +20,7 @@
     <Content Remove="wwwroot\js\PagosSueldosNuevoModif.js" />
     <Content Remove="wwwroot\js\Personal.js" />
     <Content Remove="wwwroot\js\Productos.js" />
+    <Content Remove="wwwroot\js\Proveedores.js" />
     <Content Remove="wwwroot\js\Usuarios.js" />
     <Content Remove="wwwroot\js\UsuariosConfiguracion.js" />
     <Content Remove="wwwroot\js\Utils\moment.js" />
@@ -34,6 +35,7 @@
     <None Include="wwwroot\js\Gastos.js" />
     <None Include="wwwroot\js\CuentasCorrientes.js" />
     <None Include="wwwroot\js\Insumos.js" />
+    <None Include="wwwroot\js\Proveedores.js" />
     <None Include="wwwroot\js\VentasNuevoModif.js" />
     <None Include="wwwroot\js\Ventas.js" />
     <None Include="wwwroot\js\PagosSueldosNuevoModif.js" />

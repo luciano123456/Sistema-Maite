@@ -98,7 +98,7 @@ public partial class SistemaMaiteContext : DbContext
 
     public virtual DbSet<ProductosVariante> ProductosVariantes { get; set; }
 
-    public virtual DbSet<Proveedore> Proveedores { get; set; }
+    public virtual DbSet<Proveedor> Proveedores { get; set; }
 
     public virtual DbSet<Provincia> Provincias { get; set; }
 
@@ -856,7 +856,7 @@ public partial class SistemaMaiteContext : DbContext
                 .HasConstraintName("FK_Productos_Variantes_Productos_Talles");
         });
 
-        modelBuilder.Entity<Proveedore>(entity =>
+        modelBuilder.Entity<Proveedor>(entity =>
         {
             entity.Property(e => e.Nombre)
                 .HasMaxLength(100)
