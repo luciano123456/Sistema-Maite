@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace SistemaMaite.Models {
+namespace SistemaMaite.Models;
 
 public partial class CajasTransfEntreCuenta
 {
@@ -24,6 +24,4 @@ public partial class CajasTransfEntreCuenta
     public virtual Cuenta IdCuentaDestinoNavigation { get; set; } = null!;
 
     public virtual Cuenta IdCuentaOrigenNavigation { get; set; } = null!;
-}
-
 }

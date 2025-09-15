@@ -6,13 +6,9 @@ using SistemaMaite.Models;
 
 namespace SistemaMaite.DAL.DataContext;
 
+
 public partial class SistemaMaiteContext : DbContext
 {
-
-    private readonly IConfiguration _configuration;
-
-
-
     public SistemaMaiteContext()
     {
     }
@@ -36,6 +32,10 @@ public partial class SistemaMaiteContext : DbContext
 
     public virtual DbSet<Color> Colores { get; set; }
 
+    public virtual DbSet<Compra> Compras { get; set; }
+
+    public virtual DbSet<ComprasInsumo> ComprasInsumos { get; set; }
+
     public virtual DbSet<CondicionesIva> CondicionesIvas { get; set; }
 
     public virtual DbSet<Cuenta> Cuentas { get; set; }
@@ -45,6 +45,10 @@ public partial class SistemaMaiteContext : DbContext
     public virtual DbSet<Gasto> Gastos { get; set; }
 
     public virtual DbSet<GastosCategoria> GastosCategorias { get; set; }
+
+    public virtual DbSet<Insumo> Insumos { get; set; }
+
+    public virtual DbSet<InsumosCategoria> InsumosCategorias { get; set; }
 
     public virtual DbSet<Inventario> Inventarios { get; set; }
 
@@ -57,6 +61,20 @@ public partial class SistemaMaiteContext : DbContext
     public virtual DbSet<InventarioTransfSucursalesProductosVariante> InventarioTransfSucursalesProductosVariantes { get; set; }
 
     public virtual DbSet<ListasPrecio> ListasPrecios { get; set; }
+
+    public virtual DbSet<OrdenCorteProductosVariante> OrdenCorteProductosVariantes { get; set; }
+
+    public virtual DbSet<OrdenesCorte> OrdenesCortes { get; set; }
+
+    public virtual DbSet<OrdenesCorteEstado> OrdenesCorteEstados { get; set; }
+
+    public virtual DbSet<OrdenesCorteEtapa> OrdenesCorteEtapas { get; set; }
+
+    public virtual DbSet<OrdenesCorteEtapasEstado> OrdenesCorteEtapasEstados { get; set; }
+
+    public virtual DbSet<OrdenesCorteInsumo> OrdenesCorteInsumos { get; set; }
+
+    public virtual DbSet<OrdenesCorteProducto> OrdenesCorteProductos { get; set; }
 
     public virtual DbSet<Personal> Personals { get; set; }
 
@@ -80,11 +98,15 @@ public partial class SistemaMaiteContext : DbContext
 
     public virtual DbSet<ProductosVariante> ProductosVariantes { get; set; }
 
+    public virtual DbSet<Proveedore> Proveedores { get; set; }
+
     public virtual DbSet<Provincia> Provincias { get; set; }
 
     public virtual DbSet<Rol> Roles { get; set; }
 
     public virtual DbSet<Sucursal> Sucursales { get; set; }
+
+    public virtual DbSet<Taller> Talleres { get; set; }
 
     public virtual DbSet<User> Usuarios { get; set; }
 
@@ -97,13 +119,9 @@ public partial class SistemaMaiteContext : DbContext
     public virtual DbSet<VentasProductosVariante> VentasProductosVariantes { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        if (!optionsBuilder.IsConfigured)
-        {
-            var connectionString = _configuration.GetConnectionString("SistemaDB");
-            optionsBuilder.UseSqlServer(connectionString);
-        }
-    }
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseSqlServer("Server=DESKTOP-3MT5F5F; Database=Sistema_Maite; Integrated Security=true; Trusted_Connection=True; Encrypt=False");
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Banco>(entity =>
@@ -261,6 +279,47 @@ public partial class SistemaMaiteContext : DbContext
                 .IsUnicode(false);
         });
 
+        modelBuilder.Entity<Compra>(entity =>
+        {
+            entity.Property(e => e.Descuentos).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Fecha).HasColumnType("date");
+            entity.Property(e => e.ImporteTotal).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.NotaInterna)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+            entity.Property(e => e.Subtotal).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.TotalIva)
+                .HasColumnType("decimal(18, 2)")
+                .HasColumnName("TotalIVA");
+
+            entity.HasOne(d => d.IdProveedorNavigation).WithMany(p => p.Compras)
+                .HasForeignKey(d => d.IdProveedor)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Compras_Proveedores");
+        });
+
+        modelBuilder.Entity<ComprasInsumo>(entity =>
+        {
+            entity.ToTable("Compras_Insumos");
+
+            entity.Property(e => e.Cantidad).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CostoUnitCdesc).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CostoUnitFinal).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CostoUnitario).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.DescuentoTotal).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.DescuentoUnit).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.IvaTotal).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.IvaUnit).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.PorcDescuento).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.PorcIva).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Subtotal).HasColumnType("decimal(18, 2)");
+
+            entity.HasOne(d => d.IdCompraNavigation).WithMany(p => p.ComprasInsumos)
+                .HasForeignKey(d => d.IdCompra)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Compras_Insumos_Compras");
+        });
+
         modelBuilder.Entity<CondicionesIva>(entity =>
         {
             entity.ToTable("CondicionesIVA");
@@ -314,6 +373,36 @@ public partial class SistemaMaiteContext : DbContext
 
             entity.Property(e => e.Nombre)
                 .HasMaxLength(200)
+                .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<Insumo>(entity =>
+        {
+            entity.Property(e => e.Codigo)
+                .HasMaxLength(70)
+                .IsUnicode(false);
+            entity.Property(e => e.CostoUnitario).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Descripcion)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+
+            entity.HasOne(d => d.IdCategoriaNavigation).WithMany(p => p.Insumos)
+                .HasForeignKey(d => d.IdCategoria)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Insumos_Insumos_Categorias");
+
+            entity.HasOne(d => d.IdProveedorNavigation).WithMany(p => p.Insumos)
+                .HasForeignKey(d => d.IdProveedor)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Insumos_Proveedores");
+        });
+
+        modelBuilder.Entity<InsumosCategoria>(entity =>
+        {
+            entity.ToTable("Insumos_Categorias");
+
+            entity.Property(e => e.Nombre)
+                .HasMaxLength(70)
                 .IsUnicode(false);
         });
 
@@ -434,6 +523,124 @@ public partial class SistemaMaiteContext : DbContext
                 .IsUnicode(false);
         });
 
+        modelBuilder.Entity<OrdenCorteProductosVariante>(entity =>
+        {
+            entity.ToTable("Orden_Corte_Productos_Variantes");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+
+            entity.HasOne(d => d.IdOrdenCorteProductoNavigation).WithMany(p => p.OrdenCorteProductosVariantes)
+                .HasForeignKey(d => d.IdOrdenCorteProducto)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Orden_Corte_Productos_Variantes_Ordenes_Corte_Productos");
+
+            entity.HasOne(d => d.IdProductoNavigation).WithMany(p => p.OrdenCorteProductosVariantes)
+                .HasForeignKey(d => d.IdProducto)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Orden_Corte_Productos_Variantes_Productos");
+
+            entity.HasOne(d => d.IdProductoVarianteNavigation).WithMany(p => p.OrdenCorteProductosVariantes)
+                .HasForeignKey(d => d.IdProductoVariante)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Orden_Corte_Productos_Variantes_Productos_Variantes");
+        });
+
+        modelBuilder.Entity<OrdenesCorte>(entity =>
+        {
+            entity.ToTable("Ordenes_Corte");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.Property(e => e.AnchoTizada).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CantidadCapas).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CantidadFinalReal).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CantidadProducidas).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CantidadProducir).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.DiferenciaCorte).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.DiferenciaFinalReal).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.FechaFinalizacion).HasColumnType("date");
+            entity.Property(e => e.FechaInicio).HasColumnType("date");
+            entity.Property(e => e.HoraFinCorte).HasColumnType("datetime");
+            entity.Property(e => e.HoraInicioCorte).HasColumnType("datetime");
+            entity.Property(e => e.LargoTizada).HasColumnType("decimal(18, 2)");
+
+            entity.HasOne(d => d.IdNavigation).WithOne(p => p.OrdenesCorte)
+                .HasForeignKey<OrdenesCorte>(d => d.Id)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Ordenes_Corte_Ordenes_Corte_Productos");
+
+            entity.HasOne(d => d.IdEstadoNavigation).WithMany(p => p.OrdenesCortes)
+                .HasForeignKey(d => d.IdEstado)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Ordenes_Corte_Ordenes_Corte_Estados");
+        });
+
+        modelBuilder.Entity<OrdenesCorteEstado>(entity =>
+        {
+            entity.ToTable("Ordenes_Corte_Estados");
+
+            entity.Property(e => e.Nombre)
+                .HasMaxLength(70)
+                .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<OrdenesCorteEtapa>(entity =>
+        {
+            entity.ToTable("Ordenes_Corte_Etapas");
+
+            entity.Property(e => e.CantidadProducidas).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.CantidadProducir).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Diferencias).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.FechaEntrada).HasColumnType("date");
+            entity.Property(e => e.FechaSalidaAproximada).HasColumnType("date");
+            entity.Property(e => e.FechaSalidaReal).HasColumnType("date");
+            entity.Property(e => e.NotaInterna)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+
+            entity.HasOne(d => d.IdEstadoNavigation).WithMany(p => p.OrdenesCorteEtapas)
+                .HasForeignKey(d => d.IdEstado)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Ordenes_Corte_Etapas_Ordenes_Corte_Etapas_Estados");
+
+            entity.HasOne(d => d.IdTallerNavigation).WithMany(p => p.OrdenesCorteEtapas)
+                .HasForeignKey(d => d.IdTaller)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Ordenes_Corte_Etapas_Talleres");
+        });
+
+        modelBuilder.Entity<OrdenesCorteEtapasEstado>(entity =>
+        {
+            entity.ToTable("Ordenes_Corte_Etapas_Estados");
+
+            entity.Property(e => e.Nombre)
+                .HasMaxLength(100)
+                .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<OrdenesCorteInsumo>(entity =>
+        {
+            entity.ToTable("Ordenes_Corte_Insumos");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+
+            entity.HasOne(d => d.IdCorteNavigation).WithMany(p => p.OrdenesCorteInsumos)
+                .HasForeignKey(d => d.IdCorte)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Ordenes_Corte_Insumos_Ordenes_Corte");
+
+            entity.HasOne(d => d.IdInsumoNavigation).WithMany(p => p.OrdenesCorteInsumos)
+                .HasForeignKey(d => d.IdInsumo)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Ordenes_Corte_Insumos_Insumos");
+        });
+
+        modelBuilder.Entity<OrdenesCorteProducto>(entity =>
+        {
+            entity.ToTable("Ordenes_Corte_Productos");
+
+            entity.Property(e => e.Id).ValueGeneratedNever();
+        });
+
         modelBuilder.Entity<Personal>(entity =>
         {
             entity.ToTable("Personal");
@@ -477,7 +684,7 @@ public partial class SistemaMaiteContext : DbContext
             entity.Property(e => e.ValorDia).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.ValorHora).HasColumnType("decimal(18, 2)");
 
-            entity.HasOne(d => d.IdBancoNavigation).WithMany(p => p.Personal)
+            entity.HasOne(d => d.IdBancoNavigation).WithMany(p => p.Personals)
                 .HasForeignKey(d => d.IdBanco)
                 .HasConstraintName("FK_Personal_Bancos");
 
@@ -521,9 +728,7 @@ public partial class SistemaMaiteContext : DbContext
             entity.Property(e => e.NotaInterna)
                 .HasMaxLength(200)
                 .IsUnicode(false);
-            entity.Property(e => e.Saldo)
-                .HasMaxLength(10)
-                .IsFixedLength();
+            entity.Property(e => e.Saldo).HasColumnType("decimal(20, 2)");
 
             entity.HasOne(d => d.IdPersonalNavigation).WithMany(p => p.PersonalSueldos)
                 .HasForeignKey(d => d.IdPersonal)
@@ -599,7 +804,6 @@ public partial class SistemaMaiteContext : DbContext
 
             entity.HasOne(d => d.IdProductoNavigation).WithMany(p => p.ProductosColores)
                 .HasForeignKey(d => d.IdProducto)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Productos_Colores_Productos");
         });
 
@@ -615,6 +819,7 @@ public partial class SistemaMaiteContext : DbContext
 
             entity.HasOne(d => d.IdProductoNavigation).WithMany(p => p.ProductosPrecios)
                 .HasForeignKey(d => d.IdProducto)
+                .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("FK_Productos_Precios_Productos");
         });
 
@@ -624,7 +829,6 @@ public partial class SistemaMaiteContext : DbContext
 
             entity.HasOne(d => d.IdProductoNavigation).WithMany(p => p.ProductosTalles)
                 .HasForeignKey(d => d.IdProducto)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Productos_Talles_Productos");
 
             entity.HasOne(d => d.IdTalleNavigation).WithMany(p => p.ProductosTalles)
@@ -644,13 +848,19 @@ public partial class SistemaMaiteContext : DbContext
 
             entity.HasOne(d => d.IdProductoNavigation).WithMany(p => p.ProductosVariantes)
                 .HasForeignKey(d => d.IdProducto)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Productos_Variantes_Productos");
 
             entity.HasOne(d => d.IdTalleNavigation).WithMany(p => p.ProductosVariantes)
                 .HasForeignKey(d => d.IdTalle)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Productos_Variantes_Productos_Talles");
+        });
+
+        modelBuilder.Entity<Proveedore>(entity =>
+        {
+            entity.Property(e => e.Nombre)
+                .HasMaxLength(100)
+                .IsUnicode(false);
         });
 
         modelBuilder.Entity<Provincia>(entity =>
@@ -674,10 +884,20 @@ public partial class SistemaMaiteContext : DbContext
                 .IsUnicode(false);
         });
 
+        modelBuilder.Entity<Taller>(entity =>
+        {
+            entity.Property(e => e.Nombre)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+        });
+
         modelBuilder.Entity<User>(entity =>
         {
             entity.Property(e => e.Apellido)
                 .HasMaxLength(100)
+                .IsUnicode(false);
+            entity.Property(e => e.CodigoRecuperacion)
+                .HasMaxLength(250)
                 .IsUnicode(false);
             entity.Property(e => e.Contrasena)
                 .HasMaxLength(255)
@@ -797,7 +1017,6 @@ public partial class SistemaMaiteContext : DbContext
 
             entity.HasOne(d => d.IdProductoNavigation).WithMany(p => p.VentasProductosVariantes)
                 .HasForeignKey(d => d.IdProducto)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Ventas_Productos_Variantes_Productos");
 
             entity.HasOne(d => d.IdProductoVarianteNavigation).WithMany(p => p.VentasProductosVariantes)

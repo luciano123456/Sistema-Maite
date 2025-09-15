@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace SistemaMaite.Models {
+namespace SistemaMaite.Models;
 
 public partial class InventarioMovimiento
 {
@@ -26,5 +26,4 @@ public partial class InventarioMovimiento
     public virtual Inventario IdInventarioNavigation { get; set; } = null!;
 
     public virtual Sucursal IdSucursalNavigation { get; set; } = null!;
-}
 }

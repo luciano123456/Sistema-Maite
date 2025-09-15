@@ -1,0 +1,15 @@
+﻿using System;
+using System.Collections.Generic;
+
+namespace SistemaMaite.Models;
+
+public partial class Proveedore
+{
+    public int Id { get; set; }
+
+    public string? Nombre { get; set; }
+
+    public virtual ICollection<Compra> Compras { get; set; } = new List<Compra>();
+
+    public virtual ICollection<Insumo> Insumos { get; set; } = new List<Insumo>();
+}

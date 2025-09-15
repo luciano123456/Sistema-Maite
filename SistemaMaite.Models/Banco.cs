@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace SistemaMaite.Models {
+namespace SistemaMaite.Models;
 
 public partial class Banco
 {
@@ -9,6 +9,5 @@ public partial class Banco
 
     public string Nombre { get; set; } = null!;
 
-        public virtual ICollection<Personal> Personal { get; set; } = new List<Personal>();
-    }
+    public virtual ICollection<Personal> Personals { get; set; } = new List<Personal>();
 }

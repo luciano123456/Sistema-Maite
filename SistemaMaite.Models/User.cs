@@ -25,7 +25,11 @@ public partial class User
 
     public int IdEstado { get; set; }
 
+    public int? ModoVendedor { get; set; }
+
     public string? Correo { get; set; }
+
+    public string? CodigoRecuperacion { get; set; }
 
     public virtual EstadosUsuario IdEstadoNavigation { get; set; } = null!;
 

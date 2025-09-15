@@ -1,15 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace SistemaMaite.Models
+namespace SistemaMaite.Models;
+
+public partial class PersonalPuesto
 {
+    public int Id { get; set; }
 
-    public partial class PersonalPuesto
-    {
-        public int Id { get; set; }
+    public string Nombre { get; set; } = null!;
 
-        public string Nombre { get; set; } = null!;
-
-        public virtual ICollection<Personal> Personals { get; set; } = new List<Personal>();
-    }
+    public virtual ICollection<Personal> Personals { get; set; } = new List<Personal>();
 }

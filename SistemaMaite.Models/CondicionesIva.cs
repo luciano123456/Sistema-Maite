@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace SistemaMaite.Models {
+namespace SistemaMaite.Models;
 
 public partial class CondicionesIva
 {
@@ -13,5 +13,3 @@ public partial class CondicionesIva
 
     public virtual ICollection<Personal> Personals { get; set; } = new List<Personal>();
 }
-}
-
