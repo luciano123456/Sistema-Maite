@@ -109,6 +109,9 @@ builder.Services.AddScoped<IInsumosCategoriaService, InsumosCategoriaService>();
 builder.Services.AddScoped<IInsumosRepository<Insumo>, InsumosRepository>();
 builder.Services.AddScoped<IInsumosService, InsumosService>();
 
+builder.Services.AddScoped<IProveedoresService, ProveedoresService>();
+builder.Services.AddScoped<IProveedoresRepository<Proveedor>, ProveedoresRepository>();
+
 
 
 builder.Services.AddControllersWithViews()
