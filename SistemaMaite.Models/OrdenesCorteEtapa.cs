@@ -29,5 +29,5 @@ public partial class OrdenesCorteEtapa
 
     public virtual OrdenesCorteEtapasEstado IdEstadoNavigation { get; set; } = null!;
 
-    public virtual Tallere IdTallerNavigation { get; set; } = null!;
+    public virtual Taller IdTallerNavigation { get; set; } = null!;
 }

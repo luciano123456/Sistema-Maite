@@ -19,7 +19,7 @@ public partial class Inventario
 
     public virtual ProductosVariante IdProductoVarianteNavigation { get; set; } = null!;
 
-    public virtual Sucursale IdSucursalNavigation { get; set; } = null!;
+    public virtual Sucursal IdSucursalNavigation { get; set; } = null!;
 
     public virtual ICollection<InventarioMovimiento> InventarioMovimientos { get; set; } = new List<InventarioMovimiento>();
 }

@@ -23,7 +23,7 @@ public partial class Producto
 
     public virtual ICollection<OrdenCorteProductosVariante> OrdenCorteProductosVariantes { get; set; } = new List<OrdenCorteProductosVariante>();
 
-    public virtual ICollection<ProductosColore> ProductosColores { get; set; } = new List<ProductosColore>();
+    public virtual ICollection<ProductosColor> ProductosColores { get; set; } = new List<ProductosColor>();
 
     public virtual ICollection<ProductosPrecio> ProductosPrecios { get; set; } = new List<ProductosPrecio>();
 

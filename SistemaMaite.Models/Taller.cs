@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace SistemaMaite.Models;
 
-public partial class Tallere
+public partial class Taller
 {
     public int Id { get; set; }
 

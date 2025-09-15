@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using SistemaMaite.Models;
 
 namespace SistemaMaite.DAL.DataContext;
+
 
 public partial class SistemaMaiteContext : DbContext
 {
@@ -27,7 +30,7 @@ public partial class SistemaMaiteContext : DbContext
 
     public virtual DbSet<ClientesCuentaCorriente> ClientesCuentaCorrientes { get; set; }
 
-    public virtual DbSet<Colore> Colores { get; set; }
+    public virtual DbSet<Color> Colores { get; set; }
 
     public virtual DbSet<Compra> Compras { get; set; }
 
@@ -51,7 +54,7 @@ public partial class SistemaMaiteContext : DbContext
 
     public virtual DbSet<InventarioMovimiento> InventarioMovimientos { get; set; }
 
-    public virtual DbSet<InventarioTransfSucursale> InventarioTransfSucursales { get; set; }
+    public virtual DbSet<InventarioTransfSucursal> InventarioTransfSucursales { get; set; }
 
     public virtual DbSet<InventarioTransfSucursalesProducto> InventarioTransfSucursalesProductos { get; set; }
 
@@ -87,7 +90,7 @@ public partial class SistemaMaiteContext : DbContext
 
     public virtual DbSet<ProductosCategoriasTalle> ProductosCategoriasTalles { get; set; }
 
-    public virtual DbSet<ProductosColore> ProductosColores { get; set; }
+    public virtual DbSet<ProductosColor> ProductosColores { get; set; }
 
     public virtual DbSet<ProductosPrecio> ProductosPrecios { get; set; }
 
@@ -99,15 +102,15 @@ public partial class SistemaMaiteContext : DbContext
 
     public virtual DbSet<Provincia> Provincias { get; set; }
 
-    public virtual DbSet<Role> Roles { get; set; }
+    public virtual DbSet<Rol> Roles { get; set; }
 
-    public virtual DbSet<Sucursale> Sucursales { get; set; }
+    public virtual DbSet<Sucursal> Sucursales { get; set; }
 
-    public virtual DbSet<Tallere> Talleres { get; set; }
+    public virtual DbSet<Taller> Talleres { get; set; }
 
-    public virtual DbSet<Usuario> Usuarios { get; set; }
+    public virtual DbSet<User> Usuarios { get; set; }
 
-    public virtual DbSet<UsuariosSucursale> UsuariosSucursales { get; set; }
+    public virtual DbSet<UsuariosSucursal> UsuariosSucursales { get; set; }
 
     public virtual DbSet<Venta> Ventas { get; set; }
 
@@ -269,7 +272,7 @@ public partial class SistemaMaiteContext : DbContext
                 .HasConstraintName("FK_Clientes_CuentaCorriente_Sucursales");
         });
 
-        modelBuilder.Entity<Colore>(entity =>
+        modelBuilder.Entity<Color>(entity =>
         {
             entity.Property(e => e.Nombre)
                 .HasMaxLength(70)
@@ -450,7 +453,7 @@ public partial class SistemaMaiteContext : DbContext
                 .HasConstraintName("FK_Inventario_Movimientos_Sucursales");
         });
 
-        modelBuilder.Entity<InventarioTransfSucursale>(entity =>
+        modelBuilder.Entity<InventarioTransfSucursal>(entity =>
         {
             entity.ToTable("Inventario_TransfSucursales");
 
@@ -790,7 +793,7 @@ public partial class SistemaMaiteContext : DbContext
                 .HasConstraintName("FK_Productos_Categorias_Talles_Productos_Categorias");
         });
 
-        modelBuilder.Entity<ProductosColore>(entity =>
+        modelBuilder.Entity<ProductosColor>(entity =>
         {
             entity.ToTable("Productos_Colores");
 
@@ -867,28 +870,28 @@ public partial class SistemaMaiteContext : DbContext
                 .IsUnicode(false);
         });
 
-        modelBuilder.Entity<Role>(entity =>
+        modelBuilder.Entity<Rol>(entity =>
         {
             entity.Property(e => e.Nombre)
                 .HasMaxLength(100)
                 .IsUnicode(false);
         });
 
-        modelBuilder.Entity<Sucursale>(entity =>
+        modelBuilder.Entity<Sucursal>(entity =>
         {
             entity.Property(e => e.Nombre)
                 .HasMaxLength(200)
                 .IsUnicode(false);
         });
 
-        modelBuilder.Entity<Tallere>(entity =>
+        modelBuilder.Entity<Taller>(entity =>
         {
             entity.Property(e => e.Nombre)
                 .HasMaxLength(200)
                 .IsUnicode(false);
         });
 
-        modelBuilder.Entity<Usuario>(entity =>
+        modelBuilder.Entity<User>(entity =>
         {
             entity.Property(e => e.Apellido)
                 .HasMaxLength(100)
@@ -914,7 +917,7 @@ public partial class SistemaMaiteContext : DbContext
             entity.Property(e => e.Telefono)
                 .HasMaxLength(20)
                 .IsUnicode(false);
-            entity.Property(e => e.Usuario1)
+            entity.Property(e => e.Usuario)
                 .HasMaxLength(100)
                 .IsUnicode(false)
                 .HasColumnName("Usuario");
@@ -929,7 +932,7 @@ public partial class SistemaMaiteContext : DbContext
                 .HasConstraintName("FK_Usuarios_Roles");
         });
 
-        modelBuilder.Entity<UsuariosSucursale>(entity =>
+        modelBuilder.Entity<UsuariosSucursal>(entity =>
         {
             entity.ToTable("Usuarios_Sucursales");
 

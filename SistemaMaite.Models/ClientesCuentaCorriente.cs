@@ -25,5 +25,5 @@ public partial class ClientesCuentaCorriente
 
     public virtual Cliente IdClienteNavigation { get; set; } = null!;
 
-    public virtual Sucursale IdSucursalNavigation { get; set; } = null!;
+    public virtual Sucursal IdSucursalNavigation { get; set; } = null!;
 }

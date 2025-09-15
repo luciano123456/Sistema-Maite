@@ -35,7 +35,7 @@ public partial class Venta
 
     public virtual ListasPrecio IdListaPrecioNavigation { get; set; } = null!;
 
-    public virtual Sucursale IdSucursalNavigation { get; set; } = null!;
+    public virtual Sucursal IdSucursalNavigation { get; set; } = null!;
 
     public virtual Personal IdVendedorNavigation { get; set; } = null!;
 

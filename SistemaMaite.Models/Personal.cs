@@ -59,7 +59,7 @@ public partial class Personal
 
     public virtual PersonalPuesto? IdPuestoNavigation { get; set; }
 
-    public virtual Sucursale IdSucursalNavigation { get; set; } = null!;
+    public virtual Sucursal IdSucursalNavigation { get; set; } = null!;
 
     public virtual ICollection<PersonalSueldo> PersonalSueldos { get; set; } = new List<PersonalSueldo>();
 

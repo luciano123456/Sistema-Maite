@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace SistemaMaite.Models;
 
-public partial class ProductosColore
+public partial class ProductosColor
 {
     public int Id { get; set; }
 
@@ -11,7 +11,7 @@ public partial class ProductosColore
 
     public int IdColor { get; set; }
 
-    public virtual Colore IdColorNavigation { get; set; } = null!;
+    public virtual Color IdColorNavigation { get; set; } = null!;
 
     public virtual Producto IdProductoNavigation { get; set; } = null!;
 

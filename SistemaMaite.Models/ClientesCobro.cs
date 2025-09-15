@@ -29,5 +29,5 @@ public partial class ClientesCobro
 
     public virtual Cuenta IdCuentaNavigation { get; set; } = null!;
 
-    public virtual Sucursale IdSucursalNavigation { get; set; } = null!;
+    public virtual Sucursal IdSucursalNavigation { get; set; } = null!;
 }

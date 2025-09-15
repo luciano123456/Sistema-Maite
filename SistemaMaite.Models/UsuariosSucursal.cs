@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace SistemaMaite.Models;
 
-public partial class UsuariosSucursale
+public partial class UsuariosSucursal
 {
     public int Id { get; set; }
 
@@ -11,7 +11,7 @@ public partial class UsuariosSucursale
 
     public int IdSucursal { get; set; }
 
-    public virtual Sucursale IdSucursalNavigation { get; set; } = null!;
+    public virtual Sucursal IdSucursalNavigation { get; set; } = null!;
 
-    public virtual Usuario IdUsuarioNavigation { get; set; } = null!;
+    public virtual User IdUsuarioNavigation { get; set; } = null!;
 }

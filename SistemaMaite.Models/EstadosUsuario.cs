@@ -9,5 +9,5 @@ public partial class EstadosUsuario
 
     public string? Nombre { get; set; }
 
-    public virtual ICollection<Usuario> Usuarios { get; set; } = new List<Usuario>();
+    public virtual ICollection<User> Usuarios { get; set; } = new List<User>();
 }

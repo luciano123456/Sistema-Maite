@@ -13,7 +13,7 @@ public partial class ProductosVariante
 
     public int IdColor { get; set; }
 
-    public virtual ProductosColore IdColorNavigation { get; set; } = null!;
+    public virtual ProductosColor IdColorNavigation { get; set; } = null!;
 
     public virtual Producto IdProductoNavigation { get; set; } = null!;
 

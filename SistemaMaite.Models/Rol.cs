@@ -3,11 +3,11 @@ using System.Collections.Generic;
 
 namespace SistemaMaite.Models;
 
-public partial class Colore
+public partial class Rol
 {
     public int Id { get; set; }
 
     public string Nombre { get; set; } = null!;
 
-    public virtual ICollection<ProductosColore> ProductosColores { get; set; } = new List<ProductosColore>();
+    public virtual ICollection<User> Usuarios { get; set; } = new List<User>();
 }
