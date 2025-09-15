@@ -106,6 +106,11 @@ builder.Services.AddScoped<IInventarioService, InventarioService>();
 builder.Services.AddScoped<IInsumosCategoriaRepository<InsumosCategoria>, InsumosCategoriaRepository>();
 builder.Services.AddScoped<IInsumosCategoriaService, InsumosCategoriaService>();
 
+builder.Services.AddScoped<IInsumosRepository<Insumo>, InsumosRepository>();
+builder.Services.AddScoped<IInsumosService, InsumosService>();
+
+
+
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(o =>
     {
