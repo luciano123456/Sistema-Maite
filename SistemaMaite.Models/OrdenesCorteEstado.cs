@@ -3,11 +3,11 @@ using System.Collections.Generic;
 
 namespace SistemaMaite.Models;
 
-public partial class Banco
+public partial class OrdenesCorteEstado
 {
     public int Id { get; set; }
 
     public string Nombre { get; set; } = null!;
 
-    public virtual ICollection<Personal> Personals { get; set; } = new List<Personal>();
+    public virtual ICollection<OrdenesCorte> OrdenesCortes { get; set; } = new List<OrdenesCorte>();
 }

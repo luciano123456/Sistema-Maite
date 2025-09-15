@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace SistemaMaite.Models;
 
-public partial class Sucursal
+public partial class Sucursale
 {
     public int Id { get; set; }
 
@@ -19,15 +19,15 @@ public partial class Sucursal
 
     public virtual ICollection<InventarioMovimiento> InventarioMovimientos { get; set; } = new List<InventarioMovimiento>();
 
-    public virtual ICollection<InventarioTransfSucursal> InventarioTransfSucursaleIdSucursalDestinoNavigations { get; set; } = new List<InventarioTransfSucursal>();
+    public virtual ICollection<InventarioTransfSucursale> InventarioTransfSucursaleIdSucursalDestinoNavigations { get; set; } = new List<InventarioTransfSucursale>();
 
-    public virtual ICollection<InventarioTransfSucursal> InventarioTransfSucursaleIdSucursalOrigenNavigations { get; set; } = new List<InventarioTransfSucursal>();
+    public virtual ICollection<InventarioTransfSucursale> InventarioTransfSucursaleIdSucursalOrigenNavigations { get; set; } = new List<InventarioTransfSucursale>();
 
     public virtual ICollection<Inventario> Inventarios { get; set; } = new List<Inventario>();
 
     public virtual ICollection<Personal> Personals { get; set; } = new List<Personal>();
 
-    public virtual ICollection<UsuariosSucursal> UsuariosSucursales { get; set; } = new List<UsuariosSucursal>();
+    public virtual ICollection<UsuariosSucursale> UsuariosSucursales { get; set; } = new List<UsuariosSucursale>();
 
     public virtual ICollection<Venta> Venta { get; set; } = new List<Venta>();
 }

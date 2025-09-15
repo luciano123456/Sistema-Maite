@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace SistemaMaite.Models {
+namespace SistemaMaite.Models;
 
 public partial class Cliente
 {
@@ -42,5 +42,4 @@ public partial class Cliente
     public virtual Provincia? IdProvinciaNavigation { get; set; }
 
     public virtual ICollection<Venta> Venta { get; set; } = new List<Venta>();
-}
 }

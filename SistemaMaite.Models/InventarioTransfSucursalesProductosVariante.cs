@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace SistemaMaite.Models {
+namespace SistemaMaite.Models;
 
 public partial class InventarioTransfSucursalesProductosVariante
 {
@@ -20,5 +20,4 @@ public partial class InventarioTransfSucursalesProductosVariante
     public virtual ProductosVariante IdProductoVarianteNavigation { get; set; } = null!;
 
     public virtual InventarioTransfSucursalesProducto IdTransfSucursalProductoNavigation { get; set; } = null!;
-}
 }

@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace SistemaMaite.Models {
+namespace SistemaMaite.Models;
 
-public partial class InventarioTransfSucursal
+public partial class InventarioTransfSucursale
 {
     public int Id { get; set; }
 
@@ -15,10 +15,9 @@ public partial class InventarioTransfSucursal
 
     public string? Notas { get; set; }
 
-    public virtual Sucursal IdSucursalDestinoNavigation { get; set; } = null!;
+    public virtual Sucursale IdSucursalDestinoNavigation { get; set; } = null!;
 
-    public virtual Sucursal IdSucursalOrigenNavigation { get; set; } = null!;
+    public virtual Sucursale IdSucursalOrigenNavigation { get; set; } = null!;
 
     public virtual ICollection<InventarioTransfSucursalesProducto> InventarioTransfSucursalesProductos { get; set; } = new List<InventarioTransfSucursalesProducto>();
-}
 }

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace SistemaMaite.Models {
+namespace SistemaMaite.Models;
 
 public partial class EstadosUsuario
 {
@@ -9,6 +9,5 @@ public partial class EstadosUsuario
 
     public string? Nombre { get; set; }
 
-    public virtual ICollection<User> Usuarios { get; set; } = new List<User>();
-}
+    public virtual ICollection<Usuario> Usuarios { get; set; } = new List<Usuario>();
 }

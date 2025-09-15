@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace SistemaMaite.Models {
+namespace SistemaMaite.Models;
 
 public partial class GastosCategoria
 {
@@ -10,5 +10,4 @@ public partial class GastosCategoria
     public string Nombre { get; set; } = null!;
 
     public virtual ICollection<Gasto> Gastos { get; set; } = new List<Gasto>();
-}
 }

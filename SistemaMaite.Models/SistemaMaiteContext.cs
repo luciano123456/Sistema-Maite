@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 
-namespace SistemaMaite.DAL.DataContext;
+namespace SistemaMaite.Models;
 
 public partial class SistemaMaiteContext : DbContext
 {
