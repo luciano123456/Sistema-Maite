@@ -6,16 +6,27 @@ using SistemaMaite.Models;
 
 namespace SistemaMaite.DAL.DataContext;
 
-
 public partial class SistemaMaiteContext : DbContext
 {
     public SistemaMaiteContext()
     {
     }
 
+    private readonly IConfiguration _configuration;
+
+
     public SistemaMaiteContext(DbContextOptions<SistemaMaiteContext> options)
         : base(options)
     {
+    }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        if (!optionsBuilder.IsConfigured)
+        {
+            var connectionString = _configuration.GetConnectionString("SistemaDB");
+            optionsBuilder.UseSqlServer(connectionString);
+        }
     }
 
     public virtual DbSet<Banco> Bancos { get; set; }
@@ -35,6 +46,8 @@ public partial class SistemaMaiteContext : DbContext
     public virtual DbSet<Compra> Compras { get; set; }
 
     public virtual DbSet<ComprasInsumo> ComprasInsumos { get; set; }
+
+    public virtual DbSet<ComprasPago> ComprasPagos { get; set; }
 
     public virtual DbSet<CondicionesIva> CondicionesIvas { get; set; }
 
@@ -100,6 +113,8 @@ public partial class SistemaMaiteContext : DbContext
 
     public virtual DbSet<Proveedor> Proveedores { get; set; }
 
+    public virtual DbSet<ProveedoresCuentaCorriente> ProveedoresCuentaCorrientes { get; set; }
+
     public virtual DbSet<Provincia> Provincias { get; set; }
 
     public virtual DbSet<Rol> Roles { get; set; }
@@ -118,10 +133,7 @@ public partial class SistemaMaiteContext : DbContext
 
     public virtual DbSet<VentasProductosVariante> VentasProductosVariantes { get; set; }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
-        => optionsBuilder.UseSqlServer("Server=DESKTOP-3MT5F5F; Database=Sistema_Maite; Integrated Security=true; Trusted_Connection=True; Encrypt=False");
-
+ 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Banco>(entity =>
@@ -224,7 +236,9 @@ public partial class SistemaMaiteContext : DbContext
         {
             entity.ToTable("Clientes_Cobros");
 
-            entity.Property(e => e.Concepto).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Concepto)
+                .HasMaxLength(200)
+                .IsUnicode(false);
             entity.Property(e => e.Fecha).HasColumnType("date");
             entity.Property(e => e.Importe).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.NotaInterna)
@@ -318,6 +332,22 @@ public partial class SistemaMaiteContext : DbContext
                 .HasForeignKey(d => d.IdCompra)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Compras_Insumos_Compras");
+        });
+
+        modelBuilder.Entity<ComprasPago>(entity =>
+        {
+            entity.Property(e => e.Concepto)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+            entity.Property(e => e.Fecha).HasColumnType("date");
+            entity.Property(e => e.Importe).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.NotaInterna)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+
+            entity.HasOne(d => d.IdCompraNavigation).WithMany(p => p.ComprasPagos)
+                .HasForeignKey(d => d.IdCompra)
+                .HasConstraintName("FK_ComprasPagos_Compras");
         });
 
         modelBuilder.Entity<CondicionesIva>(entity =>
@@ -861,6 +891,26 @@ public partial class SistemaMaiteContext : DbContext
             entity.Property(e => e.Nombre)
                 .HasMaxLength(100)
                 .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<ProveedoresCuentaCorriente>(entity =>
+        {
+            entity.ToTable("Proveedores_CuentaCorriente");
+
+            entity.Property(e => e.Concepto)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+            entity.Property(e => e.Debe).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Fecha).HasColumnType("date");
+            entity.Property(e => e.Haber).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.TipoMov)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+
+            entity.HasOne(d => d.IdProveedorNavigation).WithMany(p => p.ProveedoresCuentaCorrientes)
+                .HasForeignKey(d => d.IdProveedor)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Proveedores_CuentaCorriente_Proveedores");
         });
 
         modelBuilder.Entity<Provincia>(entity =>

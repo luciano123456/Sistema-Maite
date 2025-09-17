@@ -15,11 +15,13 @@ public partial class ClientesCobro
 
     public int? IdCuentaCorriente { get; set; }
 
+    public int? IdCaja { get; set; }
+
     public DateTime Fecha { get; set; }
 
     public int IdCuenta { get; set; }
 
-    public decimal Concepto { get; set; }
+    public string Concepto { get; set; } = null!;
 
     public decimal Importe { get; set; }
 

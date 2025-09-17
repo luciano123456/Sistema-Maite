@@ -61,7 +61,7 @@ namespace SistemaMaite.Application.Controllers
                 var movimientos = cajas.Select(c => new VMCaja
                 {
                     Id = c.Id,
-                    IdSucursal = c.IdSucursal,
+                    IdSucursal = c.IdSucursal != null ? (int)c.IdSucursal : -1,
                     IdCuenta = c.IdCuenta,
                     Fecha = c.Fecha,
                     TipoMov = c.TipoMov,
@@ -71,7 +71,7 @@ namespace SistemaMaite.Application.Controllers
                     Egreso = c.Egreso,
                     Importe = c.Ingreso > 0 ? c.Ingreso : c.Egreso,
                     Cuenta = c.IdCuentaNavigation?.Nombre ?? "",
-                    Sucursal = c.IdSucursalNavigation?.Nombre ?? "",
+                    Sucursal = c.IdSucursal != null ? c.IdSucursalNavigation?.Nombre : "",
                     EsTransferencia = (c.Concepto ?? "").IndexOf("Transferencia", StringComparison.OrdinalIgnoreCase) >= 0,
                     PuedeEliminar = c.IdMov == null || (c.Concepto ?? "").Contains("Transferencia", StringComparison.OrdinalIgnoreCase)
                 }).ToList();
@@ -172,7 +172,7 @@ namespace SistemaMaite.Application.Controllers
             var vm = new VMCaja
             {
                 Id = c.Id,
-                IdSucursal = c.IdSucursal,
+                IdSucursal = (int)c.IdSucursal,
                 IdCuenta = c.IdCuenta,
                 Fecha = c.Fecha,
                 TipoMov = c.TipoMov,

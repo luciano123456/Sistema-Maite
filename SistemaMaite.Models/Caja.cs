@@ -7,7 +7,7 @@ public partial class Caja
 {
     public int Id { get; set; }
 
-    public int IdSucursal { get; set; }
+    public int? IdSucursal { get; set; }
 
     public int IdCuenta { get; set; }
 
