@@ -10,6 +10,8 @@
     <Content Remove="wwwroot\css\NavBarLogin.css~RF1f800e21.TMP" />
     <Content Remove="wwwroot\js\Cajas.js" />
     <Content Remove="wwwroot\js\Clientes.js" />
+    <Content Remove="wwwroot\js\Compras.js" />
+    <Content Remove="wwwroot\js\ComprasNuevoModif.js" />
     <Content Remove="wwwroot\js\CuentasCorrientes.js" />
     <Content Remove="wwwroot\js\Gastos.js" />
     <Content Remove="wwwroot\js\Insumos.js" />
@@ -35,7 +37,9 @@
     <None Include="wwwroot\js\Gastos.js" />
     <None Include="wwwroot\js\CuentasCorrientes.js" />
     <None Include="wwwroot\js\Insumos.js" />
+    <None Include="wwwroot\js\Compras.js" />
     <None Include="wwwroot\js\Proveedores.js" />
+    <None Include="wwwroot\js\ComprasNuevoModif.js" />
     <None Include="wwwroot\js\VentasNuevoModif.js" />
     <None Include="wwwroot\js\Ventas.js" />
     <None Include="wwwroot\js\PagosSueldosNuevoModif.js" />

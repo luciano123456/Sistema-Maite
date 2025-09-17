@@ -112,6 +112,8 @@ builder.Services.AddScoped<IInsumosService, InsumosService>();
 builder.Services.AddScoped<IProveedoresService, ProveedoresService>();
 builder.Services.AddScoped<IProveedoresRepository<Proveedor>, ProveedoresRepository>();
 
+builder.Services.AddScoped<IComprasRepository<Compra>, ComprasRepository>();
+builder.Services.AddScoped<IComprasService, ComprasService>();
 
 
 builder.Services.AddControllersWithViews()

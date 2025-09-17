@@ -328,7 +328,7 @@ namespace SistemaMaite.DAL.Repository
                         IdCuentaCorriente = ccDebe.Id,
                         Fecha = p.Fecha,
                         IdCuenta = p.IdCuenta,
-                        Concepto = 0m,
+                        Concepto = "",
                         Importe = p.Importe,
                         NotaInterna = p.NotaInterna
                     };
@@ -648,7 +648,7 @@ namespace SistemaMaite.DAL.Repository
                             IdCuentaCorriente = ent.IdCuentaCorriente,
                             Fecha = p.Fecha,
                             IdCuenta = p.IdCuenta,
-                            Concepto = 0m,
+                            Concepto = "",
                             Importe = p.Importe,
                             NotaInterna = p.NotaInterna
                         };

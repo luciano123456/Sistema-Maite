@@ -12,4 +12,6 @@ public partial class Proveedor
     public virtual ICollection<Compra> Compras { get; set; } = new List<Compra>();
 
     public virtual ICollection<Insumo> Insumos { get; set; } = new List<Insumo>();
+
+    public virtual ICollection<ProveedoresCuentaCorriente> ProveedoresCuentaCorrientes { get; set; } = new List<ProveedoresCuentaCorriente>();
 }

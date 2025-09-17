@@ -7,6 +7,8 @@ public partial class Compra
 {
     public int Id { get; set; }
 
+    public int? IdCuentaCorriente { get; set; }
+
     public int IdProveedor { get; set; }
 
     public DateTime Fecha { get; set; }
@@ -22,6 +24,8 @@ public partial class Compra
     public string NotaInterna { get; set; } = null!;
 
     public virtual ICollection<ComprasInsumo> ComprasInsumos { get; set; } = new List<ComprasInsumo>();
+
+    public virtual ICollection<ComprasPago> ComprasPagos { get; set; } = new List<ComprasPago>();
 
     public virtual Proveedor IdProveedorNavigation { get; set; } = null!;
 }
