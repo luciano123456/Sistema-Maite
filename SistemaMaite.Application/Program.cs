@@ -118,6 +118,8 @@ builder.Services.AddScoped<IComprasService, ComprasService>();
 builder.Services.AddScoped<ICuentasCorrientesProvRepository<ProveedoresCuentaCorriente>, CuentasCorrientesProvRepository>();
 builder.Services.AddScoped<ICuentasCorrientesProvService, CuentasCorrientesProvService>();
 
+builder.Services.AddScoped<IOrdenesCorteEstadosRepository<OrdenesCorteEstado>, OrdenesCorteEstadosRepository>();
+builder.Services.AddScoped<IOrdenesCorteEstadosService, OrdenesCorteEstadosService>();
 
 
 builder.Services.AddControllersWithViews()
