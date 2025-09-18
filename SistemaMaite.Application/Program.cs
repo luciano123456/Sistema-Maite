@@ -128,6 +128,9 @@ builder.Services.AddScoped<IOrdenesCorteEtapasEstadosService, OrdenesCorteEtapas
 builder.Services.AddScoped<IOrdenesCorteRepository, OrdenesCorteRepository>();
 builder.Services.AddScoped<IOrdenesCorteService, OrdenesCorteService>();
 
+builder.Services.AddScoped<ITalleresService, TalleresService>();
+builder.Services.AddScoped<ITalleresRepository<Taller>, TalleresRepository>();
+
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(o =>
     {
