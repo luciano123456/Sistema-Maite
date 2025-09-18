@@ -19,6 +19,8 @@
     <Content Remove="wwwroot\js\Inventario.js" />
     <Content Remove="wwwroot\js\Login.js" />
     <Content Remove="wwwroot\js\NavBarLogin.js" />
+    <Content Remove="wwwroot\js\OrdenesCorte.js" />
+    <Content Remove="wwwroot\js\OrdenesCorteNuevoModif.js" />
     <Content Remove="wwwroot\js\PagosSueldos.js" />
     <Content Remove="wwwroot\js\PagosSueldosNuevoModif.js" />
     <Content Remove="wwwroot\js\Personal.js" />
@@ -34,6 +36,8 @@
   <ItemGroup>
     <None Include="wwwroot\Imagenes\Clientes.png" />
     <None Include="wwwroot\js\Cajas.js" />
+    <None Include="wwwroot\js\OrdenesCorteNuevoModif.js" />
+    <None Include="wwwroot\js\OrdenesCorte.js" />
     <None Include="wwwroot\js\Inventario.js" />
     <None Include="wwwroot\js\Gastos.js" />
     <None Include="wwwroot\js\CuentasCorrientes.js" />
