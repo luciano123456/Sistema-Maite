@@ -115,6 +115,10 @@ builder.Services.AddScoped<IProveedoresRepository<Proveedor>, ProveedoresReposit
 builder.Services.AddScoped<IComprasRepository<Compra>, ComprasRepository>();
 builder.Services.AddScoped<IComprasService, ComprasService>();
 
+builder.Services.AddScoped<ICuentasCorrientesProvRepository<ProveedoresCuentaCorriente>, CuentasCorrientesProvRepository>();
+builder.Services.AddScoped<ICuentasCorrientesProvService, CuentasCorrientesProvService>();
+
+
 
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(o =>
