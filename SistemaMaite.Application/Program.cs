@@ -122,6 +122,10 @@ builder.Services.AddScoped<IOrdenesCorteEstadosRepository<OrdenesCorteEstado>, O
 builder.Services.AddScoped<IOrdenesCorteEstadosService, OrdenesCorteEstadosService>();
 
 
+builder.Services.AddScoped<IOrdenesCorteEtapasEstadosRepository<OrdenesCorteEtapasEstado>, OrdenesCorteEtapasEstadosRepository>();
+builder.Services.AddScoped<IOrdenesCorteEtapasEstadosService, OrdenesCorteEtapasEstadosService>();
+
+
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(o =>
     {
