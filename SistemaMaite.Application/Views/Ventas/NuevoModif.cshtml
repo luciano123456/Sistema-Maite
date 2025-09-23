@@ -37,11 +37,23 @@
                     </div>
                     <div class="col-md-8">
                         <label class="form-label">Cliente</label>
-                        <select id="cmbCliente" class="form-select" required>
-                            <option value="">Seleccione</option>
-                        </select>
+
+                        <div class="d-flex align-items-stretch gap-2">
+                            <select id="cmbCliente" class="form-select flex-grow-1" required>
+                                <option value="">Seleccione</option>
+                            </select>
+
+                            <button type="button"
+                                    class="btn btn-success btn-plus"
+                                    title="Nuevo cliente"
+                                    onclick="abrirModalNuevoClienteVenta()">
+                                <i class="fa fa-plus"></i>
+                            </button>
+                        </div>
+
                         <div class="invalid-feedback">Campo obligatorio</div>
                     </div>
+
                     <div class="col-md-6">
                         <label class="form-label">Vendedor</label>
                         <select id="cmbVendedor" class="form-select" required>
@@ -241,6 +253,86 @@
         </div>
     </div>
 </div>
+
+
+<!-- Modal: Cliente Rápido -->
+<div class="modal fade" id="modalClienteRapido" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content card-glass">
+      <div class="modal-header border-0">
+        <h5 class="modal-title">
+          <i class="fa fa-user-plus me-2 text-info"></i>Nuevo cliente
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <form id="formClienteRapido" class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Nombre</label>
+            <input type="text" id="cr_Nombre" class="form-control" required>
+            <div class="invalid-feedback">Campo obligatorio</div>
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Teléfono</label>
+            <input type="text" id="cr_Telefono" class="form-control">
+          </div>
+
+          <div class="col-md-3">
+            <label class="form-label">Email</label>
+            <input type="email" id="cr_Email" class="form-control">
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">DNI</label>
+            <input type="text" id="cr_Dni" class="form-control">
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">CUIT</label>
+            <input type="text" id="cr_Cuit" class="form-control">
+          </div>
+
+          <div class="col-md-4">
+            <label class="form-label">Condición IVA</label>
+            <select id="cr_CondIva" class="form-select" required>
+              <option value="">Seleccione</option>
+            </select>
+            <div class="invalid-feedback">Campo obligatorio</div>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Lista de Precios</label>
+            <select id="cr_ListaPrecio" class="form-select" required>
+              <option value="">Seleccione</option>
+            </select>
+            <div class="invalid-feedback">Campo obligatorio</div>
+          </div>
+
+          <div class="col-md-6">
+            <label class="form-label">Domicilio</label>
+            <input type="text" id="cr_Domicilio" class="form-control">
+          </div>
+
+          <div id="cr_Error" class="alert alert-danger d-none col-12">
+            Completá los campos obligatorios.
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer border-0">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">
+          <i class="fa fa-times me-1"></i> Cancelar
+        </button>
+        <button class="btn btn-success" onclick="guardarClienteRapido()">
+          <i class="fa fa-check me-1"></i> Registrar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 <!-- Modal Pago -->
 <div class="modal fade" id="modalPago" tabindex="-1" aria-hidden="true">
