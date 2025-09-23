@@ -9,6 +9,7 @@ let gridPagos = null;
 let isSaving = false;
 let wasSubmitVenta = false; // feedback sólo después de intentar guardar
 let wasSubmitPago = false;  // feedback en modal pago después de intentar registrar
+let __wasSubmitClienteRapido = false;
 
 const State = {
     idVenta: parseInt((document.getElementById("txtId")?.value || "0"), 10) || 0,
@@ -944,4 +945,182 @@ async function exportarVentaPdf() {
     const suc = (sucursalTexto || "Sucursal").replace(/[^\w\s-]/g, "").trim().replace(/\s+/g, "_");
     const nombre = `Comprobante_Venta_${formatearFechaParaVista(fecha)}_${suc}.pdf`;
     doc.save(nombre);
+}
+
+
+async function abrirModalNuevoClienteVenta() {
+    try {
+        __wasSubmitClienteRapido = false;
+
+        // limpiar (antes de init)
+        resetClienteRapidoForm();
+
+        // cargar combos
+        const rIva = await fetch("/CondicionesIva/Lista", { headers: { Authorization: "Bearer " + (token || "") } });
+        const condIva = rIva.ok ? await rIva.json() : [];
+        const selIva = document.getElementById("cr_CondIva");
+        selIva.innerHTML = `<option value="">Seleccione</option>` +
+            condIva.map(x => `<option value="${x.Id}">${x.Nombre || x.Descripcion || ("Cond IVA " + x.Id)}</option>`).join("");
+
+        if (!Array.isArray(State.listas) || State.listas.length === 0) await cargarListasPrecios();
+        const selLP = document.getElementById("cr_ListaPrecio");
+        selLP.innerHTML = `<option value="">Seleccione</option>` +
+            (State.listas || []).map(x => `<option value="${x.Id}">${x.Nombre || x.Descripcion || ("Lista " + x.Id)}</option>`).join("");
+
+        // init select2 con dropdown en el modal
+        if ($.fn.select2) {
+            initSelect2Base("#cr_CondIva", { dropdownParent: $("#modalClienteRapido") });
+            initSelect2Base("#cr_ListaPrecio", { dropdownParent: $("#modalClienteRapido") });
+            removeEmptyOptionOnSelect("#cr_CondIva");
+            removeEmptyOptionOnSelect("#cr_ListaPrecio");
+        }
+
+        // prefijar lista de precios con la de la venta
+        if (State.listaPrecioId) {
+            selLP.value = String(State.listaPrecioId);
+            if ($.fn.select2) $("#cr_ListaPrecio").val(String(State.listaPrecioId)).trigger("change.select2");
+        }
+
+        // limpiar validación una vez inicializado (también para select2)
+        ["#cr_Nombre", "#cr_CondIva", "#cr_ListaPrecio"].forEach(clearValidation);
+
+        // live validation
+        attachClienteRapidoLiveValidation();
+
+        new bootstrap.Modal(document.getElementById("modalClienteRapido")).show();
+    } catch (e) {
+        console.error(e);
+        errorModal?.("No se pudo abrir el alta rápida de cliente.");
+    }
+}
+
+function validarClienteRapido() {
+    let ok = true;
+    const nombre = document.getElementById("cr_Nombre")?.value.trim();
+    const condIva = document.getElementById("cr_CondIva")?.value;
+    const listaPrecio = document.getElementById("cr_ListaPrecio")?.value;
+
+    ok = (nombre ? setValid("#cr_Nombre") : setInvalid("#cr_Nombre")) && ok;
+    ok = (condIva ? setValid("#cr_CondIva") : setInvalid("#cr_CondIva")) && ok;
+    ok = (listaPrecio ? setValid("#cr_ListaPrecio") : setInvalid("#cr_ListaPrecio")) && ok;
+
+    document.getElementById("cr_Error")?.classList.toggle("d-none", ok);
+    return ok;
+}
+
+async function guardarClienteRapido() {
+    try {
+        __wasSubmitClienteRapido = true;
+        if (!validarClienteRapido()) return;
+
+        const payload = {
+            Id: 0,
+            Nombre: document.getElementById("cr_Nombre").value.trim(),
+            Telefono: document.getElementById("cr_Telefono").value.trim(),
+            TelefonoAlternativo: "",
+            Dni: document.getElementById("cr_Dni").value.trim(),
+            Cuit: document.getElementById("cr_Cuit").value.trim(),
+            IdCondicionIva: document.getElementById("cr_CondIva").value || null,
+            Domicilio: document.getElementById("cr_Domicilio").value.trim(),
+            IdProvincia: null,
+            Localidad: "",
+            Email: document.getElementById("cr_Email").value.trim(),
+            CodigoPostal: "",
+            IdListaPrecio: document.getElementById("cr_ListaPrecio").value || null
+        };
+
+        const res = await fetch("/Clientes/Insertar", {
+            method: "POST",
+            headers: { Authorization: "Bearer " + (token || ""), "Content-Type": "application/json;charset=utf-8" },
+            body: JSON.stringify(payload)
+        });
+        if (!res.ok) throw new Error("No se pudo registrar el cliente.");
+        const j = await res.json();
+
+        await cargarClientes();
+
+        let newId = (j?.Id || j?.id || j?.valor?.Id || 0);
+        if (!newId) {
+            const candidatos = (State.clientes || []).filter(c => (c.Nombre || "").trim().toLowerCase() === payload.Nombre.toLowerCase());
+            if (candidatos.length) newId = Math.max(...candidatos.map(c => c.Id));
+        }
+
+        if (newId) {
+            const cmb = document.getElementById("cmbCliente");
+            cmb.value = String(newId);
+            if ($.fn.select2) $("#cmbCliente").val(String(newId)).trigger("change.select2");
+            State.clienteId = newId;
+            clearValidation("#cmbCliente");
+        }
+
+        // si cambió LP en el alta, reflejar en la venta
+        const selLP = document.getElementById("cr_ListaPrecio");
+        if (selLP?.value && Number(selLP.value) !== Number(State.listaPrecioId)) {
+            const cmbLP = document.getElementById("cmbListaPrecio");
+            cmbLP.value = selLP.value;
+            if ($.fn.select2) $("#cmbListaPrecio").val(selLP.value).trigger("change.select2");
+            State.listaPrecioId = Number(selLP.value);
+            if (State.items.length) { State.items = []; refrescarItems(); recalcularTotales(); }
+        }
+
+        exitoModal?.("Cliente registrado correctamente");
+        bootstrap.Modal.getInstance(document.getElementById("modalClienteRapido"))?.hide();
+        updateGates();
+    } catch (e) {
+        console.error(e);
+        errorModal?.(e.message || "Error al registrar el cliente.");
+    }
+}
+function resetClienteRapidoForm() {
+    // valores
+    ["#cr_Nombre", "#cr_Telefono", "#cr_Email", "#cr_Dni", "#cr_Cuit", "#cr_Domicilio"].forEach(sel => {
+        const el = document.querySelector(sel);
+        if (el) el.value = "";
+    });
+    // limpiar validaciones (nativo + select2)
+    ["#cr_Nombre", "#cr_CondIva", "#cr_ListaPrecio"].forEach(clearValidation);
+    const err = document.getElementById("cr_Error");
+    if (err) err.classList.add("d-none");
+}
+
+function attachClienteRapidoLiveValidation() {
+    // desengancho por si se abrió antes
+    $(document)
+        .off("input.cr change.cr", "#cr_Nombre,#cr_Telefono,#cr_Email,#cr_Dni,#cr_Cuit,#cr_Domicilio,#cr_CondIva,#cr_ListaPrecio");
+
+    const applySingle = (sel) => {
+        if (!__wasSubmitClienteRapido) return;
+        if (sel === "#cr_Nombre") {
+            document.querySelector(sel).value.trim() ? setValid(sel) : setInvalid(sel);
+        } else if (sel === "#cr_CondIva" || sel === "#cr_ListaPrecio") {
+            document.querySelector(sel).value ? setValid(sel) : setInvalid(sel);
+        }
+        // ocultar banner si todo OK
+        document.getElementById("cr_Error")?.classList.toggle("d-none", validarClienteRapido(true));
+    };
+
+    // inputs comunes
+    ["#cr_Nombre", "#cr_Telefono", "#cr_Email", "#cr_Dni", "#cr_Cuit", "#cr_Domicilio"].forEach(sel => {
+        $(document).on("input.cr change.cr", sel, () => applySingle(sel));
+    });
+
+    // selects (nativo + select2)
+    ["#cr_CondIva", "#cr_ListaPrecio"].forEach(sel => {
+        $(document).on("change.cr", sel, () => applySingle(sel));
+        if ($.fn.select2) {
+            $(sel).on("select2:select select2:clear", () => applySingle(sel));
+        }
+    });
+}
+
+function validarClienteRapido(soloCheck = false) {
+    let ok = true;
+    ok = (document.getElementById("cr_Nombre").value.trim() ? setValid("#cr_Nombre") : setInvalid("#cr_Nombre")) && ok;
+    ok = (document.getElementById("cr_CondIva").value ? setValid("#cr_CondIva") : setInvalid("#cr_CondIva")) && ok;
+    ok = (document.getElementById("cr_ListaPrecio").value ? setValid("#cr_ListaPrecio") : setInvalid("#cr_ListaPrecio")) && ok;
+
+    if (!soloCheck) {
+        document.getElementById("cr_Error")?.classList.toggle("d-none", ok);
+    }
+    return ok;
 }
