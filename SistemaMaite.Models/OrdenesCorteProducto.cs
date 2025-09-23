@@ -13,7 +13,7 @@ public partial class OrdenesCorteProducto
 
     public int Cantidad { get; set; }
 
-    public virtual ICollection<OrdenCorteProductosVariante> OrdenCorteProductosVariantes { get; set; } = new List<OrdenCorteProductosVariante>();
+    public virtual OrdenesCorte IdOrdenCorteNavigation { get; set; } = null!;
 
-    public virtual OrdenesCorte? OrdenesCorte { get; set; }
+    public virtual ICollection<OrdenCorteProductosVariante> OrdenCorteProductosVariantes { get; set; } = new List<OrdenCorteProductosVariante>();
 }

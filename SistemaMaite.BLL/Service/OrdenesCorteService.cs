@@ -1,5 +1,4 @@
-﻿// SistemaMaite.BLL/Service/OrdenesCorteService.cs
-using SistemaMaite.DAL.Repository;
+﻿using SistemaMaite.DAL.Repository;
 using SistemaMaite.Models;
 
 namespace SistemaMaite.BLL.Service
@@ -14,15 +13,20 @@ namespace SistemaMaite.BLL.Service
 
         public Task<OrdenesCorte?> Obtener(int id) => _repo.Obtener(id);
 
-        public Task<bool> InsertarConDetalles(OrdenesCorte orden, OrdenesCorteProducto producto,
-                                              IEnumerable<OrdenCorteProductosVariante> variantes,
-                                              IEnumerable<OrdenesCorteInsumo> insumos)
-            => _repo.InsertarConDetalles(orden, producto, variantes, insumos);
+        public Task<List<OrdenesCorteEtapa>> ObtenerEtapasPorOrden(int idCorte)
+            => _repo.ObtenerEtapasPorOrden(idCorte);
 
-        public Task<bool> ActualizarConDetalles(OrdenesCorte orden, OrdenesCorteProducto producto,
-                                                IEnumerable<OrdenCorteProductosVariante> variantes,
-                                                IEnumerable<OrdenesCorteInsumo> insumos)
-            => _repo.ActualizarConDetalles(orden, producto, variantes, insumos);
+        public Task<bool> InsertarConDetalles(OrdenesCorte orden,
+                                              IEnumerable<OrdenesCorteProducto> productos,
+                                              IEnumerable<OrdenesCorteInsumo> insumos,
+                                              IEnumerable<OrdenesCorteEtapa> etapas)
+            => _repo.InsertarConDetalles(orden, productos, insumos, etapas);
+
+        public Task<bool> ActualizarConDetalles(OrdenesCorte orden,
+                                                IEnumerable<OrdenesCorteProducto> productos,
+                                                IEnumerable<OrdenesCorteInsumo> insumos,
+                                                IEnumerable<OrdenesCorteEtapa> etapas)
+            => _repo.ActualizarConDetalles(orden, productos, insumos, etapas);
 
         public Task<bool> Eliminar(int id) => _repo.Eliminar(id);
 

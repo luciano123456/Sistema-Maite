@@ -1,5 +1,4 @@
-﻿// SistemaMaite.BLL/Service/IOrdenesCorteService.cs
-using SistemaMaite.Models;
+﻿using SistemaMaite.Models;
 
 namespace SistemaMaite.BLL.Service
 {
@@ -7,16 +6,19 @@ namespace SistemaMaite.BLL.Service
     {
         Task<List<OrdenesCorte>> Listar(DateTime? desde, DateTime? hasta, int? idEstado, string? texto);
         Task<OrdenesCorte?> Obtener(int id);
+        Task<List<OrdenesCorteEtapa>> ObtenerEtapasPorOrden(int idCorte);
 
-        Task<bool> InsertarConDetalles(OrdenesCorte orden,
-                                       OrdenesCorteProducto producto,
-                                       IEnumerable<OrdenCorteProductosVariante> variantes,
-                                       IEnumerable<OrdenesCorteInsumo> insumos);
+        Task<bool> InsertarConDetalles(
+            OrdenesCorte orden,
+            IEnumerable<OrdenesCorteProducto> productos,
+            IEnumerable<OrdenesCorteInsumo> insumos,
+            IEnumerable<OrdenesCorteEtapa> etapas);
 
-        Task<bool> ActualizarConDetalles(OrdenesCorte orden,
-                                         OrdenesCorteProducto producto,
-                                         IEnumerable<OrdenCorteProductosVariante> variantes,
-                                         IEnumerable<OrdenesCorteInsumo> insumos);
+        Task<bool> ActualizarConDetalles(
+            OrdenesCorte orden,
+            IEnumerable<OrdenesCorteProducto> productos,
+            IEnumerable<OrdenesCorteInsumo> insumos,
+            IEnumerable<OrdenesCorteEtapa> etapas);
 
         Task<bool> Eliminar(int id);
 

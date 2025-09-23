@@ -9,6 +9,8 @@ public partial class OrdenesCorteEtapa
 
     public int IdTaller { get; set; }
 
+    public int IdCorte { get; set; }
+
     public DateTime FechaEntrada { get; set; }
 
     public DateTime FechaSalidaAproximada { get; set; }
@@ -26,6 +28,8 @@ public partial class OrdenesCorteEtapa
     public int IdEstado { get; set; }
 
     public string? NotaInterna { get; set; }
+
+    public virtual OrdenesCorte IdCorteNavigation { get; set; } = null!;
 
     public virtual OrdenesCorteEtapasEstado IdEstadoNavigation { get; set; } = null!;
 
