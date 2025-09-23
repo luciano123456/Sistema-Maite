@@ -1,7 +1,7 @@
-﻿// SistemaMaite.DAL/Repository/OrdenesCorteRepository.cs
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using SistemaMaite.DAL.DataContext;
 using SistemaMaite.Models;
+using System.Linq;
 
 namespace SistemaMaite.DAL.Repository
 {
@@ -14,16 +14,16 @@ namespace SistemaMaite.DAL.Repository
         {
             var q = _db.OrdenesCortes
                 .Include(o => o.IdEstadoNavigation)
-                .Include(o => o.IdNavigation) // OrdenesCorteProducto
+                .Include(o => o.OrdenesCorteInsumos).ThenInclude(i => i.IdInsumoNavigation)
+                .Include(o => o.OrdenesCorteProductos)
                     .ThenInclude(p => p.OrdenCorteProductosVariantes)
-                        .ThenInclude(v => v.IdProductoNavigation) // para tener Descripcion
-                .Include(o => o.OrdenesCorteInsumos)
-                    .ThenInclude(i => i.IdInsumoNavigation)
+                        .ThenInclude(v => v.IdProductoNavigation) // descripción de producto por variante
                 .AsNoTracking()
                 .AsQueryable();
 
             if (desde.HasValue) q = q.Where(x => x.FechaInicio >= desde.Value.Date);
             if (hasta.HasValue) q = q.Where(x => x.FechaInicio <= hasta.Value.Date.AddDays(1).AddTicks(-1));
+
             if (idEstado.HasValue && idEstado > 0) q = q.Where(x => x.IdEstado == idEstado.Value);
 
             if (!string.IsNullOrWhiteSpace(texto))
@@ -31,9 +31,9 @@ namespace SistemaMaite.DAL.Repository
                 var t = texto.Trim();
                 q = q.Where(x =>
                     EF.Functions.Like(x.IdEstadoNavigation.Nombre, $"%{t}%") ||
-                    (x.IdNavigation != null &&
-                     x.IdNavigation.OrdenCorteProductosVariantes.Any(v =>
-                         EF.Functions.Like(v.IdProductoNavigation.Descripcion, $"%{t}%"))));
+                    x.OrdenesCorteProductos.Any(p =>
+                        p.OrdenCorteProductosVariantes.Any(v =>
+                            EF.Functions.Like(v.IdProductoNavigation.Descripcion, $"%{t}%"))));
             }
 
             return await q.OrderByDescending(x => x.FechaInicio)
@@ -45,51 +45,158 @@ namespace SistemaMaite.DAL.Repository
         {
             return _db.OrdenesCortes
                 .Include(o => o.IdEstadoNavigation)
-                .Include(o => o.IdNavigation)
+                .Include(o => o.OrdenesCorteInsumos).ThenInclude(i => i.IdInsumoNavigation)
+
+                // Producto (para Descripcion)
+                .Include(o => o.OrdenesCorteProductos)
                     .ThenInclude(p => p.OrdenCorteProductosVariantes)
-                        .ThenInclude(v => v.IdProductoVarianteNavigation) // para Color/Talle
-                .Include(o => o.IdNavigation)
+                        .ThenInclude(v => v.IdProductoNavigation)
+
+                // Variante -> Color -> Catálogo
+                .Include(o => o.OrdenesCorteProductos)
                     .ThenInclude(p => p.OrdenCorteProductosVariantes)
-                        .ThenInclude(v => v.IdProductoNavigation) // para Descripción de producto
-                .Include(o => o.OrdenesCorteInsumos)
-                    .ThenInclude(i => i.IdInsumoNavigation)
+                        .ThenInclude(v => v.IdProductoVarianteNavigation)
+                            .ThenInclude(pv => pv.IdColorNavigation)
+                                .ThenInclude(pc => pc.IdColorNavigation)
+
+                // Variante -> Talle -> Catálogo
+                .Include(o => o.OrdenesCorteProductos)
+                    .ThenInclude(p => p.OrdenCorteProductosVariantes)
+                        .ThenInclude(v => v.IdProductoVarianteNavigation)
+                            .ThenInclude(pv => pv.IdTalleNavigation)
+                                .ThenInclude(pt => pt.IdTalleNavigation)
+
+                .Include(o => o.OrdenesCorteEtapas).ThenInclude(e => e.IdTallerNavigation)
+                .Include(o => o.OrdenesCorteEtapas).ThenInclude(e => e.IdEstadoNavigation)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(o => o.Id == id);
         }
 
+
+
+
+        // PRODUCTOS + VARIANTES (con nombres de producto, color y talle)
+        public Task<List<OrdenesCorteProducto>> ObtenerProductosPorOrden(int idCorte)
+        {
+            return _db.OrdenesCorteProductos
+                .Where(p => p.IdOrdenCorte == idCorte)
+                // Variantes -> Producto (para Descripcion del producto)
+                .Include(p => p.OrdenCorteProductosVariantes)
+                    .ThenInclude(v => v.IdProductoNavigation)
+                // Variantes -> ProductoVariante -> Color -> Color (catálogo)
+                .Include(p => p.OrdenCorteProductosVariantes)
+                    .ThenInclude(v => v.IdProductoVarianteNavigation)
+                        .ThenInclude(pv => pv.IdColorNavigation)
+                            .ThenInclude(pc => pc.IdColorNavigation)
+                // Variantes -> ProductoVariante -> Talle -> Talle (catálogo)
+                .Include(p => p.OrdenCorteProductosVariantes)
+                    .ThenInclude(v => v.IdProductoVarianteNavigation)
+                        .ThenInclude(pv => pv.IdTalleNavigation)
+                            .ThenInclude(pt => pt.IdTalleNavigation)
+                .AsNoTracking()
+                .ToListAsync();
+        }
+
+        // INSUMOS (con descripción)
+        public Task<List<OrdenesCorteInsumo>> ObtenerInsumosPorOrden(int idCorte)
+        {
+            return _db.OrdenesCorteInsumos
+                .Where(i => i.IdCorte == idCorte)
+                .Include(i => i.IdInsumoNavigation)
+                .AsNoTracking()
+                .ToListAsync();
+        }
+
+        public Task<List<OrdenesCorteEtapa>> ObtenerEtapasPorOrden(int idCorte)
+        {
+            return _db.OrdenesCorteEtapas
+                .Include(e => e.IdTallerNavigation)
+                .Include(e => e.IdEstadoNavigation)
+                .AsNoTracking()
+                .Where(e => e.IdCorte == idCorte)
+                .OrderByDescending(e => e.FechaEntrada)
+                .ToListAsync();
+        }
+
+
         public async Task<bool> InsertarConDetalles(
             OrdenesCorte orden,
-            OrdenesCorteProducto producto,
-            IEnumerable<OrdenCorteProductosVariante> variantes,
-            IEnumerable<OrdenesCorteInsumo> insumos)
+            IEnumerable<OrdenesCorteProducto> productos,
+            IEnumerable<OrdenesCorteInsumo> insumos,
+            IEnumerable<OrdenesCorteEtapa> etapas)
         {
+            if (orden == null) throw new ArgumentNullException(nameof(orden));
+            _db.ChangeTracker.Clear();
+
             using var trx = await _db.Database.BeginTransactionAsync();
             try
             {
                 // 1) Cabecera
+                orden.Id = 0;
                 _db.OrdenesCortes.Add(orden);
-                await _db.SaveChangesAsync();
+                await _db.SaveChangesAsync(); // orden.Id
 
-                // 2) Producto
-                producto.IdOrdenCorte = orden.Id;
-                _db.OrdenesCorteProductos.Add(producto);
-                await _db.SaveChangesAsync();
-
-                // 3) Variantes
-                foreach (var v in (variantes ?? Enumerable.Empty<OrdenCorteProductosVariante>()))
+                // Optimización opcional
+                var prev = _db.ChangeTracker.AutoDetectChangesEnabled;
+                _db.ChangeTracker.AutoDetectChangesEnabled = false;
+                try
                 {
-                    v.IdOrdenCorteProducto = producto.Id;
-                    _db.OrdenCorteProductosVariantes.Add(v);
-                }
-                await _db.SaveChangesAsync();
+                    // 2) Productos + Variantes
+                    foreach (var p in (productos ?? Enumerable.Empty<OrdenesCorteProducto>()))
+                    {
+                        var variantes = p.OrdenCorteProductosVariantes?.ToList() ?? new List<OrdenCorteProductosVariante>();
+                        p.OrdenCorteProductosVariantes = null;
 
-                // 4) Insumos
-                foreach (var i in (insumos ?? Enumerable.Empty<OrdenesCorteInsumo>()))
-                {
-                    i.IdCorte = orden.Id;
-                    _db.OrdenesCorteInsumos.Add(i);
+                        p.Id = 0;
+                        p.IdOrdenCorte = orden.Id;
+                        _db.OrdenesCorteProductos.Add(p);
+                        await _db.SaveChangesAsync(); // p.Id
+
+                        if (variantes.Count > 0)
+                        {
+                            foreach (var v in variantes)
+                            {
+                                v.Id = 0;
+                                v.IdOrdenCorteProducto = p.Id;
+                            }
+                            _db.OrdenCorteProductosVariantes.AddRange(variantes);
+                            await _db.SaveChangesAsync();
+                        }
+                    }
+
+                    // 3) Insumos
+                    var insList = (insumos ?? Enumerable.Empty<OrdenesCorteInsumo>()).ToList();
+                    if (insList.Any())
+                    {
+                        foreach (var i in insList)
+                        {
+                            i.Id = 0;
+                            i.IdCorte = orden.Id;
+                        }
+                        _db.OrdenesCorteInsumos.AddRange(insList);
+                        await _db.SaveChangesAsync();
+                    }
+
+                    // 4) Etapas
+                    var etList = (etapas ?? Enumerable.Empty<OrdenesCorteEtapa>()).ToList();
+                    if (etList.Any())
+                    {
+                        foreach (var e in etList)
+                        {
+                            e.Id = 0;
+                            e.IdCorte = orden.Id;
+                            e.DiasReales = e.FechaSalidaReal.HasValue
+                                ? (int)(e.FechaSalidaReal.Value.Date - e.FechaEntrada.Date).TotalDays
+                                : null;
+                        }
+                        _db.OrdenesCorteEtapas.AddRange(etList);
+                        await _db.SaveChangesAsync();
+                    }
                 }
-                await _db.SaveChangesAsync();
+                finally
+                {
+                    _db.ChangeTracker.AutoDetectChangesEnabled = prev;
+                }
 
                 await trx.CommitAsync();
                 return true;
@@ -97,23 +204,30 @@ namespace SistemaMaite.DAL.Repository
             catch
             {
                 await trx.RollbackAsync();
-                return false;
+                throw;
             }
         }
 
         public async Task<bool> ActualizarConDetalles(
-            OrdenesCorte orden,
-            OrdenesCorteProducto producto,
-            IEnumerable<OrdenCorteProductosVariante> variantes,
-            IEnumerable<OrdenesCorteInsumo> insumos)
+      OrdenesCorte orden,
+      IEnumerable<OrdenesCorteProducto> productos,
+      IEnumerable<OrdenesCorteInsumo> insumos,
+      IEnumerable<OrdenesCorteEtapa> etapas)
         {
             using var trx = await _db.Database.BeginTransactionAsync();
             try
             {
-                // Cabecera
-                var ent = await _db.OrdenesCortes.FirstOrDefaultAsync(o => o.Id == orden.Id);
+                // Cargar entidad con hijos
+                var ent = await _db.OrdenesCortes
+                    .Include(o => o.OrdenesCorteProductos)
+                        .ThenInclude(p => p.OrdenCorteProductosVariantes)
+                    .Include(o => o.OrdenesCorteInsumos)
+                    .Include(o => o.OrdenesCorteEtapas)
+                    .FirstOrDefaultAsync(o => o.Id == orden.Id);
+
                 if (ent is null) return false;
 
+                // -------- Cabecera --------
                 ent.IdPersonal = orden.IdPersonal;
                 ent.IdEstado = orden.IdEstado;
                 ent.FechaInicio = orden.FechaInicio;
@@ -128,56 +242,162 @@ namespace SistemaMaite.DAL.Repository
                 ent.CantidadCapas = orden.CantidadCapas;
                 ent.HoraInicioCorte = orden.HoraInicioCorte;
                 ent.HoraFinCorte = orden.HoraFinCorte;
-                await _db.SaveChangesAsync();
 
-                // Producto (1 solo por orden)
-                var prodEx = await _db.OrdenesCorteProductos
-                    .FirstOrDefaultAsync(p => p.IdOrdenCorte == ent.Id);
+                // Materializar entradas
+                var inProds = (productos ?? Enumerable.Empty<OrdenesCorteProducto>()).ToList();
+                var inIns = (insumos ?? Enumerable.Empty<OrdenesCorteInsumo>()).ToList();
+                var inEt = (etapas ?? Enumerable.Empty<OrdenesCorteEtapa>()).ToList();
 
-                if (prodEx is null)
+                // ======================= PRODUCTOS =======================
+                var incomingProdIds = inProds.Where(p => p.Id > 0).Select(p => p.Id).ToHashSet();
+
+                // Eliminar productos quitados (y sus variantes)
+                var prodsToDelete = ent.OrdenesCorteProductos.Where(p => !incomingProdIds.Contains(p.Id)).ToList();
+                if (prodsToDelete.Any())
                 {
-                    producto.IdOrdenCorte = ent.Id;
-                    _db.OrdenesCorteProductos.Add(producto);
-                    await _db.SaveChangesAsync();
-                    prodEx = producto;
-                }
-                else
-                {
-                    prodEx.IdProducto = producto.IdProducto;
-                    prodEx.Cantidad = producto.Cantidad;
-                    await _db.SaveChangesAsync();
+                    var varsDel = prodsToDelete.SelectMany(p => p.OrdenCorteProductosVariantes).ToList();
+                    if (varsDel.Any()) _db.OrdenCorteProductosVariantes.RemoveRange(varsDel);
+                    _db.OrdenesCorteProductos.RemoveRange(prodsToDelete);
                 }
 
-                // Variantes: reemplazo simple (limpio y re-inserto)
-                var exVars = await _db.OrdenCorteProductosVariantes
-                    .Where(v => v.IdOrdenCorteProducto == prodEx.Id)
-                    .ToListAsync();
-                if (exVars.Any())
+                foreach (var inP in inProds)
                 {
-                    _db.OrdenCorteProductosVariantes.RemoveRange(exVars);
-                    await _db.SaveChangesAsync();
-                }
-                foreach (var v in (variantes ?? Enumerable.Empty<OrdenCorteProductosVariante>()))
-                {
-                    v.IdOrdenCorteProducto = prodEx.Id;
-                    _db.OrdenCorteProductosVariantes.Add(v);
-                }
-                await _db.SaveChangesAsync();
+                    OrdenesCorteProducto target;
 
-                // Insumos: reemplazo simple
-                var exIns = await _db.OrdenesCorteInsumos
-                    .Where(i => i.IdCorte == ent.Id)
-                    .ToListAsync();
-                if (exIns.Any())
-                {
-                    _db.OrdenesCorteInsumos.RemoveRange(exIns);
-                    await _db.SaveChangesAsync();
+                    if (inP.Id > 0)
+                    {
+                        // Update item existente
+                        target = ent.OrdenesCorteProductos.First(p => p.Id == inP.Id);
+                        target.IdProducto = inP.IdProducto;
+                        target.Cantidad = inP.Cantidad;
+                    }
+                    else
+                    {
+                        // Insert item nuevo
+                        target = new OrdenesCorteProducto
+                        {
+                            IdOrdenCorte = ent.Id,
+                            IdProducto = inP.IdProducto,
+                            Cantidad = inP.Cantidad
+                        };
+                        _db.OrdenesCorteProductos.Add(target);
+                        ent.OrdenesCorteProductos.Add(target);
+
+                        // *** CLAVE: persistir para obtener target.Id antes de variantes ***
+                        await _db.SaveChangesAsync();
+                    }
+
+                    // Upsert de variantes del item
+                    var inVars = (inP.OrdenCorteProductosVariantes ?? Enumerable.Empty<OrdenCorteProductosVariante>()).ToList();
+                    var incomingVarIds = inVars.Where(v => v.Id > 0).Select(v => v.Id).ToHashSet();
+
+                    var exVars = await _db.OrdenCorteProductosVariantes
+                        .Where(v => v.IdOrdenCorteProducto == target.Id)
+                        .ToListAsync();
+
+                    // Eliminar variantes quitadas (por Id o por “natural key” IdProductoVariante si vinieron nuevas sin Id)
+                    var varsToDelete = exVars.Where(ev =>
+                        !incomingVarIds.Contains(ev.Id) &&
+                        !inVars.Any(iv => iv.Id == 0 && iv.IdProductoVariante == ev.IdProductoVariante)
+                    ).ToList();
+                    if (varsToDelete.Any()) _db.OrdenCorteProductosVariantes.RemoveRange(varsToDelete);
+
+                    // Add/Update
+                    foreach (var iv in inVars)
+                    {
+                        var ex = exVars.FirstOrDefault(ev => ev.Id == iv.Id) ??
+                                 exVars.FirstOrDefault(ev => iv.Id == 0 && ev.IdProductoVariante == iv.IdProductoVariante);
+
+                        if (ex is null)
+                        {
+                            _db.OrdenCorteProductosVariantes.Add(new OrdenCorteProductosVariante
+                            {
+                                IdOrdenCorteProducto = target.Id,   // ya tiene Id seguro
+                                IdProducto = iv.IdProducto,
+                                IdProductoVariante = iv.IdProductoVariante,
+                                Cantidad = iv.Cantidad
+                            });
+                        }
+                        else
+                        {
+                            ex.IdProducto = iv.IdProducto;
+                            ex.IdProductoVariante = iv.IdProductoVariante;
+                            ex.Cantidad = iv.Cantidad;
+                        }
+                    }
                 }
-                foreach (var i in (insumos ?? Enumerable.Empty<OrdenesCorteInsumo>()))
+
+                // ======================= INSUMOS =======================
+                var incomingInsIds = inIns.Where(i => i.Id > 0).Select(i => i.Id).ToHashSet();
+
+                var insToDelete = ent.OrdenesCorteInsumos.Where(i => !incomingInsIds.Contains(i.Id)).ToList();
+                if (insToDelete.Any()) _db.OrdenesCorteInsumos.RemoveRange(insToDelete);
+
+                foreach (var inI in inIns)
                 {
-                    i.IdCorte = ent.Id;
-                    _db.OrdenesCorteInsumos.Add(i);
+                    if (inI.Id > 0)
+                    {
+                        var ex = ent.OrdenesCorteInsumos.First(i => i.Id == inI.Id);
+                        ex.IdInsumo = inI.IdInsumo;
+                        ex.Cantidad = inI.Cantidad;
+                    }
+                    else
+                    {
+                        _db.OrdenesCorteInsumos.Add(new OrdenesCorteInsumo
+                        {
+                            IdCorte = ent.Id,
+                            IdInsumo = inI.IdInsumo,
+                            Cantidad = inI.Cantidad
+                        });
+                    }
                 }
+
+                // ======================= ETAPAS =======================
+                var incomingEtIds = inEt.Where(e => e.Id > 0).Select(e => e.Id).ToHashSet();
+
+                var etToDelete = ent.OrdenesCorteEtapas.Where(e => !incomingEtIds.Contains(e.Id)).ToList();
+                if (etToDelete.Any()) _db.OrdenesCorteEtapas.RemoveRange(etToDelete);
+
+                int? CalcDias(DateTime? salidaReal, DateTime entrada)
+                    => salidaReal.HasValue ? (int?)(salidaReal.Value.Date - entrada.Date).TotalDays : null;
+
+                foreach (var inE in inEt)
+                {
+                    if (inE.Id > 0)
+                    {
+                        var ex = ent.OrdenesCorteEtapas.First(e => e.Id == inE.Id);
+                        ex.IdTaller = inE.IdTaller;
+                        ex.IdCorte = ent.Id; // por consistencia
+                        ex.FechaEntrada = inE.FechaEntrada;
+                        ex.FechaSalidaAproximada = inE.FechaSalidaAproximada;
+                        ex.FechaSalidaReal = inE.FechaSalidaReal;
+                        ex.DiasReales = CalcDias(inE.FechaSalidaReal, inE.FechaEntrada);
+                        ex.CantidadProducir = inE.CantidadProducir;
+                        ex.CantidadProducidas = inE.CantidadProducidas;
+                        ex.Diferencias = inE.Diferencias;
+                        ex.IdEstado = inE.IdEstado;
+                        ex.NotaInterna = inE.NotaInterna;
+                    }
+                    else
+                    {
+                        _db.OrdenesCorteEtapas.Add(new OrdenesCorteEtapa
+                        {
+                            IdTaller = inE.IdTaller,
+                            IdCorte = ent.Id,
+                            FechaEntrada = inE.FechaEntrada,
+                            FechaSalidaAproximada = inE.FechaSalidaAproximada,
+                            FechaSalidaReal = inE.FechaSalidaReal,
+                            DiasReales = CalcDias(inE.FechaSalidaReal, inE.FechaEntrada),
+                            CantidadProducir = inE.CantidadProducir,
+                            CantidadProducidas = inE.CantidadProducidas,
+                            Diferencias = inE.Diferencias,
+                            IdEstado = inE.IdEstado,
+                            NotaInterna = inE.NotaInterna
+                        });
+                    }
+                }
+
+                // Persistir todo lo pendiente
                 await _db.SaveChangesAsync();
 
                 await trx.CommitAsync();
@@ -190,6 +410,8 @@ namespace SistemaMaite.DAL.Repository
             }
         }
 
+
+
         public async Task<bool> Eliminar(int id)
         {
             using var trx = await _db.Database.BeginTransactionAsync();
@@ -198,17 +420,20 @@ namespace SistemaMaite.DAL.Repository
                 var orden = await _db.OrdenesCortes.FirstOrDefaultAsync(o => o.Id == id);
                 if (orden is null) return false;
 
-                var prod = await _db.OrdenesCorteProductos.FirstOrDefaultAsync(p => p.IdOrdenCorte == id);
-                if (prod != null)
+                var prods = await _db.OrdenesCorteProductos.Where(p => p.IdOrdenCorte == id).ToListAsync();
+                if (prods.Any())
                 {
-                    var vars = await _db.OrdenCorteProductosVariantes
-                        .Where(v => v.IdOrdenCorteProducto == prod.Id).ToListAsync();
+                    var prodIds = prods.Select(p => p.Id).ToList();
+                    var vars = await _db.OrdenCorteProductosVariantes.Where(v => prodIds.Contains(v.IdOrdenCorteProducto)).ToListAsync();
                     if (vars.Any()) _db.OrdenCorteProductosVariantes.RemoveRange(vars);
-                    _db.OrdenesCorteProductos.Remove(prod);
+                    _db.OrdenesCorteProductos.RemoveRange(prods);
                 }
 
                 var ins = await _db.OrdenesCorteInsumos.Where(i => i.IdCorte == id).ToListAsync();
                 if (ins.Any()) _db.OrdenesCorteInsumos.RemoveRange(ins);
+
+                var ets = await _db.OrdenesCorteEtapas.Where(e => e.IdCorte == id).ToListAsync();
+                if (ets.Any()) _db.OrdenesCorteEtapas.RemoveRange(ets);
 
                 _db.OrdenesCortes.Remove(orden);
                 await _db.SaveChangesAsync();

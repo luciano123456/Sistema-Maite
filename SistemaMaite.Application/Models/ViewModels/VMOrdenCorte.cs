@@ -1,5 +1,4 @@
-﻿// SistemaMaite.Application/Models/ViewModels/VMOrdenesCorte.cs
-using System;
+﻿using System;
 using System.Collections.Generic;
 
 namespace SistemaMaite.Application.Models.ViewModels
@@ -24,14 +23,11 @@ namespace SistemaMaite.Application.Models.ViewModels
         public DateTime? HoraInicioCorte { get; set; }
         public DateTime? HoraFinCorte { get; set; }
 
-        // Lectura
         public string Estado { get; set; } = "";
 
-        // Producto + Variantes
-        public VMOrdenCorteProducto Producto { get; set; } = new();
-
-        // Insumos
+        public List<VMOrdenCorteProducto> Productos { get; set; } = new();
         public List<VMOrdenCorteInsumo> Insumos { get; set; } = new();
+        public List<VMOrdenCorteEtapa> Etapas { get; set; } = new();
     }
 
     public class VMOrdenCorteProducto
@@ -39,9 +35,7 @@ namespace SistemaMaite.Application.Models.ViewModels
         public int Id { get; set; }
         public int IdProducto { get; set; }
         public int Cantidad { get; set; }
-
         public string Producto { get; set; } = "";
-
         public List<VMOrdenCorteProductoVariante> Variantes { get; set; } = new();
     }
 
@@ -51,8 +45,6 @@ namespace SistemaMaite.Application.Models.ViewModels
         public int IdProducto { get; set; }
         public int IdProductoVariante { get; set; }
         public int Cantidad { get; set; }
-
-        // lectura
         public string Color { get; set; } = "";
         public string Talle { get; set; } = "";
     }
@@ -62,8 +54,26 @@ namespace SistemaMaite.Application.Models.ViewModels
         public int Id { get; set; }
         public int IdInsumo { get; set; }
         public int Cantidad { get; set; }
-
-        // lectura
         public string Insumo { get; set; } = "";
+    }
+
+    public class VMOrdenCorteEtapa
+    {
+        public int Id { get; set; }
+        public int IdTaller { get; set; }
+        public DateTime FechaEntrada { get; set; }
+        public DateTime FechaSalidaAproximada { get; set; }
+        public DateTime? FechaSalidaReal { get; set; }
+        public int? DiasReales { get; set; }
+        public decimal CantidadProducir { get; set; }
+        public decimal CantidadProducidas { get; set; }
+        public decimal Diferencias { get; set; }
+        public int IdEstado { get; set; }
+        public string? NotaInterna { get; set; }
+        public string? Estado { get; set; }
+
+        // lectura opcional
+        public string Taller { get; set; } = "";
+        public string EstadoEtapa { get; set; } = "";
     }
 }

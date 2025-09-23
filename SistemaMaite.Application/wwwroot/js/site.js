@@ -144,6 +144,47 @@ function formatearFechaParaVista(fecha) {
     return m.isValid() ? m.format('DD/MM/YYYY') : '';
 }
 
+function formatearFechaParaVistaConHora(fecha) {
+    const m = moment(fecha, [moment.ISO_8601, 'YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DD']);
+    return m.isValid() ? m.format('DD/MM/YYYY HH:mm:ss') : '';
+}
+
+
+function formatearHoraParaInput(valor) {
+    if (!valor) return '';
+    const m = moment(valor, [
+        moment.ISO_8601,
+        'YYYY-MM-DD HH:mm:ss',
+        'YYYY-MM-DDTHH:mm:ss',
+        'HH:mm:ss',
+        'HH:mm'
+    ], true);
+    return m.isValid() ? m.format('HH:mm') : '';
+}
+
+
+// --- Hora a INPUT <input type="time"> ---
+function hInput(valor) {
+    if (typeof formatearHoraParaInput === "function") return formatearHoraParaInput(valor);
+    const m = moment(valor, [moment.ISO_8601, 'YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DDTHH:mm:ss', 'HH:mm:ss', 'HH:mm'], true);
+    return m.isValid() ? m.format('HH:mm') : '';
+}
+
+// --- Hora para vista (HH:mm) ---
+function hView(valor) {
+    const m = moment(valor, [moment.ISO_8601, 'YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DDTHH:mm:ss', 'HH:mm:ss', 'HH:mm'], true);
+    return m.isValid() ? m.format('HH:mm') : '';
+}
+
+// --- Fecha y hora para vista (DD/MM/YYYY HH:mm:ss) ---
+function fhView(valor) {
+    if (typeof formatearFechaParaVistaConHora === "function") return formatearFechaParaVistaConHora(valor);
+    const m = moment(valor, [moment.ISO_8601, 'YYYY-MM-DD HH:mm:ss', 'YYYY-MM-DDTHH:mm:ss', 'YYYY-MM-DD', 'HH:mm:ss', 'HH:mm'], true);
+    return m.isValid() ? m.format('DD/MM/YYYY HH:mm:ss') : '';
+}
+
+
+
 function formatearMiles(valor) {
     let num = String(valor).replace(/\D/g, '');
     return num.replace(/\B(?=(\d{3})+(?!\d))/g, ".");

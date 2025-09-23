@@ -12,13 +12,13 @@ public partial class SistemaMaiteContext : DbContext
     {
     }
 
-    private readonly IConfiguration _configuration;
-
-
     public SistemaMaiteContext(DbContextOptions<SistemaMaiteContext> options)
         : base(options)
     {
     }
+
+    private readonly IConfiguration _configuration;
+
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -133,7 +133,6 @@ public partial class SistemaMaiteContext : DbContext
 
     public virtual DbSet<VentasProductosVariante> VentasProductosVariantes { get; set; }
 
- 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Banco>(entity =>
@@ -162,7 +161,6 @@ public partial class SistemaMaiteContext : DbContext
 
             entity.HasOne(d => d.IdSucursalNavigation).WithMany(p => p.Cajas)
                 .HasForeignKey(d => d.IdSucursal)
-                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Cajas_Sucursales");
         });
 
@@ -557,8 +555,6 @@ public partial class SistemaMaiteContext : DbContext
         {
             entity.ToTable("Orden_Corte_Productos_Variantes");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
-
             entity.HasOne(d => d.IdOrdenCorteProductoNavigation).WithMany(p => p.OrdenCorteProductosVariantes)
                 .HasForeignKey(d => d.IdOrdenCorteProducto)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -579,7 +575,6 @@ public partial class SistemaMaiteContext : DbContext
         {
             entity.ToTable("Ordenes_Corte");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
             entity.Property(e => e.AnchoTizada).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.CantidadCapas).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.CantidadFinalReal).HasColumnType("decimal(18, 2)");
@@ -592,11 +587,6 @@ public partial class SistemaMaiteContext : DbContext
             entity.Property(e => e.HoraFinCorte).HasColumnType("datetime");
             entity.Property(e => e.HoraInicioCorte).HasColumnType("datetime");
             entity.Property(e => e.LargoTizada).HasColumnType("decimal(18, 2)");
-
-            entity.HasOne(d => d.IdNavigation).WithOne(p => p.OrdenesCorte)
-                .HasForeignKey<OrdenesCorte>(d => d.Id)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Ordenes_Corte_Ordenes_Corte_Productos");
 
             entity.HasOne(d => d.IdEstadoNavigation).WithMany(p => p.OrdenesCortes)
                 .HasForeignKey(d => d.IdEstado)
@@ -627,6 +617,11 @@ public partial class SistemaMaiteContext : DbContext
                 .HasMaxLength(200)
                 .IsUnicode(false);
 
+            entity.HasOne(d => d.IdCorteNavigation).WithMany(p => p.OrdenesCorteEtapas)
+                .HasForeignKey(d => d.IdCorte)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Ordenes_Corte_Etapas_Ordenes_Corte");
+
             entity.HasOne(d => d.IdEstadoNavigation).WithMany(p => p.OrdenesCorteEtapas)
                 .HasForeignKey(d => d.IdEstado)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -651,8 +646,6 @@ public partial class SistemaMaiteContext : DbContext
         {
             entity.ToTable("Ordenes_Corte_Insumos");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
-
             entity.HasOne(d => d.IdCorteNavigation).WithMany(p => p.OrdenesCorteInsumos)
                 .HasForeignKey(d => d.IdCorte)
                 .OnDelete(DeleteBehavior.ClientSetNull)
@@ -668,7 +661,10 @@ public partial class SistemaMaiteContext : DbContext
         {
             entity.ToTable("Ordenes_Corte_Productos");
 
-            entity.Property(e => e.Id).ValueGeneratedNever();
+            entity.HasOne(d => d.IdOrdenCorteNavigation).WithMany(p => p.OrdenesCorteProductos)
+                .HasForeignKey(d => d.IdOrdenCorte)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Ordenes_Corte_Productos_Ordenes_Corte");
         });
 
         modelBuilder.Entity<Personal>(entity =>

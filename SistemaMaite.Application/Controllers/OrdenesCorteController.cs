@@ -1,10 +1,9 @@
-﻿// SistemaMaite.Application/Controllers/OrdenesCorteController.cs
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using SistemaMaite.Application.Models.ViewModels;
 using SistemaMaite.BLL.Service;
 using SistemaMaite.Models;
+using System.Linq;
 
 namespace SistemaMaite.Application.Controllers
 {
@@ -15,7 +14,12 @@ namespace SistemaMaite.Application.Controllers
         public OrdenesCorteController(IOrdenesCorteService srv) { _srv = srv; }
 
         public IActionResult Index() => View();
-        public IActionResult NuevoModif(int? id) { if (id.HasValue) ViewBag.Data = id.Value; return View(); }
+
+        public IActionResult NuevoModif(int? id)
+        {
+            if (id.HasValue) ViewBag.Data = id.Value;
+            return View();
+        }
 
         // -------- Listado ----------
         [HttpGet]
@@ -40,15 +44,7 @@ namespace SistemaMaite.Application.Controllers
                 CantidadCapas = o.CantidadCapas,
                 HoraInicioCorte = o.HoraInicioCorte,
                 HoraFinCorte = o.HoraFinCorte,
-                Estado = o.IdEstadoNavigation?.Nombre ?? "",
-                Producto = o.IdNavigation == null ? new VMOrdenCorteProducto() : new VMOrdenCorteProducto
-                {
-                    Id = o.IdNavigation.Id,
-                    IdProducto = o.IdNavigation.IdProducto,
-                    Cantidad = o.IdNavigation.Cantidad,
-                    Producto = o.IdNavigation.OrdenCorteProductosVariantes
-                        .FirstOrDefault()?.IdProductoNavigation?.Descripcion ?? "" // si querés mostrar algo
-                }
+                Estado = o.IdEstadoNavigation?.Nombre ?? ""
             }).ToList();
 
             return Ok(vm);
@@ -60,6 +56,19 @@ namespace SistemaMaite.Application.Controllers
         {
             var o = await _srv.Obtener(id);
             if (o is null) return NotFound();
+
+            var etapas = await _srv.ObtenerEtapasPorOrden(id);
+
+            // helpers locales para leer nombres con fallback (directo o doble hop)
+            static string GetColorNombre(OrdenCorteProductosVariante v) =>
+                v?.IdProductoVarianteNavigation?.IdColorNavigation?.IdColorNavigation?.Nombre
+                ?? v?.IdProductoVarianteNavigation?.IdColorNavigation.IdColorNavigation.Nombre
+                ?? "";
+
+            static string GetTalleNombre(OrdenCorteProductosVariante v) =>
+                v?.IdProductoVarianteNavigation?.IdTalleNavigation?.IdTalleNavigation?.Nombre
+                ?? v?.IdProductoVarianteNavigation?.IdTalleNavigation.IdTalleNavigation.Nombre
+                ?? "";
 
             var vm = new VMOrdenCorte
             {
@@ -79,24 +88,33 @@ namespace SistemaMaite.Application.Controllers
                 HoraInicioCorte = o.HoraInicioCorte,
                 HoraFinCorte = o.HoraFinCorte,
                 Estado = o.IdEstadoNavigation?.Nombre ?? "",
-                Producto = o.IdNavigation == null ? new VMOrdenCorteProducto() : new VMOrdenCorteProducto
-                {
-                    Id = o.IdNavigation.Id,
-                    IdProducto = o.IdNavigation.IdProducto,
-                    Cantidad = o.IdNavigation.Cantidad,
-                    Producto = o.IdNavigation.OrdenCorteProductosVariantes
-                        .FirstOrDefault()?.IdProductoNavigation?.Descripcion ?? "",
-                    Variantes = (o.IdNavigation.OrdenCorteProductosVariantes ?? new List<OrdenCorteProductosVariante>())
-                        .Select(v => new VMOrdenCorteProductoVariante
-                        {
-                            Id = v.Id,
-                            IdProducto = v.IdProducto,
-                            IdProductoVariante = v.IdProductoVariante,
-                            Cantidad = v.Cantidad,
-                            Color = v.IdProductoVarianteNavigation?.IdColorNavigation?.IdColorNavigation?.Nombre ?? "",
-                            Talle = v.IdProductoVarianteNavigation?.IdTalleNavigation?.IdTalleNavigation?.Nombre ?? ""
-                        }).ToList()
-                },
+
+                Productos = (o.OrdenesCorteProductos ?? new List<OrdenesCorteProducto>())
+                    .Select(p => new VMOrdenCorteProducto
+                    {
+                        Id = p.Id,
+                        IdProducto = p.IdProducto,
+                        Cantidad = p.Cantidad,
+
+                        // Nombre del producto: lo tomo de cualquier variante (todas apuntan al mismo producto)
+                        Producto = p.OrdenCorteProductosVariantes?
+                                      .Select(v => v.IdProductoNavigation?.Descripcion)
+                                      .FirstOrDefault() ?? "",
+
+                        Variantes = (p.OrdenCorteProductosVariantes ?? new List<OrdenCorteProductosVariante>())
+                            .Select(v => new VMOrdenCorteProductoVariante
+                            {
+                                Id = v.Id,
+                                IdProducto = v.IdProducto,
+                                IdProductoVariante = v.IdProductoVariante,
+                                Cantidad = v.Cantidad,
+                                Color = GetColorNombre(v),
+                                Talle = GetTalleNombre(v)
+                            })
+                            .ToList()
+                    })
+                    .ToList(),
+
                 Insumos = (o.OrdenesCorteInsumos ?? new List<OrdenesCorteInsumo>())
                     .Select(i => new VMOrdenCorteInsumo
                     {
@@ -104,7 +122,25 @@ namespace SistemaMaite.Application.Controllers
                         IdInsumo = i.IdInsumo,
                         Cantidad = i.Cantidad,
                         Insumo = i.IdInsumoNavigation?.Descripcion ?? ""
-                    }).ToList()
+                    })
+                    .ToList(),
+
+                Etapas = etapas.Select(e => new VMOrdenCorteEtapa
+                {
+                    Id = e.Id,
+                    IdTaller = e.IdTaller,
+                    FechaEntrada = e.FechaEntrada,
+                    FechaSalidaAproximada = e.FechaSalidaAproximada,
+                    FechaSalidaReal = e.FechaSalidaReal,
+                    DiasReales = e.DiasReales,
+                    CantidadProducir = e.CantidadProducir,
+                    CantidadProducidas = e.CantidadProducidas,
+                    Diferencias = e.Diferencias,
+                    IdEstado = e.IdEstado,
+                    NotaInterna = e.NotaInterna,
+                    Taller = e.IdTallerNavigation?.Nombre ?? "",
+                    Estado = e.IdEstadoNavigation?.Nombre ?? ""
+                }).ToList()
             };
 
             return Ok(vm);
@@ -115,10 +151,11 @@ namespace SistemaMaite.Application.Controllers
         public async Task<IActionResult> Insertar([FromBody] VMOrdenCorte vm)
         {
             var orden = MapOrden(vm);
-            var (prod, vars) = MapProducto(vm.Producto);
+            var productos = MapProductos(vm.Productos);
             var insumos = MapInsumos(vm);
+            var etapas = MapEtapas(vm);
 
-            var ok = await _srv.InsertarConDetalles(orden, prod, vars, insumos);
+            var ok = await _srv.InsertarConDetalles(orden, productos, insumos, etapas);
             return Ok(new { valor = ok });
         }
 
@@ -127,10 +164,11 @@ namespace SistemaMaite.Application.Controllers
         public async Task<IActionResult> Actualizar([FromBody] VMOrdenCorte vm)
         {
             var orden = MapOrden(vm);
-            var (prod, vars) = MapProducto(vm.Producto);
+            var productos = MapProductos(vm.Productos);
             var insumos = MapInsumos(vm);
+            var etapas = MapEtapas(vm);
 
-            var ok = await _srv.ActualizarConDetalles(orden, prod, vars, insumos);
+            var ok = await _srv.ActualizarConDetalles(orden, productos, insumos, etapas);
             return Ok(new { valor = ok });
         }
 
@@ -142,7 +180,7 @@ namespace SistemaMaite.Application.Controllers
             return Ok(new { valor = ok });
         }
 
-        // --------- Catálogo estados (para combos) ----------
+        // --------- Catálogo estados ----------
         [HttpGet]
         public async Task<IActionResult> Estados()
         {
@@ -150,7 +188,7 @@ namespace SistemaMaite.Application.Controllers
             return Ok(list.Select(e => new { e.Id, e.Nombre }));
         }
 
-        // ------------- mappers privados -------------
+        // ---------- mappers privados ----------
         private static OrdenesCorte MapOrden(VMOrdenCorte vm) => new OrdenesCorte
         {
             Id = vm.Id,
@@ -170,28 +208,31 @@ namespace SistemaMaite.Application.Controllers
             HoraFinCorte = vm.HoraFinCorte
         };
 
-        private static (OrdenesCorteProducto prod, List<OrdenCorteProductosVariante> vars)
-            MapProducto(VMOrdenCorteProducto vm)
+        private static List<OrdenesCorteProducto> MapProductos(List<VMOrdenCorteProducto> vms)
         {
-            var prod = new OrdenesCorteProducto
+            var list = new List<OrdenesCorteProducto>();
+            foreach (var vm in vms ?? new())
             {
-                Id = vm.Id,
-                IdProducto = vm.IdProducto,
-                Cantidad = vm.Cantidad
-            };
-
-            var vars = new List<OrdenCorteProductosVariante>();
-            foreach (var v in vm.Variantes ?? new())
-            {
-                vars.Add(new OrdenCorteProductosVariante
+                var p = new OrdenesCorteProducto
                 {
-                    Id = v.Id,
-                    IdProducto = v.IdProducto,
-                    IdProductoVariante = v.IdProductoVariante,
-                    Cantidad = v.Cantidad
-                });
+                    Id = vm.Id,
+                    IdProducto = vm.IdProducto,
+                    Cantidad = vm.Cantidad,
+                    OrdenCorteProductosVariantes = new List<OrdenCorteProductosVariante>()
+                };
+                foreach (var v in vm.Variantes ?? new())
+                {
+                    p.OrdenCorteProductosVariantes.Add(new OrdenCorteProductosVariante
+                    {
+                        Id = v.Id,
+                        IdProducto = v.IdProducto,
+                        IdProductoVariante = v.IdProductoVariante,
+                        Cantidad = v.Cantidad
+                    });
+                }
+                list.Add(p);
             }
-            return (prod, vars);
+            return list;
         }
 
         private static List<OrdenesCorteInsumo> MapInsumos(VMOrdenCorte vm)
@@ -204,6 +245,30 @@ namespace SistemaMaite.Application.Controllers
                     Id = i.Id,
                     IdInsumo = i.IdInsumo,
                     Cantidad = i.Cantidad
+                });
+            }
+            return list;
+        }
+
+        private static List<OrdenesCorteEtapa> MapEtapas(VMOrdenCorte vm)
+        {
+            var list = new List<OrdenesCorteEtapa>();
+            foreach (var e in vm.Etapas ?? new())
+            {
+                list.Add(new OrdenesCorteEtapa
+                {
+                    Id = e.Id,
+                    IdTaller = e.IdTaller,
+                    FechaEntrada = e.FechaEntrada,
+                    FechaSalidaAproximada = e.FechaSalidaAproximada,
+                    FechaSalidaReal = e.FechaSalidaReal,
+                    DiasReales = e.DiasReales,
+                    CantidadProducir = e.CantidadProducir,
+                    CantidadProducidas = e.CantidadProducidas,
+                    Diferencias = e.Diferencias,
+                    IdEstado = e.IdEstado,
+                    NotaInterna = e.NotaInterna
+                    // IdCorte se setea en el repo cuando ya sabemos el Id de la orden
                 });
             }
             return list;

@@ -98,14 +98,14 @@ async function configurarDataTableOC(data) {
                 },
                 { data: "FechaInicio", title: "Fecha", render: f => formatearFechaParaVista(f) },
                 { data: "Estado", title: "Estado" }, // <- string que arma el Controller (Estado = OrdenesCorteEstado.Nombre)
-                { data: "CantidadProducir", title: "A producir", className: "text-end", render: n => formatNumber(n) },
-                { data: "CantidadProducidas", title: "Producidas", className: "text-end", render: n => formatNumber(n) },
-                { data: "DiferenciaCorte", title: "Diferencia", className: "text-end", render: n => formatNumber(n) },
-                { data: "CantidadCapas", title: "Capas", className: "text-end", render: n => formatNumber(n) },
-                { data: "LargoTizada", title: "Largo", className: "text-end", render: n => formatNumber(n) },
-                { data: "AnchoTizada", title: "Ancho", className: "text-end", render: n => formatNumber(n) },
-                { data: "HoraInicioCorte", title: "Inicio Corte", render: f => f ? formatearFechaParaVista(f) : "" },
-                { data: "HoraFinCorte", title: "Fin Corte", render: f => f ? formatearFechaParaVista(f) : "" },
+                { data: "CantidadProducir", title: "A producir", className: "text-center", render: n => formatNumber(n) },
+                { data: "CantidadProducidas", title: "Producidas", className: "text-center", render: n => formatNumber(n) },
+                { data: "DiferenciaCorte", title: "Diferencia", className: "text-center", render: n => formatNumber(n) },
+                { data: "CantidadCapas", title: "Capas", className: "text-center", render: n => formatNumber(n) },
+                { data: "LargoTizada", title: "Largo", className: "text-center", render: n => formatNumber(n) },
+                { data: "AnchoTizada", title: "Ancho", className: "text-center", render: n => formatNumber(n) },
+                { data: "HoraInicioCorte", title: "Inicio Corte", render: f => f ? hView(f) : "" },
+                { data: "HoraFinCorte", title: "Fin Corte", render: f => f ? hView(f) : "" },
             ],
             dom: 'Bfrtip',
             buttons: [
@@ -270,3 +270,28 @@ function escapeRegex(text) {
     return String(text).replace(/[.*+?^${}()|[\\]\\]/g, '\\$&');
 }
 // =================================================================
+
+
+// --- Solo hora para vista (HH:mm) ---
+function hView(valor) {
+    const m = moment(valor, [
+        moment.ISO_8601,
+        'YYYY-MM-DD HH:mm:ss',
+        'YYYY-MM-DDTHH:mm:ss',
+        'HH:mm:ss',
+        'HH:mm'
+    ], true);
+    return m.isValid() ? m.format('HH:mm') : '';
+}
+
+// --- Valor numérico para ordenar por hora (minutos desde 00:00) ---
+function hSort(valor) {
+    const m = moment(valor, [
+        moment.ISO_8601,
+        'YYYY-MM-DD HH:mm:ss',
+        'YYYY-MM-DDTHH:mm:ss',
+        'HH:mm:ss',
+        'HH:mm'
+    ], true);
+    return m.isValid() ? (m.hours() * 60 + m.minutes()) : -1;
+}
