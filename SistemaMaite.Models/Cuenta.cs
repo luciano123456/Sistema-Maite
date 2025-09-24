@@ -20,4 +20,6 @@ public partial class Cuenta
     public virtual ICollection<Gasto> Gastos { get; set; } = new List<Gasto>();
 
     public virtual ICollection<PersonalSueldosPago> PersonalSueldosPagos { get; set; } = new List<PersonalSueldosPago>();
+
+    public virtual ICollection<TalleresPago> TalleresPagos { get; set; } = new List<TalleresPago>();
 }

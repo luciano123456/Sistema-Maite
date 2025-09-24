@@ -58,7 +58,7 @@ namespace SistemaMaite.Application.Models.ViewModels
         public string Nombre { get; set; } = "";     // "Color / Talle"
     }
 
-    // ===== Transferencias entre sucursales =====
+    // ===== Transferencias entre Sucursales =====
     public class VMInvTransferencia
     {
         public int Id { get; set; }                  // 0 si es nueva
@@ -136,4 +136,46 @@ namespace SistemaMaite.Application.Models.ViewModels
         public decimal Saldo { get; set; }            // calculado
         public string Sucursal { get; set; } = "";
     }
+
+    // VM para seleccionar OC y sus variantes
+    public class VMOCVariante
+    {
+        public int IdProducto { get; set; }
+        public int IdProductoVariante { get; set; }
+        public string Variante { get; set; } = "";
+    }
+
+    public class VMIngresoDesdeOC
+    {
+        public int IdSucursal { get; set; }
+        public int IdOrdenCorte { get; set; }
+        public DateTime Fecha { get; set; }
+        public string? Nota { get; set; }
+        // Cantidades a ingresar por variante (el usuario las tipea)
+        public List<VMOCLinea> Variantes { get; set; } = new();
+    }
+    public class VMOCLinea
+    {
+        public int IdProducto { get; set; }
+        public int IdProductoVariante { get; set; }
+        public int Cantidad { get; set; } // entero
+    }
+
+
+    public class VMIngresoDesdeOP
+    {
+        public int IdSucursal { get; set; }
+        public int IdOrdenCompra { get; set; }
+        public DateTime Fecha { get; set; }
+        public string? Nota { get; set; }
+        public List<VMIngresoLinea> Variantes { get; set; } = new();
+    }
+
+    public class VMIngresoLinea
+    {
+        public int IdProducto { get; set; }
+        public int IdProductoVariante { get; set; }
+        public int Cantidad { get; set; }
+    }
+
 }

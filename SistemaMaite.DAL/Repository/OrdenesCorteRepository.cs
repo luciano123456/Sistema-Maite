@@ -420,11 +420,70 @@ namespace SistemaMaite.DAL.Repository
                 var orden = await _db.OrdenesCortes.FirstOrDefaultAsync(o => o.Id == id);
                 if (orden is null) return false;
 
+                // ===== 1) Revertir ingreso de stock por OC (si existiera) =====
+                const string TIPOMOV_OC = "INGRESO_OC";
+
+                var movsOC = await _db.InventarioMovimientos
+                    .Where(m => m.TipoMov == TIPOMOV_OC && m.IdMov == id)
+                    .ToListAsync();
+
+                if (movsOC.Any())
+                {
+                    foreach (var m in movsOC)
+                    {
+                        // devolver el stock (en el ingreso original sumamos Entrada)
+                        var inv = await _db.Inventarios.FirstOrDefaultAsync(i => i.Id == m.IdInventario);
+                        if (inv != null)
+                        {
+                            inv.Cantidad -= m.Entrada;
+                            _db.Inventarios.Update(inv);
+                        }
+
+                        _db.InventarioMovimientos.Remove(m);
+                    }
+
+                    await _db.SaveChangesAsync();
+
+                    // (opcional) Si usás las tablas de "ingreso OC", borrarlas también
+                    var ingresos = await _db.InventarioIngresosOrdenesCortes
+                        .Where(i => i.IdOrdenCorte == id)
+                        .ToListAsync();
+
+                    if (ingresos.Any())
+                    {
+                        var ingresoIds = ingresos.Select(i => i.Id).ToList();
+
+                        var ingProds = await _db.InventarioIngresosOrdenesCorteProductos
+                            .Where(p => ingresoIds.Contains(p.IdIngreso))
+                            .ToListAsync();
+
+                        if (ingProds.Any())
+                        {
+                            var ingProdIds = ingProds.Select(p => p.Id).ToList();
+
+                            var ingVars = await _db.InventarioIngresosOrdenesCorteProductosVariantes
+                                .Where(v => ingProdIds.Contains(v.IdIngresoProducto))
+                                .ToListAsync();
+
+                            if (ingVars.Any())
+                                _db.InventarioIngresosOrdenesCorteProductosVariantes.RemoveRange(ingVars);
+
+                            _db.InventarioIngresosOrdenesCorteProductos.RemoveRange(ingProds);
+                        }
+
+                        _db.InventarioIngresosOrdenesCortes.RemoveRange(ingresos);
+                        await _db.SaveChangesAsync();
+                    }
+                }
+
+                // ===== 2) Borrar detalle de la OC (productos/variantes, insumos, etapas) =====
                 var prods = await _db.OrdenesCorteProductos.Where(p => p.IdOrdenCorte == id).ToListAsync();
                 if (prods.Any())
                 {
                     var prodIds = prods.Select(p => p.Id).ToList();
-                    var vars = await _db.OrdenCorteProductosVariantes.Where(v => prodIds.Contains(v.IdOrdenCorteProducto)).ToListAsync();
+                    var vars = await _db.OrdenCorteProductosVariantes
+                        .Where(v => prodIds.Contains(v.IdOrdenCorteProducto))
+                        .ToListAsync();
                     if (vars.Any()) _db.OrdenCorteProductosVariantes.RemoveRange(vars);
                     _db.OrdenesCorteProductos.RemoveRange(prods);
                 }
@@ -435,6 +494,7 @@ namespace SistemaMaite.DAL.Repository
                 var ets = await _db.OrdenesCorteEtapas.Where(e => e.IdCorte == id).ToListAsync();
                 if (ets.Any()) _db.OrdenesCorteEtapas.RemoveRange(ets);
 
+                // ===== 3) Borrar cabecera =====
                 _db.OrdenesCortes.Remove(orden);
                 await _db.SaveChangesAsync();
 
@@ -447,6 +507,7 @@ namespace SistemaMaite.DAL.Repository
                 return false;
             }
         }
+
 
         public Task<List<OrdenesCorteEstado>> ObtenerEstados()
             => _db.OrdenesCorteEstados.AsNoTracking().OrderBy(e => e.Nombre).ToListAsync();

@@ -12,4 +12,8 @@ public partial class Taller
     public int DiasEntrega { get; set; }
 
     public virtual ICollection<OrdenesCorteEtapa> OrdenesCorteEtapas { get; set; } = new List<OrdenesCorteEtapa>();
+
+    public virtual ICollection<TalleresCuentaCorriente> TalleresCuentaCorrientes { get; set; } = new List<TalleresCuentaCorriente>();
+
+    public virtual ICollection<TalleresPago> TalleresPagos { get; set; } = new List<TalleresPago>();
 }

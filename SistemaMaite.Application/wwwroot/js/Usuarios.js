@@ -14,18 +14,18 @@ const columnConfig = [
     { index: 8, filterType: 'select', fetchDataFunc: listaEstadosFilter }  // Estado
 ];
 
-// --------- Catálogos / Estado selección sucursales ----------
-const Catalogos = { sucursales: [], sucursalesMap: new Map() };
+// --------- Catálogos / Estado selección Sucursales ----------
+const Catalogos = { Sucursales: [], SucursalesMap: new Map() };
 const MultiState = (window.MultiState || {});
-MultiState.sucursales = MultiState.sucursales || new Set();
+MultiState.Sucursales = MultiState.Sucursales || new Set();
 
-function getSucursalesSeleccionadas() { return [...MultiState.sucursales].map(Number); }
+function getSucursalesSeleccionadas() { return [...MultiState.Sucursales].map(Number); }
 
-// --------- Checklist sucursales ----------
+// --------- Checklist Sucursales ----------
 function updateChecklistButtonLabel(btnId, map, emptyText) {
     const btn = document.getElementById(btnId);
     if (!btn) return;
-    const nombres = [...MultiState.sucursales].map(id => map.get(Number(id))).filter(Boolean);
+    const nombres = [...MultiState.Sucursales].map(id => map.get(Number(id))).filter(Boolean);
     btn.textContent = nombres.length ? nombres.join(', ') : emptyText;
     btn.title = nombres.join(', ');
 }
@@ -62,7 +62,7 @@ function renderChecklist(panelId, items, stateSet, btnId, allLabel = 'Selecciona
             const cb = document.getElementById(`${panelId}-opt-${it.Id}`);
             if (cb) cb.checked = ev.target.checked;
         });
-        updateChecklistButtonLabel(btnId, Catalogos.sucursalesMap, 'Seleccionar sucursales');
+        updateChecklistButtonLabel(btnId, Catalogos.SucursalesMap, 'Seleccionar Sucursales');
         if (wasSubmitUsuario) validarUsuarioCampos();
     });
 
@@ -76,12 +76,12 @@ function renderChecklist(panelId, items, stateSet, btnId, allLabel = 'Selecciona
             const allC = items.length > 0 && items.every(x => selected.has(Number(x.Id)));
             const allBox = document.getElementById(`${panelId}-all`);
             if (allBox) allBox.checked = allC;
-            updateChecklistButtonLabel(btnId, Catalogos.sucursalesMap, 'Seleccionar sucursales');
+            updateChecklistButtonLabel(btnId, Catalogos.SucursalesMap, 'Seleccionar Sucursales');
             if (wasSubmitUsuario) validarUsuarioCampos();
         });
     });
 
-    updateChecklistButtonLabel(btnId, Catalogos.sucursalesMap, 'Seleccionar sucursales');
+    updateChecklistButtonLabel(btnId, Catalogos.SucursalesMap, 'Seleccionar Sucursales');
 }
 
 document.addEventListener('click', (e) => {
@@ -128,18 +128,18 @@ function validarUsuarioCampos() {
     });
 
     // Requisito: al menos 1 sucursal
-    const sucursalesOk = MultiState.sucursales.size > 0;
+    const SucursalesOk = MultiState.Sucursales.size > 0;
     const btnSuc = document.getElementById('btnSucursales');
     if (btnSuc) {
-        btnSuc.classList.toggle('is-invalid', !sucursalesOk);
-        btnSuc.classList.toggle('is-valid', sucursalesOk);
+        btnSuc.classList.toggle('is-invalid', !SucursalesOk);
+        btnSuc.classList.toggle('is-valid', SucursalesOk);
     }
-    if (!sucursalesOk) ok = false;
+    if (!SucursalesOk) ok = false;
 
     const banner = document.getElementById("errorCampos");
     if (banner) {
         if (!ok) {
-            banner.textContent = sucursalesOk ? "Debes completar los campos obligatorios." : "Seleccioná al menos una sucursal.";
+            banner.textContent = SucursalesOk ? "Debes completar los campos obligatorios." : "Seleccioná al menos una sucursal.";
             banner.classList.remove("d-none");
         } else banner.classList.add("d-none");
     }
@@ -223,8 +223,8 @@ async function guardarCambiosUsuario() {
 function nuevoUsuario() {
     limpiarModal('#modalEdicion', '#errorCampos');
 
-    // reset sucursales
-    MultiState.sucursales.clear();
+    // reset Sucursales
+    MultiState.Sucursales.clear();
     document.getElementById('btnSucursales')?.classList.remove('is-invalid', 'is-valid');
 
     Promise.all([listaEstados(), listaRoles(), cargarSucursales()]).then(() => {
@@ -261,7 +261,7 @@ async function mostrarModalUsuario(modelo) {
     setValorInput("#txtContrasena", ""); // por seguridad no se completa
     setValorInput("#txtContrasenaNueva", "");
 
-    MultiState.sucursales.clear();
+    MultiState.Sucursales.clear();
 
     await Promise.all([listaEstados(), listaRoles(), cargarSucursales()]);
 
@@ -278,8 +278,8 @@ async function mostrarModalUsuario(modelo) {
         (Array.isArray(modelo.IdSucursales) && modelo.IdSucursales.map(Number)) ||
         (Array.isArray(modelo.UsuariosSucursales) && modelo.UsuariosSucursales.map(s => Number(s.IdSucursal))) ||
         [];
-    idsSucursales.forEach(id => MultiState.sucursales.add(Number(id)));
-    renderChecklist('listaSucursales', Catalogos.sucursales, MultiState.sucursales, 'btnSucursales', 'Seleccionar todos');
+    idsSucursales.forEach(id => MultiState.Sucursales.add(Number(id)));
+    renderChecklist('listaSucursales', Catalogos.Sucursales, MultiState.Sucursales, 'btnSucursales', 'Seleccionar todos');
 
     // Estado campos contraseña (editar)
     document.getElementById("divContrasena")?.setAttribute("hidden", "hidden");
@@ -553,7 +553,7 @@ async function cargarSucursales() {
     const r = await fetch("/Sucursales/Lista", { headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' } });
     const data = r.ok ? await r.json() : [];
     const norm = (data || []).map(x => ({ Id: Number(x.Id ?? 0), Nombre: String(x.Nombre ?? '') }));
-    Catalogos.sucursales = norm;
-    Catalogos.sucursalesMap = new Map(norm.map(x => [x.Id, x.Nombre]));
-    renderChecklist('listaSucursales', Catalogos.sucursales, MultiState.sucursales, 'btnSucursales', 'Seleccionar todos');
+    Catalogos.Sucursales = norm;
+    Catalogos.SucursalesMap = new Map(norm.map(x => [x.Id, x.Nombre]));
+    renderChecklist('listaSucursales', Catalogos.Sucursales, MultiState.Sucursales, 'btnSucursales', 'Seleccionar todos');
 }

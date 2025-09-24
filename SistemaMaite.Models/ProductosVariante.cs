@@ -19,6 +19,8 @@ public partial class ProductosVariante
 
     public virtual ProductosTalle IdTalleNavigation { get; set; } = null!;
 
+    public virtual ICollection<InventarioIngresosOrdenesCorteProductosVariante> InventarioIngresosOrdenesCorteProductosVariantes { get; set; } = new List<InventarioIngresosOrdenesCorteProductosVariante>();
+
     public virtual ICollection<InventarioTransfSucursalesProductosVariante> InventarioTransfSucursalesProductosVariantes { get; set; } = new List<InventarioTransfSucursalesProductosVariante>();
 
     public virtual ICollection<Inventario> Inventarios { get; set; } = new List<Inventario>();
