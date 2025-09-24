@@ -91,7 +91,7 @@ namespace SistemaMaite.Application.Controllers
                 Contrasena = passwordHasher.HashPassword(null, model.Contrasena)
             };
 
-            // ✔️ Insert con sucursales
+            // ✔️ Insert con Sucursales
             bool respuesta = await _Usuarioservice.Insertar(Usuario, model.IdSucursales ?? new List<int>());
             return Ok(new { valor = respuesta });
         }
@@ -129,7 +129,7 @@ namespace SistemaMaite.Application.Controllers
             userbase.IdEstado = model.IdEstado;
             userbase.Contrasena = passnueva;
 
-            // ✔️ Update con sucursales
+            // ✔️ Update con Sucursales
             bool respuesta = await _Usuarioservice.Actualizar(userbase, model.IdSucursales ?? new List<int>());
             return Ok(new { valor = respuesta ? "OK" : "Error" });
         }
@@ -145,12 +145,12 @@ namespace SistemaMaite.Application.Controllers
         [HttpGet]
         public async Task<IActionResult> ObtenerSucursales(int id)
         {
-            // Traemos el usuario con sus sucursales + navegación
+            // Traemos el usuario con sus Sucursales + navegación
             var u = await _Usuarioservice.ObtenerConSucursales(id);
             if (u == null) return StatusCode(StatusCodes.Status404NotFound);
 
             // Devolvemos SOLO la lista {Id, Nombre}
-            var sucursales = u.UsuariosSucursales?
+            var Sucursales = u.UsuariosSucursales?
                 .Where(s => s.IdSucursalNavigation != null)
                 .GroupBy(s => new { s.IdSucursal, s.IdSucursalNavigation.Nombre })
                 .Select(g => new VMSucursales
@@ -161,7 +161,7 @@ namespace SistemaMaite.Application.Controllers
                 .OrderBy(x => x.Nombre)
                 .ToList() ?? new List<VMSucursales>();
 
-            return Ok(sucursales);
+            return Ok(Sucursales);
 
         }
 
@@ -170,7 +170,7 @@ namespace SistemaMaite.Application.Controllers
         [HttpGet]
         public async Task<IActionResult> EditarInfo(int id)
         {
-            // ✔️ Traemos el usuario con sus sucursales y devolvemos VMUser
+            // ✔️ Traemos el usuario con sus Sucursales y devolvemos VMUser
             var u = await _Usuarioservice.ObtenerConSucursales(id);
             if (u == null) return StatusCode(StatusCodes.Status404NotFound);
 

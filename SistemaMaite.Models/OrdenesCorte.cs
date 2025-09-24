@@ -37,6 +37,8 @@ public partial class OrdenesCorte
 
     public virtual OrdenesCorteEstado IdEstadoNavigation { get; set; } = null!;
 
+    public virtual ICollection<InventarioIngresosOrdenesCorte> InventarioIngresosOrdenesCortes { get; set; } = new List<InventarioIngresosOrdenesCorte>();
+
     public virtual ICollection<OrdenesCorteEtapa> OrdenesCorteEtapas { get; set; } = new List<OrdenesCorteEtapa>();
 
     public virtual ICollection<OrdenesCorteInsumo> OrdenesCorteInsumos { get; set; } = new List<OrdenesCorteInsumo>();

@@ -14,7 +14,7 @@ namespace SistemaMaite.BLL.Service
 
         public Task<bool> Eliminar(int id) => _repo.Eliminar(id);
 
-        // ✔️ con sucursales
+        // ✔️ con Sucursales
         public Task<bool> Insertar(User u, IEnumerable<int> idSucursales) => _repo.Insertar(u, idSucursales);
         public Task<bool> Actualizar(User u, IEnumerable<int> idSucursales) => _repo.Actualizar(u, idSucursales);
 

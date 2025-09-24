@@ -13,12 +13,12 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" />
 
     <!-- Estilos del módulo -->
-    <link rel="stylesheet" href="~/css/Inventario.css?v=1.6" />
+    <link rel="stylesheet" href="~/css/Inventario.css?v=1.7" />
 }
 
 <div class="container page-99" style="margin-top: 100px">
 
-    <!-- Header estilo Cuentas Corrientes -->
+    <!-- Header -->
     <div class="cc-header shadow-lg rounded-4 p-4 mb-4">
         <div class="d-flex align-items-center gap-3 flex-wrap">
             <div class="d-flex align-items-center gap-3">
@@ -32,37 +32,40 @@
             <div class="ms-auto d-flex gap-3 flex-wrap">
                 <div class="cc-stat">
                     <div class="label">Stock actual</div>
-                    <div class="value" id="kpiStockTotal">0,00</div>
+                    <div class="value" id="kpiStockTotal">0</div>
                 </div>
                 <div class="cc-stat">
                     <div class="label">Entradas (período)</div>
-                    <div class="value" id="kpiEntradas">0,00</div>
+                    <div class="value" id="kpiEntradas">0</div>
                 </div>
                 <div class="cc-stat">
                     <div class="label">Salidas (período)</div>
-                    <div class="value" id="kpiSalidas">0,00</div>
+                    <div class="value" id="kpiSalidas">0</div>
                 </div>
             </div>
         </div>
     </div>
 
-
-  
-
     <div class="row g-4">
 
-        <!-- IZQUIERDA: Productos -->
+        <!-- IZQUIERDA: Variantes -->
         <div class="col-xxl-4 col-lg-4">
             <div class="card-glass p-0">
                 <div class="card-header d-flex align-items-center justify-content-between">
-                    <div class="d-flex align-items-center"><i class="fa fa-cubes text-info me-2"></i> <span>Productos</span></div>
+                    <div class="d-flex align-items-center"><i class="fa fa-tags text-info me-2"></i> <span>Variantes</span></div>
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" id="chkSoloStock">
                         <label class="form-check-label small" for="chkSoloStock">Solo con stock</label>
                     </div>
                 </div>
                 <div class="p-3 pb-2">
-                    <input type="text" id="txtBuscarProd" class="form-control" placeholder="Buscar por nombre..." />
+                    <input type="text" id="txtBuscarProd" class="form-control" placeholder="Buscar variante (producto/color/talle)..." />
+                </div>
+                <div class="p-2">
+                    <label class="form-label">Sucursal</label>
+                    <select id="fltSucursal" class="form-select">
+                        <option value="">Todas</option>
+                    </select>
                 </div>
                 <div class="product-list" id="lstProductos"></div>
             </div>
@@ -99,7 +102,7 @@
                             </div>
                             <div class="col-12 col-md-3">
                                 <label class="form-label">Sucursal</label>
-                                <select id="fltSucursal" class="form-select">
+                                <select id="fltSucursalTop" class="form-select">
                                     <option value="">Todas</option>
                                 </select>
                             </div>
@@ -115,24 +118,24 @@
                     </form>
 
                     <div class="dt-dark-wrap">
-                    <table class="display nowrap compact" id="grd_Movs">
-                        <thead>
-                            <tr>
-                                <th></th> <!-- 👈 IMPORTANTE: acciones (vacío) -->
-                                <th>Fecha</th>
-                                <th>Tipo</th>
-                                <th>Producto</th>
-                                <th>Talle</th>
-                                <th>Color</th>
-                                <th>Concepto</th>
-                                <th class="text-end">Entrada</th>
-                                <th class="text-end">Salida</th>
-                                <th class="text-end">Stock</th>
-                                <th>Sucursal</th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
+                        <table class="display nowrap compact" id="grd_Movs">
+                            <thead>
+                                <tr>
+                                    <th></th>
+                                    <th>Fecha</th>
+                                    <th>Tipo</th>
+                                    <th>Producto</th>
+                                    <th>Talle</th>
+                                    <th>Color</th>
+                                    <th>Concepto</th>
+                                    <th class="text-end">Entrada</th>
+                                    <th class="text-end">Salida</th>
+                                    <th class="text-end">Stock</th>
+                                    <th>Sucursal</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
                     </div>
 
                     <div class="tabla-footer d-flex align-items-center justify-content-between">
@@ -145,12 +148,18 @@
                 </div>
             </div>
 
-            <div class="acciones-externas d-flex justify-content-end mt-3 gap-2">
+            <div class="acciones-externas d-flex justify-content-end mt-3 gap-2 flex-wrap">
                 <button class="btn btn-success" id="btnAjuste" type="button">
                     <i class="fa fa-balance-scale"></i> Ajuste de inventario
                 </button>
                 <button class="btn btn-purple" id="btnTransfer" type="button">
                     <i class="fa fa-exchange"></i> Nueva transferencia
+                </button>
+                <button class="btn btn-primary" id="btnIngresoOC" type="button">
+                    <i class="fa fa-plus-square"></i> Nuevo ingreso OC
+                </button>
+                <button class="btn btn-outline-danger" id="btnRevertOC" type="button">
+                    <i class="fa fa-undo"></i> Revertir ingreso OC
                 </button>
             </div>
         </div>
@@ -218,7 +227,7 @@
                     </div>
 
                     <div id="errorAjuste" class="alert alert-danger d-none col-12">
-                        Debes completar los campos obligatorios.
+                        Debes completar los campos requeridos
                     </div>
                 </form>
             </div>
@@ -275,7 +284,7 @@
                     </div>
                     <div class="col-md-4">
                         <label class="form-label">Nota</label>
-                        <input type="text" id="trNota" class="form-control" placeholder="Transferencia entre sucursales">
+                        <input type="text" id="trNota" class="form-control" placeholder="Transferencia entre Sucursales">
                     </div>
 
                     <div class="col-12">
@@ -290,7 +299,7 @@
                     </div>
 
                     <div id="errorTransfer" class="alert alert-danger d-none col-12">
-                        Debes completar los campos obligatorios.
+                        Debes completar los campos requeridos
                     </div>
                 </form>
             </div>
@@ -300,6 +309,107 @@
                 </button>
                 <button type="button" class="btn btn-primary" id="btnGuardarTransfer">
                     <i class="fa fa-check"></i> Transferir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Nuevo ingreso OC -->
+<div class="modal fade" id="modalIngresoOC" tabindex="-1" role="dialog" aria-labelledby="modalIngresoOCLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-edicion" role="document">
+        <div class="modal-content">
+            <div class="modal-header colorEncabezado">
+                <h5 class="modal-title fw-bold" id="modalIngresoOCLabel">
+                    <i class="fa fa-plus-square me-2"></i> Nuevo ingreso por Orden de Corte
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formIngresoOC" class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Fecha</label>
+                        <input type="date" id="ocFecha" class="form-control" required>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Sucursal</label>
+                        <select id="ocSucursal" class="form-control" required>
+                            <option value="">Seleccione</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Orden de Corte</label>
+                        <select id="ocNumero" class="form-control" required></select>
+                        <small class="text-muted">Solo se listan OC <strong>Finalizado</strong> y sin ingreso.</small>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label">Nota</label>
+                        <input type="text" id="ocNota" class="form-control" placeholder="Ingreso por OC">
+                    </div>
+
+                    <div class="col-12">
+                        <div class="d-flex align-items-center mb-2">
+                            <h6 class="mb-0"><i class="fa fa-tags text-info me-2"></i> Variantes de la OC</h6>
+                            <small class="text-muted ms-2">(Cargá las cantidades a ingresar)</small>
+                        </div>
+                        <div id="ocVariantesWrap" class="variantes-wrap"></div>
+                        <div id="ocVariantesEmpty" class="alert alert-secondary py-2 mt-2 d-none">
+                            Sin variantes para la OC indicada.
+                        </div>
+                    </div>
+
+                    <div id="errorIngresoOC" class="alert alert-danger d-none col-12">
+                        Debes completar los campos requeridos
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fa fa-arrow-left"></i> Volver
+                </button>
+                <button type="button" class="btn btn-primary" id="btnGuardarIngresoOC">
+                    <i class="fa fa-check"></i> Ingresar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Revertir ingreso OC -->
+<div class="modal fade" id="modalRevertOC" tabindex="-1" role="dialog" aria-labelledby="modalRevertOCLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-edicion" role="document">
+        <div class="modal-content">
+            <div class="modal-header colorEncabezado">
+                <h5 class="modal-title fw-bold" id="modalRevertOCLabel">
+                    <i class="fa fa-undo me-2"></i> Revertir ingreso por Orden de Corte
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formRevertOC" class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">Sucursal</label>
+                        <select id="rvSucursal" class="form-control" required>
+                            <option value="">Seleccione</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Orden de Corte</label>
+                        <select id="rvNumero" class="form-control" required></select>
+                        <small class="text-muted">Se listan las OC con ingreso en la sucursal seleccionada.</small>
+                    </div>
+                    <div id="errorRevertOC" class="alert alert-danger d-none col-12">
+                        Debes completar los campos requeridos
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fa fa-arrow-left"></i> Volver
+                </button>
+                <button type="button" class="btn btn-outline-danger" id="btnConfirmRevertOC">
+                    <i class="fa fa-undo"></i> Revertir
                 </button>
             </div>
         </div>
@@ -328,5 +438,5 @@
     <script src="~/js/utils/moment.js"></script>
 
     <!-- lógica -->
-    <script src="~/js/Inventario.js?v=1.8"></script>
+    <script src="~/js/Inventario.js?v=2.0"></script>
 }

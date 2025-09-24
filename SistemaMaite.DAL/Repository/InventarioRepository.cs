@@ -1,5 +1,4 @@
-﻿// DAL/Repository/InventarioRepository.cs
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using SistemaMaite.DAL.DataContext;
 using SistemaMaite.Models;
 using System;
@@ -18,7 +17,11 @@ namespace SistemaMaite.DAL.Repository
         private const string CONCEPTO_TRANSF_A = "TRANSFERENCIA A";
         private const string CONCEPTO_TRANSF_DE = "TRANSFERENCIA DE";
 
-        // ---------------- Existencias ----------------
+        // OC
+        private const string CONCEPTO_OC = "INGRESO OC";
+        private const string TIPOMOV_OC = "INGRESO_OC";
+
+        // ================= Existencias =================
         public async Task<List<Inventario>> ListarExistencias(int? idSucursal, int? idProducto, int? idVariante, string? texto)
         {
             var q = _db.Inventarios
@@ -65,7 +68,7 @@ namespace SistemaMaite.DAL.Repository
                 .FirstOrDefaultAsync(i => i.Id == id);
         }
 
-        // ---------------- Movimientos ----------------
+        // ================= Movimientos =================
         public async Task<(List<InventarioMovimiento> Lista, decimal StockAnterior)> ListarMovimientos(
             int? idSucursal, int? idProducto, int? idVariante, DateTime? desde, DateTime? hasta, string? texto)
         {
@@ -117,7 +120,7 @@ namespace SistemaMaite.DAL.Repository
             return (lista, stockAnterior);
         }
 
-        // ---------------- Ajuste manual ----------------
+        // ================= Ajuste manual =================
         public async Task<bool> AjusteManual(InventarioMovimiento mov)
         {
             using var tx = await _db.Database.BeginTransactionAsync();
@@ -148,7 +151,7 @@ namespace SistemaMaite.DAL.Repository
 
                 mov.IdInventario = inv.Id;
                 mov.Concepto = string.IsNullOrWhiteSpace(mov.Concepto) ? CONCEPTO_AJUSTE : mov.Concepto;
-                mov.IdMov = 0; // manual
+                mov.IdMov = 0;
                 _db.InventarioMovimientos.Add(mov);
                 await _db.SaveChangesAsync();
 
@@ -162,7 +165,7 @@ namespace SistemaMaite.DAL.Repository
             }
         }
 
-        // ---------------- Transferencias (cabecera + detalle + impacto) ----------------
+        // ================= Transferencias (NO TOCAR) =================
         public Task<InventarioTransfSucursal?> ObtenerTransferencia(int id)
         {
             return _db.InventarioTransfSucursales
@@ -257,14 +260,13 @@ namespace SistemaMaite.DAL.Repository
             using var tx = await _db.Database.BeginTransactionAsync();
             try
             {
-                // revertir impacto previo
                 var movs = await _db.InventarioMovimientos
                     .Where(m => m.IdMov == transf.Id && m.TipoMov == "TRANSFERENCIA").ToListAsync();
 
                 foreach (var m in movs)
                 {
                     var inv = await _db.Inventarios.FirstAsync(i => i.Id == m.IdInventario);
-                    inv.Cantidad -= m.Entrada; // revertir
+                    inv.Cantidad -= m.Entrada;
                     inv.Cantidad += m.Salida;
                     _db.InventarioMovimientos.Remove(m);
                     _db.Inventarios.Update(inv);
@@ -280,7 +282,6 @@ namespace SistemaMaite.DAL.Repository
                 if (detProds.Any()) _db.InventarioTransfSucursalesProductos.RemoveRange(detProds);
                 await _db.SaveChangesAsync();
 
-                // actualizar cabecera
                 var ex = await _db.InventarioTransfSucursales.FirstAsync(t => t.Id == transf.Id);
                 ex.IdSucursalOrigen = transf.IdSucursalOrigen;
                 ex.IdSucursalDestino = transf.IdSucursalDestino;
@@ -288,7 +289,6 @@ namespace SistemaMaite.DAL.Repository
                 ex.Notas = transf.Notas;
                 await _db.SaveChangesAsync();
 
-                // reinsertar detalle e impactar (igual que crear)
                 var prodList = productos.Select(p => { p.IdTransfSucursal = ex.Id; return p; }).ToList();
                 _db.InventarioTransfSucursalesProductos.AddRange(prodList);
                 await _db.SaveChangesAsync();
@@ -394,7 +394,8 @@ namespace SistemaMaite.DAL.Repository
             }
         }
 
-        public async Task<List<InventarioTransfSucursal>> HistorialTransferencias(int? idOrigen, int? idDestino, DateTime? desde, DateTime? hasta, string? texto)
+        public async Task<List<InventarioTransfSucursal>> HistorialTransferencias(
+            int? idOrigen, int? idDestino, DateTime? desde, DateTime? hasta, string? texto)
         {
             var q = _db.InventarioTransfSucursales
                 .Include(t => t.IdSucursalOrigenNavigation)
@@ -417,7 +418,7 @@ namespace SistemaMaite.DAL.Repository
             return await q.OrderByDescending(t => t.Fecha).ThenByDescending(t => t.Id).ToListAsync();
         }
 
-        // ---------------- Helpers ----------------
+        // ================= Helpers =================
         private async Task<Inventario> EnsureInventario(int idSucursal, int idProducto, int idVariante)
         {
             var inv = await _db.Inventarios
@@ -436,5 +437,200 @@ namespace SistemaMaite.DAL.Repository
             await _db.SaveChangesAsync();
             return inv;
         }
+
+        // ====================== OC: Ingreso / Reversión ======================
+        public async Task<bool> IngresarStockDesdeOC(
+    int idSucursal, int idOrdenCorte, DateTime fecha, string? nota,
+    IEnumerable<(int IdProducto, int IdProductoVariante, int Cantidad)> lineas)
+        {
+            using var tx = await _db.Database.BeginTransactionAsync();
+            try
+            {
+                // No permitir doble ingreso
+                var ya = await _db.InventarioMovimientos
+                    .AnyAsync(m => m.TipoMov == TIPOMOV_OC && m.IdMov == idOrdenCorte);
+                if (ya) return false;
+
+                // Validar que la OC esté Finalizada
+                var estado = await _db.OrdenesCortes
+                    .Include(o => o.IdEstadoNavigation)
+                    .Where(o => o.Id == idOrdenCorte)
+                    .Select(o => o.IdEstadoNavigation!.Nombre)
+                    .FirstOrDefaultAsync();
+
+                if (string.IsNullOrWhiteSpace(estado) || estado!.Trim().ToLower() != "finalizado")
+                    return false;
+
+                var conceptoBase = $"{CONCEPTO_OC} #{idOrdenCorte}" + (string.IsNullOrWhiteSpace(nota) ? "" : $" - {nota!.Trim()}");
+
+                foreach (var ln in lineas.Where(x => x.Cantidad > 0))
+                {
+                    var inv = await EnsureInventario(idSucursal, ln.IdProducto, ln.IdProductoVariante);
+                    inv.Cantidad += ln.Cantidad;
+                    _db.Inventarios.Update(inv);
+
+                    _db.InventarioMovimientos.Add(new InventarioMovimiento
+                    {
+                        IdInventario = inv.Id,
+                        IdSucursal = idSucursal,
+                        Fecha = fecha,
+                        TipoMov = TIPOMOV_OC,
+                        IdMov = idOrdenCorte,
+                        Concepto = conceptoBase,
+                        Entrada = ln.Cantidad,
+                        Salida = 0m
+                    });
+                }
+
+                await _db.SaveChangesAsync();
+                await tx.CommitAsync();
+                return true;
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                return false;
+            }
+        }
+
+
+        public async Task<bool> RevertirIngresoDesdeOC(int idSucursal, int idOrdenCorte)
+        {
+            using var tx = await _db.Database.BeginTransactionAsync();
+            try
+            {
+                var movs = await _db.InventarioMovimientos
+                    .Where(m => m.TipoMov == TIPOMOV_OC && m.IdMov == idOrdenCorte && m.IdSucursal == idSucursal)
+                    .ToListAsync();
+
+                if (!movs.Any()) return false;
+
+                foreach (var m in movs)
+                {
+                    var inv = await _db.Inventarios.FirstAsync(i => i.Id == m.IdInventario);
+                    inv.Cantidad -= m.Entrada;
+                    _db.Inventarios.Update(inv);
+                    _db.InventarioMovimientos.Remove(m);
+                }
+
+                await _db.SaveChangesAsync();
+                await tx.CommitAsync();
+                return true;
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                return false;
+            }
+        }
+
+        public async Task<List<OrdenesCorte>> ListarOCDisponibles(string? texto, int? top)
+        {
+            var q = _db.OrdenesCortes
+                .Include(o => o.IdEstadoNavigation)
+                .AsNoTracking()
+                // sin ingreso
+                .Where(o => !_db.InventarioMovimientos.Any(m => m.TipoMov == TIPOMOV_OC && m.IdMov == o.Id))
+                // estado que contenga “finaliz”
+                .Where(o => (o.IdEstadoNavigation!.Nombre ?? "").ToUpper().Contains("FINALIZ"));
+
+            if (!string.IsNullOrWhiteSpace(texto))
+            {
+                var t = texto.Trim();
+                q = q.Where(o =>
+                    EF.Functions.Like(o.Id.ToString(), $"%{t}%") ||
+                    EF.Functions.Like(o.IdEstadoNavigation!.Nombre ?? "", $"%{t}%"));
+            }
+
+            q = q.OrderByDescending(o => o.Id);
+            if (top.HasValue && top.Value > 0) q = q.Take(top.Value);
+
+            return await q.ToListAsync();
+        }
+
+        public async Task<List<OrdenesCorte>> ListarOCConIngresoPorSucursal(int idSucursal, string? texto, int? top)
+        {
+            var q = _db.OrdenesCortes
+                .Include(o => o.IdEstadoNavigation)
+                .AsNoTracking()
+                .Where(o => _db.InventarioMovimientos.Any(m =>
+                    m.TipoMov == TIPOMOV_OC &&
+                    m.IdMov == o.Id &&
+                    m.IdSucursal == idSucursal));
+
+            if (!string.IsNullOrWhiteSpace(texto))
+            {
+                var t = texto.Trim();
+                q = q.Where(o =>
+                    EF.Functions.Like(o.Id.ToString(), $"%{t}%") ||
+                    EF.Functions.Like(o.IdEstadoNavigation!.Nombre ?? "", $"%{t}%"));
+            }
+
+            q = q.OrderByDescending(o => o.Id);
+            if (top.HasValue && top.Value > 0) q = q.Take(top.Value);
+
+            return await q.ToListAsync();
+        }
+
+     
+
+        // NUEVO: trae (IdProducto, IdVariante, Producto, Variante)
+        public async Task<List<(int IdProducto, int IdProductoVariante, string Producto, string Variante)>> VariantesPorOCConProducto(int idOrdenCorte)
+        {
+            // Cargamos OC -> Productos -> Variantes -> (Color/Talle)
+            var oc = await _db.OrdenesCortes
+                .Include(o => o.OrdenesCorteProductos)
+                    .ThenInclude(p => p.OrdenCorteProductosVariantes) // << nombre correcto según tus modelos
+                        .ThenInclude(v => v.IdProductoVarianteNavigation)
+                            .ThenInclude(pv => pv.IdColorNavigation)
+                                .ThenInclude(pc => pc.IdColorNavigation)
+                .Include(o => o.OrdenesCorteProductos)
+                    .ThenInclude(p => p.OrdenCorteProductosVariantes)
+                        .ThenInclude(v => v.IdProductoVarianteNavigation)
+                            .ThenInclude(pv => pv.IdTalleNavigation)
+                                .ThenInclude(pt => pt.IdTalleNavigation)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(o => o.Id == idOrdenCorte);
+
+            var list = new List<(int, int, string, string)>();
+            if (oc == null) return list;
+
+            // Armamos diccionario de nombres de producto (tu entidad OrdenesCorteProducto NO tiene navegación al producto)
+            var prodIds = oc.OrdenesCorteProductos?.Select(p => p.IdProducto).Distinct().ToList() ?? new List<int>();
+            var prodDict = await _db.Productos
+                .Where(pr => prodIds.Contains(pr.Id))
+                .Select(pr => new { pr.Id, pr.Descripcion })
+                .ToDictionaryAsync(x => x.Id, x => x.Descripcion ?? $"Producto {x.Id}");
+
+            foreach (var p in oc.OrdenesCorteProductos ?? new List<OrdenesCorteProducto>())
+            {
+                var prodName = prodDict.TryGetValue(p.IdProducto, out var nm) ? nm : $"Producto {p.IdProducto}";
+
+                foreach (var v in p.OrdenCorteProductosVariantes ?? new List<OrdenCorteProductosVariante>())
+                {
+                    // En tus modelos, el campo es IdVariante / IdVarianteNavigation (NO IdProductoVariante)
+                    var pv = v.IdProductoVarianteNavigation;
+
+                    var color = pv?.IdColorNavigation?.IdColorNavigation?.Nombre ?? "";
+                    var talle = pv?.IdTalleNavigation?.IdTalleNavigation?.Nombre ?? "";
+                    var varName = $"{color} / {talle}".Trim();
+
+                    list.Add((p.IdProducto, v.IdProductoVariante, prodName, varName));
+                }
+            }
+
+            return list;
+        }
+
+        // EXISTENTE: lo dejamos para compatibilidad (mismo nombre) y lo “adaptamos”
+        // Si en algún lugar viejo del código lo usan, seguirá funcionando.
+        public async Task<List<(int IdProducto, int IdProductoVariante, string Variante)>> VariantesPorOC(int idOrdenCorte)
+        {
+            var full = await VariantesPorOCConProducto(idOrdenCorte);
+            // devolvemos solo lo que esperaba el método antiguo
+            return full.Select(x => (x.IdProducto, x.IdProductoVariante, x.Variante)).ToList();
+        }
+
+
     }
 }

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using SistemaMaite.Models;
 
 namespace SistemaMaite.DAL.DataContext;
@@ -15,18 +14,6 @@ public partial class SistemaMaiteContext : DbContext
     public SistemaMaiteContext(DbContextOptions<SistemaMaiteContext> options)
         : base(options)
     {
-    }
-
-    private readonly IConfiguration _configuration;
-
-
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    {
-        if (!optionsBuilder.IsConfigured)
-        {
-            var connectionString = _configuration.GetConnectionString("SistemaDB");
-            optionsBuilder.UseSqlServer(connectionString);
-        }
     }
 
     public virtual DbSet<Banco> Bancos { get; set; }
@@ -64,6 +51,12 @@ public partial class SistemaMaiteContext : DbContext
     public virtual DbSet<InsumosCategoria> InsumosCategorias { get; set; }
 
     public virtual DbSet<Inventario> Inventarios { get; set; }
+
+    public virtual DbSet<InventarioIngresosOrdenesCorte> InventarioIngresosOrdenesCortes { get; set; }
+
+    public virtual DbSet<InventarioIngresosOrdenesCorteProducto> InventarioIngresosOrdenesCorteProductos { get; set; }
+
+    public virtual DbSet<InventarioIngresosOrdenesCorteProductosVariante> InventarioIngresosOrdenesCorteProductosVariantes { get; set; }
 
     public virtual DbSet<InventarioMovimiento> InventarioMovimientos { get; set; }
 
@@ -123,6 +116,10 @@ public partial class SistemaMaiteContext : DbContext
 
     public virtual DbSet<Taller> Talleres { get; set; }
 
+    public virtual DbSet<TalleresCuentaCorriente> TalleresCuentaCorrientes { get; set; }
+
+    public virtual DbSet<TalleresPago> TalleresPagos { get; set; }
+
     public virtual DbSet<User> Usuarios { get; set; }
 
     public virtual DbSet<UsuariosSucursal> UsuariosSucursales { get; set; }
@@ -132,6 +129,10 @@ public partial class SistemaMaiteContext : DbContext
     public virtual DbSet<VentasProducto> VentasProductos { get; set; }
 
     public virtual DbSet<VentasProductosVariante> VentasProductosVariantes { get; set; }
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
+        => optionsBuilder.UseSqlServer("Server=DESKTOP-3MT5F5F; Database=Sistema_Maite; Integrated Security=true; Trusted_Connection=True; Encrypt=False");
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -456,6 +457,59 @@ public partial class SistemaMaiteContext : DbContext
                 .HasConstraintName("FK_Inventario_Sucursales");
         });
 
+        modelBuilder.Entity<InventarioIngresosOrdenesCorte>(entity =>
+        {
+            entity.ToTable("Inventario_Ingresos_OrdenesCorte");
+
+            entity.Property(e => e.CantidadTotal).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Fecha).HasColumnType("date");
+            entity.Property(e => e.NotaInterna)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+
+            entity.HasOne(d => d.IdOrdenCorteNavigation).WithMany(p => p.InventarioIngresosOrdenesCortes)
+                .HasForeignKey(d => d.IdOrdenCorte)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Inventario_Ingresos_OrdenesCorte_Ordenes_Corte");
+
+            entity.HasOne(d => d.IdSucursalNavigation).WithMany(p => p.InventarioIngresosOrdenesCortes)
+                .HasForeignKey(d => d.IdSucursal)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Inventario_Ingresos_OrdenesCorte_Sucursales");
+        });
+
+        modelBuilder.Entity<InventarioIngresosOrdenesCorteProducto>(entity =>
+        {
+            entity.ToTable("Inventario_Ingresos_OrdenesCorte_Productos");
+
+            entity.Property(e => e.Cantidad).HasColumnType("decimal(18, 2)");
+
+            entity.HasOne(d => d.IdIngresoNavigation).WithMany(p => p.InventarioIngresosOrdenesCorteProductos)
+                .HasForeignKey(d => d.IdIngreso)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Inventario_Ingresos_OrdenesCorte_Productos_Inventario_Ingresos_OrdenesCorte");
+        });
+
+        modelBuilder.Entity<InventarioIngresosOrdenesCorteProductosVariante>(entity =>
+        {
+            entity.ToTable("Inventario_Ingresos_OrdenesCorte_Productos_Variantes");
+
+            entity.HasOne(d => d.IdIngresoProductoNavigation).WithMany(p => p.InventarioIngresosOrdenesCorteProductosVariantes)
+                .HasForeignKey(d => d.IdIngresoProducto)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Inventario_Ingresos_OrdenesCorte_Productos_Variantes_Inventario_Ingresos_OrdenesCorte_Productos");
+
+            entity.HasOne(d => d.IdProductoNavigation).WithMany(p => p.InventarioIngresosOrdenesCorteProductosVariantes)
+                .HasForeignKey(d => d.IdProducto)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Inventario_Ingresos_OrdenesCorte_Productos_Variantes_Productos");
+
+            entity.HasOne(d => d.IdVarianteNavigation).WithMany(p => p.InventarioIngresosOrdenesCorteProductosVariantes)
+                .HasForeignKey(d => d.IdVariante)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Inventario_Ingresos_OrdenesCorte_Productos_Variantes_Productos_Variantes");
+        });
+
         modelBuilder.Entity<InventarioMovimiento>(entity =>
         {
             entity.ToTable("Inventario_Movimientos");
@@ -490,12 +544,12 @@ public partial class SistemaMaiteContext : DbContext
                 .HasMaxLength(200)
                 .IsUnicode(false);
 
-            entity.HasOne(d => d.IdSucursalDestinoNavigation).WithMany(p => p.InventarioTransfSucursaleIdSucursalDestinoNavigations)
+            entity.HasOne(d => d.IdSucursalDestinoNavigation).WithMany(p => p.InventarioTransfSucursalIdSucursalDestinoNavigations)
                 .HasForeignKey(d => d.IdSucursalDestino)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Inventario_TransfSucursales_Sucursales1");
 
-            entity.HasOne(d => d.IdSucursalOrigenNavigation).WithMany(p => p.InventarioTransfSucursaleIdSucursalOrigenNavigations)
+            entity.HasOne(d => d.IdSucursalOrigenNavigation).WithMany(p => p.InventarioTransfSucursalIdSucursalOrigenNavigations)
                 .HasForeignKey(d => d.IdSucursalOrigen)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Inventario_TransfSucursales_Sucursales");
@@ -613,6 +667,7 @@ public partial class SistemaMaiteContext : DbContext
             entity.Property(e => e.FechaEntrada).HasColumnType("date");
             entity.Property(e => e.FechaSalidaAproximada).HasColumnType("date");
             entity.Property(e => e.FechaSalidaReal).HasColumnType("date");
+            entity.Property(e => e.ImporteTotal).HasColumnType("decimal(18, 2)");
             entity.Property(e => e.NotaInterna)
                 .HasMaxLength(200)
                 .IsUnicode(false);
@@ -935,6 +990,50 @@ public partial class SistemaMaiteContext : DbContext
             entity.Property(e => e.Nombre)
                 .HasMaxLength(200)
                 .IsUnicode(false);
+        });
+
+        modelBuilder.Entity<TalleresCuentaCorriente>(entity =>
+        {
+            entity.ToTable("Talleres_CuentaCorriente");
+
+            entity.Property(e => e.Concepto)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+            entity.Property(e => e.Debe).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.Fecha).HasColumnType("date");
+            entity.Property(e => e.Haber).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.TipoMov)
+                .HasMaxLength(50)
+                .IsUnicode(false);
+
+            entity.HasOne(d => d.IdTallerNavigation).WithMany(p => p.TalleresCuentaCorrientes)
+                .HasForeignKey(d => d.IdTaller)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Talleres_CuentaCorriente_Talleres");
+        });
+
+        modelBuilder.Entity<TalleresPago>(entity =>
+        {
+            entity.ToTable("Talleres_Pagos");
+
+            entity.Property(e => e.Concepto)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+            entity.Property(e => e.Fecha).HasColumnType("date");
+            entity.Property(e => e.Importe).HasColumnType("decimal(18, 2)");
+            entity.Property(e => e.NotaInterna)
+                .HasMaxLength(200)
+                .IsUnicode(false);
+
+            entity.HasOne(d => d.IdCuentaNavigation).WithMany(p => p.TalleresPagos)
+                .HasForeignKey(d => d.IdCuenta)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Talleres_Pagos_Cuentas");
+
+            entity.HasOne(d => d.IdTallerNavigation).WithMany(p => p.TalleresPagos)
+                .HasForeignKey(d => d.IdTaller)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_Talleres_Pagos_Talleres");
         });
 
         modelBuilder.Entity<User>(entity =>

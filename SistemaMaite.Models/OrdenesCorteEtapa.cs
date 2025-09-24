@@ -29,6 +29,8 @@ public partial class OrdenesCorteEtapa
 
     public string? NotaInterna { get; set; }
 
+    public decimal? ImporteTotal { get; set; }
+
     public virtual OrdenesCorte IdCorteNavigation { get; set; } = null!;
 
     public virtual OrdenesCorteEtapasEstado IdEstadoNavigation { get; set; } = null!;

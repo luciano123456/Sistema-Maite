@@ -6,7 +6,7 @@ namespace SistemaMaite.BLL.Service
     {
         Task<bool> Eliminar(int id);
 
-        // ✔️ overloads con sucursales
+        // ✔️ overloads con Sucursales
         Task<bool> Insertar(User u, IEnumerable<int> idSucursales);
         Task<bool> Actualizar(User u, IEnumerable<int> idSucursales);
 

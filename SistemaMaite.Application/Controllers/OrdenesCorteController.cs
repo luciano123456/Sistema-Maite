@@ -260,7 +260,7 @@ namespace SistemaMaite.Application.Controllers
                     Id = e.Id,
                     IdTaller = e.IdTaller,
                     FechaEntrada = e.FechaEntrada,
-                    FechaSalidaAproximada = e.FechaSalidaAproximada,
+                    FechaSalidaAproximada = e.FechaSalidaAproximada, 
                     FechaSalidaReal = e.FechaSalidaReal,
                     DiasReales = e.DiasReales,
                     CantidadProducir = e.CantidadProducir,
@@ -274,4 +274,9 @@ namespace SistemaMaite.Application.Controllers
             return list;
         }
     }
+
+
+
+
+
 }

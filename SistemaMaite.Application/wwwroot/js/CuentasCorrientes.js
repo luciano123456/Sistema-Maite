@@ -83,7 +83,7 @@ const columnConfigMovs = [
     { index: 4, filterType: "text" },                                  // Debe
     { index: 5, filterType: "text" },                                  // Haber
     { index: 6, filterType: "text" },                                  // Saldo
-    { index: 7, filterType: "select", fetchDataFunc: sucursalesFilter } // Sucursal
+    { index: 7, filterType: "select", fetchDataFunc: SucursalesFilter } // Sucursal
 ];
 async function tiposMovFilter() {
     return [
@@ -91,7 +91,7 @@ async function tiposMovFilter() {
         { Id: "COBRO", Nombre: "COBRO" }
     ];
 }
-async function sucursalesFilter() {
+async function SucursalesFilter() {
     try {
         const r = await fetch("/Sucursales/Lista", { headers: { "Authorization": "Bearer " + (window.token || "") } });
         const d = await r.json();
@@ -635,7 +635,7 @@ async function abrirModalCobro() {
 
     editContext = { isEdit: false, idCliente: null };
 
-    // cargar sucursales + cuentas de caja
+    // cargar Sucursales + cuentas de caja
     await Promise.all([
         fetch("/Sucursales/Lista", { headers: { "Authorization": "Bearer " + (window.token || "") } })
             .then(r => r.json())

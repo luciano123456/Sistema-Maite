@@ -22,7 +22,7 @@ const State = {
     clientes: [],
     vendedores: [],
     listas: [],
-    sucursales: [],
+    Sucursales: [],
     items: [],
     pagos: [],
     editItemIndex: -1,
@@ -255,21 +255,21 @@ async function cargarSucursalesUsuario() {
         const cmb = document.getElementById("cmbSucursal"); if (!cmb) return;
 
         cmb.innerHTML = `<option value="">Seleccione</option>`;
-        if (!idUsuario) { State.sucursales = []; cmb.removeAttribute("disabled"); if ($.fn.select2) $("#cmbSucursal").trigger("change.select2"); return; }
+        if (!idUsuario) { State.Sucursales = []; cmb.removeAttribute("disabled"); if ($.fn.select2) $("#cmbSucursal").trigger("change.select2"); return; }
 
         const r = await fetch(`/Usuarios/ObtenerSucursales?id=${idUsuario}`, { headers: { Authorization: "Bearer " + (token || ""), "Content-Type": "application/json" } });
-        if (!r.ok) throw new Error("No se pudo obtener sucursales del usuario");
+        if (!r.ok) throw new Error("No se pudo obtener Sucursales del usuario");
         const data = await r.json();
-        const sucursales = (data || []).map(s => ({ Id: Number(s.Id || 0), Nombre: String(s.Nombre || "") })).filter(s => s.Id > 0 && s.Nombre);
-        State.sucursales = sucursales;
+        const Sucursales = (data || []).map(s => ({ Id: Number(s.Id || 0), Nombre: String(s.Nombre || "") })).filter(s => s.Id > 0 && s.Nombre);
+        State.Sucursales = Sucursales;
 
-        cmb.innerHTML = `<option value="">Seleccione</option>` + sucursales.map(s => `<option value="${s.Id}">${s.Nombre}</option>`).join("");
+        cmb.innerHTML = `<option value="">Seleccione</option>` + Sucursales.map(s => `<option value="${s.Id}">${s.Nombre}</option>`).join("");
         if ($.fn.select2) $("#cmbSucursal").trigger("change.select2");
 
         let valueToSelect = 0;
-        if (State.idVenta && State.sucursalId && sucursales.some(s => s.Id === State.sucursalId)) valueToSelect = State.sucursalId;
-        else if (idSucursalPreferida && sucursales.some(s => s.Id === idSucursalPreferida)) valueToSelect = idSucursalPreferida;
-        else if (sucursales.length === 1) valueToSelect = sucursales[0].Id;
+        if (State.idVenta && State.sucursalId && Sucursales.some(s => s.Id === State.sucursalId)) valueToSelect = State.sucursalId;
+        else if (idSucursalPreferida && Sucursales.some(s => s.Id === idSucursalPreferida)) valueToSelect = idSucursalPreferida;
+        else if (Sucursales.length === 1) valueToSelect = Sucursales[0].Id;
 
         if (valueToSelect) {
             cmb.value = String(valueToSelect);
@@ -279,13 +279,13 @@ async function cargarSucursalesUsuario() {
         } else {
             if ($.fn.select2) $("#cmbSucursal").trigger("change.select2");
         }
-        if (sucursales.length === 1) cmb.setAttribute("disabled", "disabled"); else cmb.removeAttribute("disabled");
+        if (Sucursales.length === 1) cmb.setAttribute("disabled", "disabled"); else cmb.removeAttribute("disabled");
         updateGates();
     } catch (e) {
-        console.error("Error cargando sucursales usuario:", e);
+        console.error("Error cargando Sucursales usuario:", e);
         const cmb = document.getElementById("cmbSucursal");
         if (cmb) { cmb.innerHTML = `<option value="">Seleccione</option>`; cmb.removeAttribute("disabled"); if ($.fn.select2) $("#cmbSucursal").trigger("change.select2"); }
-        State.sucursales = [];
+        State.Sucursales = [];
     }
 }
 
@@ -388,7 +388,7 @@ async function cargarVentaExistente(id) {
         document.getElementById("cmbSucursal").value = v.IdSucursal || "";
         if ($.fn.select2) $("#cmbSucursal").trigger("change.select2");
         State.sucursalId = v.IdSucursal || 0;
-        if (State.sucursales.length === 1) document.getElementById("cmbSucursal").setAttribute("disabled", "disabled");
+        if (State.Sucursales.length === 1) document.getElementById("cmbSucursal").setAttribute("disabled", "disabled");
     }
     if ($.fn.select2) $("#cmbCliente, #cmbVendedor, #cmbListaPrecio").trigger("change.select2");
 

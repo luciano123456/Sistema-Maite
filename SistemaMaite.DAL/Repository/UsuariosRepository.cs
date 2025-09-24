@@ -24,7 +24,7 @@ namespace SistemaMaite.DAL.Repository
             catch { return false; }
         }
 
-        // ✔️ Actualizar con sucursales
+        // ✔️ Actualizar con Sucursales
         public async Task<bool> Actualizar(User model, IEnumerable<int> idSucursales)
         {
             using var tx = await _dbcontext.Database.BeginTransactionAsync();
@@ -51,7 +51,7 @@ namespace SistemaMaite.DAL.Repository
             {
                 var model = _dbcontext.Usuarios.First(c => c.Id == id);
 
-                // ✔️ borrar enlaces de sucursales
+                // ✔️ borrar enlaces de Sucursales
                 var links = _dbcontext.UsuariosSucursales.Where(x => x.IdUsuario == id);
                 _dbcontext.UsuariosSucursales.RemoveRange(links);
 
@@ -73,7 +73,7 @@ namespace SistemaMaite.DAL.Repository
             catch { return false; }
         }
 
-        // ✔️ Insertar con sucursales
+        // ✔️ Insertar con Sucursales
         public async Task<bool> Insertar(User model, IEnumerable<int> idSucursales)
         {
             using var tx = await _dbcontext.Database.BeginTransactionAsync();
@@ -104,7 +104,7 @@ namespace SistemaMaite.DAL.Repository
             catch { return null!; }
         }
 
-        // ✔️ Usuario con sucursales
+        // ✔️ Usuario con Sucursales
         public async Task<User?> ObtenerConSucursales(int id)
         {
             try

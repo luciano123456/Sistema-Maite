@@ -1,28 +1,53 @@
 ﻿/* =========================================================
-   INVENTARIO – DataTable siguiendo el patrón de CAJAS
+   INVENTARIO – DataTable + Variantes a la izquierda + OC
    ========================================================= */
 
 let gridMovs = null;
 
 const State = {
-    productos: [],
-    productoSel: null,
+    productos: [],           // ← reutilizado pero guardamos VARIANTES aquí (agregado de existencias)
+    productoSel: null,       // { idProd, idVariante, nombre }
     stockAnterior: 0,
-    existencias: [],          // existencias crudas (todas las sucursales)
-    stockVarOrigen: {}        // { idVariante: cantidadDisponibleEnOrigen } para transfer
+    existencias: [],         // existencias crudas (todas las sucursales)
+    stockVarOrigen: {},      // { idVariante: cantidadDisponibleEnOrigen } para transfer
+    productNames: {}         // { idProducto: "Descripción" } para etiquetar en OC si el back no lo trae
 };
+
+/* =============== Select2 helpers seguros =============== */
+function hasSelect2($el) {
+    return !!($.fn.select2 && ($el.hasClass("select2-hidden-accessible") || $el.data("select2")));
+}
+function initOrReinitSelect2($el, options) {
+    if (!$.fn.select2) return;
+    if (hasSelect2($el)) { try { $el.select2("destroy"); } catch { } }
+    $el.select2(options || {});
+}
+function safeDestroySelect2($el) {
+    try {
+        if ($el && $el.length && $el.hasClass("select2-hidden-accessible")) {
+            $el.select2("destroy");
+        }
+    } catch { /* ignore */ }
+}
+
+function toggleRevertButton() {
+    const suc = Number($("#rvSucursal").val() || 0);
+    const oc = Number($("#rvNumero").val() || 0);
+    const ok = suc > 0 && oc > 0;
+    $("#btnConfirmRevertOC").prop("disabled", !ok);
+    $("#errorRevertOC").addClass("d-none").text("Debes completar los campos requeridos.");
+    return ok;
+}
 
 /* =============== Helpers de cantidad (SIEMPRE ENTEROS) =============== */
 function toInt(val) {
-    // usa utilidades del proyecto y convierte a entero >= 0
     const n = Number(formatearSinMiles(String(val || "0"))) || 0;
     return n < 0 ? 0 : Math.floor(n);
 }
 function fmtQty(n) {
     const x = Number(n || 0);
-    return Math.trunc(x).toLocaleString("es-AR"); // sin decimales
+    return Math.trunc(x).toLocaleString("es-AR");
 }
-/** YYYY-MM-DD -> DD/MM/YYYY sin Date (evita TZ) */
 function formatISOForLabel(isoStr) {
     if (!isoStr || typeof isoStr !== "string" || isoStr.length < 10) return "";
     const [y, m, d] = isoStr.substring(0, 10).split("-");
@@ -34,7 +59,7 @@ function formatISOForLabel(isoStr) {
 // 7 Entrada | 8 Salida | 9 Stock | 10 Sucursal
 const columnConfig = [
     { index: 1, filterType: "text" },
-    { index: 2, filterType: "select", items: [{ Id: "ENTRADA", Nombre: "ENTRADA" }, { Id: "SALIDA", Nombre: "SALIDA" }] },
+    { index: 2, filterType: "select", items: [{ Id: "ENTRADA", Nombre: "ENTRADA" }, { Id: "SALIDA", Nombre: "SALIDA" }, { Id: "INGRESO_OC", Nombre: "INGRESO_OC" }, { Id: "TRANSFERENCIA", Nombre: "TRANSFERENCIA" }] },
     { index: 3, filterType: "text" },
     { index: 4, filterType: "text" },
     { index: 5, filterType: "text" },
@@ -59,7 +84,8 @@ $(document).ready(async () => {
 function bindUI() {
     $("#txtBuscarProd").on("input", renderProductos);
     $("#chkSoloStock").on("change", renderProductos);
-    $("#fltSucursal").on("change", renderProductos); // ← stock panel izq segun sucursal
+    $("#fltSucursal").on("change", renderProductos);
+    $("#fltSucursalTop").on("change", () => cargarMovimientos());
 
     $("#btnAjuste").on("click", abrirModalAjuste);
     $("#btnTransfer").on("click", abrirModalTransfer);
@@ -68,23 +94,31 @@ function bindUI() {
     $("#btnBuscar").on("click", () => cargarMovimientos());
     $("#btnLimpiar").on("click", () => {
         $("#fltSucursal").val("").trigger("change");
+        $("#fltSucursalTop").val("").trigger("change");
         aplicarDefaultsFiltros();
         $("#lstProductos .product-item").removeClass("active");
         State.productoSel = null;
         cargarMovimientos();
     });
 
-    // Variantes en modales
+    // Variantes en modales (ajuste/transfer)
     $("#ajProducto").on("change", () =>
         cargarVariantesEn("#ajVariantesWrap", "#ajVariantesEmpty", $("#ajProducto").val(), "#modalAjuste", { contexto: "ajuste" })
     );
 
     $("#trProducto").on("change", async () => {
-        await cargarVariantesEn("#trVariantesWrap", "#trVariantesEmpty", $("#trProducto").val(), "#modalTransfer", { transfer: true, mostrarStock: true, idSucursalOrigen: $("#trOrigen").val() });
+        await cargarVariantesEn("#trVariantesWrap", "#trVariantesEmpty", $("#trProducto").val(), "#modalTransfer", { contexto: "transfer", mostrarStock: true, idSucursalOrigen: $("#trOrigen").val() });
         await actualizarDisponibilidadTransfer();
     });
 
     $("#trOrigen").on("change", actualizarDisponibilidadTransfer);
+
+    // ====== Ingreso OC / Revertir OC ======
+    $("#btnIngresoOC").on("click", abrirModalIngresoOC);
+    $("#btnRevertOC").on("click", abrirModalRevertOC);
+
+    $("#btnGuardarIngresoOC").on("click", guardarIngresoOC);
+    $("#btnConfirmRevertOC").on("click", ejecutarRevertOC);
 }
 
 /* ============================ Cargas base ============================ */
@@ -93,63 +127,85 @@ async function cargarSucursalesFiltros() {
     try {
         const r = await fetch("/Sucursales/Lista", { headers: { Authorization: "Bearer " + (window.token || "") } });
         const sucs = await r.json();
-        const $f = $("#fltSucursal").empty().append(`<option value="">Todas</option>`);
-        sucs.forEach(s => $f.append(`<option value="${s.Id}">${s.Nombre}</option>`));
+
+        const fillSel = ($sel, includeTodas) => {
+            $sel.empty();
+            if (includeTodas) $sel.append(`<option value="">Todas</option>`);
+            sucs.forEach(s => $sel.append(`<option value="${s.Id}">${s.Nombre}</option>`));
+        };
+
+        fillSel($("#fltSucursal"), true);
+        fillSel($("#fltSucursalTop"), true);
 
         // combos modales
         const $aj = $("#ajSucursal").empty().append(`<option value="">Seleccione</option>`);
         sucs.forEach(s => $aj.append(`<option value="${s.Id}">${s.Nombre}</option>`));
+
         const $o = $("#trOrigen").empty().append(`<option value="">Seleccione</option>`);
         const $d = $("#trDestino").empty().append(`<option value="">Seleccione</option>`);
         sucs.forEach(s => { $o.append(`<option value="${s.Id}">${s.Nombre}</option>`); $d.append(`<option value="${s.Id}">${s.Nombre}</option>`); });
+
+        const $oc = $("#ocSucursal").empty().append(`<option value="">Seleccione</option>`);
+        const $rv = $("#rvSucursal").empty().append(`<option value="">Seleccione</option>`);
+        sucs.forEach(s => { $oc.append(`<option value="${s.Id}">${s.Nombre}</option>`); $rv.append(`<option value="${s.Id}">${s.Nombre}</option>`); });
+
+        if ($.fn.select2) {
+            $("#ajProducto").select2({ dropdownParent: $("#modalAjuste"), width: "100%", placeholder: "Seleccione" });
+            $("#trProducto").select2({ dropdownParent: $("#modalTransfer"), width: "100%", placeholder: "Seleccione" });
+            $("#ajSucursal").select2({ dropdownParent: $("#modalAjuste"), width: "100%", placeholder: "Seleccione" });
+            $("#trOrigen, #trDestino").select2({ dropdownParent: $("#modalTransfer"), width: "100%", placeholder: "Seleccione" });
+            $("#ocSucursal").select2({ dropdownParent: $("#modalIngresoOC"), width: "100%", placeholder: "Seleccione" });
+            $("#rvSucursal").select2({ dropdownParent: $("#modalRevertOC"), width: "100%", placeholder: "Seleccione" });
+        }
     } catch { }
 }
 
 async function cargarProductos() {
     const [exis, prods] = await Promise.all([
         fetch("/Inventario/Existencias", { headers: { Authorization: "Bearer " + (window.token || "") } }).then(r => r.json()),
-        fetch("/Productos/Lista", { headers: { Authorization: "Bearer " + (window.token || "") } }).then(r => r.json())
+        fetch("/Productos/Lista", { headers: { Authorization: "Bearer " + (window.token || "") } }).then(r => r.json()).catch(() => [])
     ]);
 
     State.existencias = exis || [];
 
-    // stock total (todas las sucursales) para cálculo inicial
-    const mapStock = {};
+    // Guardar nombres de productos para etiquetar en OC
+    State.productNames = {};
+    (prods || []).forEach(p => { State.productNames[p.Id] = p.Descripcion; });
+
+    // Armamos VARIANTES (no productos) para el panel izquierdo
+    const mapVar = new Map(); // key: `${idProd}-${idVar}` -> { IdProducto, IdProductoVariante, Nombre, StockTotal }
     (State.existencias || []).forEach(x => {
-        const id = x.IdProducto;
-        mapStock[id] = (mapStock[id] || 0) + (Number(x.Cantidad) || 0);
+        const idProd = Number(x.IdProducto);
+        const idVar = x.IdProductoVariante != null ? Number(x.IdProductoVariante) : 0;
+        const key = `${idProd}-${idVar}`;
+        const prodName = x.Producto || State.productNames[idProd] || `Producto ${idProd}`;
+        const varName = (x.Variante || "").trim();
+        const nombre = (idVar ? `${prodName} - ${varName}` : prodName);
+        const obj = mapVar.get(key) || { IdProducto: idProd, IdProductoVariante: idVar || null, Nombre: nombre, Stock: 0 };
+        obj.Stock += Math.trunc(Number(x.Cantidad || 0));
+        mapVar.set(key, obj);
     });
 
-    State.productos = (prods || []).map(p => ({
-        IdProducto: p.Id,
-        Producto: p.Descripcion,
-        Stock: Math.trunc(mapStock[p.Id] || 0)
-    })).sort((a, b) => a.Producto.localeCompare(b.Producto));
+    State.productos = Array.from(mapVar.values()).sort((a, b) => a.Nombre.localeCompare(b.Nombre));
 
-    // combos modales
+    // combos modales de productos (ajuste / transfer)
     const $selAj = $("#ajProducto").empty().append(`<option value="">Seleccione</option>`);
     const $selTr = $("#trProducto").empty().append(`<option value="">Seleccione</option>`);
-    State.productos.forEach(p => {
-        $selAj.append(`<option value="${p.IdProducto}">${p.Producto}</option>`);
-        $selTr.append(`<option value="${p.IdProducto}">${p.Producto}</option>`);
+    (prods || []).forEach(p => {
+        $selAj.append(`<option value="${p.Id}">${p.Descripcion}</option>`);
+        $selTr.append(`<option value="${p.Id}">${p.Descripcion}</option>`);
     });
-
-    if ($.fn.select2) {
-        $("#ajProducto").select2({ dropdownParent: $("#modalAjuste"), width: "100%", placeholder: "Seleccione" });
-        $("#trProducto").select2({ dropdownParent: $("#modalTransfer"), width: "100%", placeholder: "Seleccione" });
-        $("#ajSucursal").select2({ dropdownParent: $("#modalAjuste"), width: "100%", placeholder: "Seleccione" });
-        $("#trOrigen, #trDestino").select2({ dropdownParent: $("#modalTransfer"), width: "100%", placeholder: "Seleccione" });
-    }
 
     renderProductos();
     actualizarKpiStockTotal();
 }
 
-function stockProductoParaSucursal(idProd, idSucursal) {
-    // si hay sucursal, suma stock de esa sucursal; si no, suma todas
+function stockVarianteParaSucursal(idProd, idVar, idSucursal) {
     let total = 0;
     (State.existencias || []).forEach(x => {
         if (Number(x.IdProducto) !== Number(idProd)) return;
+        const v = x.IdProductoVariante != null ? Number(x.IdProductoVariante) : 0;
+        if (Number(v) !== Number(idVar)) return;
         if (idSucursal && Number(x.IdSucursal) !== Number(idSucursal)) return;
         total += Number(x.Cantidad) || 0;
     });
@@ -159,33 +215,36 @@ function stockProductoParaSucursal(idProd, idSucursal) {
 function renderProductos() {
     const txt = ($("#txtBuscarProd").val() || "").toLowerCase();
     const solo = $("#chkSoloStock").is(":checked");
-    const idSuc = $("#fltSucursal").val(); // nueva: stock por sucursal filtrada
+    const idSuc = $("#fltSucursal").val();
     const cont = $("#lstProductos").empty();
 
     State.productos
-        .map(p => ({
-            ...p,
-            _stockVista: stockProductoParaSucursal(p.IdProducto, idSuc || null)
+        .map(v => ({
+            ...v,
+            _stockVista: stockVarianteParaSucursal(v.IdProducto, (v.IdProductoVariante || 0), idSuc || null)
         }))
-        .filter(p => (!solo || p._stockVista > 0) && p.Producto.toLowerCase().includes(txt))
-        .forEach(p => {
-            const el = $(`
-        <div class="product-item" data-id="${p.IdProducto}">
-          <div class="product-name">${p.Producto}</div>
-          <div class="product-stock">${fmtQty(p._stockVista)}</div>
-        </div>`);
+        .filter(v => (!solo || v._stockVista > 0) && v.Nombre.toLowerCase().includes(txt))
+        .forEach(v => {
+            const el = $(` 
+            <div class="product-item" data-idprod="${v.IdProducto}" data-idvar="${v.IdProductoVariante || 0}">
+              <div class="product-name">${v.Nombre}</div>
+              <div class="product-stock">${fmtQty(v._stockVista)}</div>
+            </div>`);
             el.on("click", async () => {
                 const ya = el.hasClass("active");
                 $("#lstProductos .product-item").removeClass("active");
                 if (ya) State.productoSel = null;
-                else { el.addClass("active"); State.productoSel = { id: p.IdProducto, nombre: p.Producto }; }
+                else {
+                    el.addClass("active");
+                    State.productoSel = { idProd: v.IdProducto, idVariante: (v.IdProductoVariante || 0), nombre: v.Nombre };
+                }
                 await cargarMovimientos();
             });
             cont.append(el);
         });
 }
 
-/* ================= Filtros externos (mostrar/ocultar panel) ================= */
+/* ================= Filtros externos ================= */
 
 function initFiltersToggle() {
     const key = "Inventario_FiltrosVisibles";
@@ -203,6 +262,9 @@ function initFiltersToggle() {
     });
 }
 
+function hoyISO() { return moment().format("YYYY-MM-DD"); }
+function isoLabel(iso) { return iso ? moment(iso).format("DD/MM/YYYY") : ""; }
+
 function aplicarDefaultsFiltros() {
     const hoy = new Date();
     const d1 = new Date(hoy);
@@ -214,7 +276,6 @@ function aplicarDefaultsFiltros() {
 
 /* ============================ Movimientos ============================ */
 
-// Fila “Stock anterior” – usa fecha 9999-12-31 para sort y queda primera si ordenamos por Fecha DESC.
 function _filaStockAnterior(stockAnterior, fechaDesdeISO) {
     const fechaTxt = fechaDesdeISO ? formatISOForLabel(fechaDesdeISO) : null;
     return {
@@ -239,10 +300,14 @@ async function cargarMovimientos() {
         const par = new URLSearchParams();
         const desde = $("#fltDesde").val();
         const hasta = $("#fltHasta").val();
-        const idSuc = $("#fltSucursal").val();
+        const idSucTop = $("#fltSucursalTop").val();
 
-        if (idSuc) par.set("idSucursal", idSuc);
-        if (State.productoSel?.id) par.set("idProducto", State.productoSel.id);
+        if (idSucTop) par.set("idSucursal", idSucTop);
+        if (State.productoSel?.idVariante && Number(State.productoSel.idVariante) > 0) {
+            par.set("idVariante", State.productoSel.idVariante);
+        } else if (State.productoSel?.idProd) {
+            par.set("idProducto", State.productoSel.idProd);
+        }
         if (desde) par.set("desde", desde);
         if (hasta) par.set("hasta", hasta);
 
@@ -266,20 +331,19 @@ async function cargarMovimientos() {
             Concepto: m.Concepto || "",
             Entrada: Math.trunc(Number(m.Entrada || 0)),
             Salida: Math.trunc(Number(m.Salida || 0)),
-            Saldo: 0, // lo calculamos abajo
+            Saldo: 0,
             Sucursal: m.Sucursal || m.IdSucursalNavigation?.Nombre || "",
             IdProducto: m.IdProducto ?? null,
             IdVariante: m.IdProductoVariante ?? m.IdVariante ?? null
         }));
 
-        // saldo acumulado
-        const saldoInicial = State.productoSel?.id ? stockAnterior : 0;
+        const saldoInicial = (State.productoSel?.idProd || State.productoSel?.idVariante) ? stockAnterior : 0;
         const asc = rows.slice().sort((a, b) => {
             const d = new Date(a.Fecha) - new Date(b.Fecha);
             return d !== 0 ? d : (a.Id || 0) - (b.Id || 0);
         });
 
-        const keyFor = (r) => `${State.productoSel?.id || r.IdProducto || r.Producto}||GLOBAL`;
+        const keyFor = (r) => `${State.productoSel?.idVariante || State.productoSel?.idProd || r.IdVariante || r.IdProducto || r.Producto}||GLOBAL`;
         const saldosPorClave = new Map();
         const saldoPorId = new Map();
 
@@ -293,7 +357,7 @@ async function cargarMovimientos() {
 
         rows = rows.map(r => ({ ...r, Saldo: saldoPorId.get(r.Id) ?? r.Saldo }));
 
-        if (State.productoSel?.id) rows = [_filaStockAnterior(stockAnterior, desde), ...rows];
+        if (State.productoSel?.idProd || State.productoSel?.idVariante) rows = [_filaStockAnterior(stockAnterior, desde), ...rows];
 
         rows.sort((a, b) => {
             const d = new Date(b.Fecha) - new Date(a.Fecha);
@@ -327,7 +391,7 @@ async function configurarTablaMov(data) {
             columnDefs: [
                 { targets: [0, 2, 3, 4, 5, 6, 7, 8, 9, 10], orderable: false }
             ],
-            order: [[1, "desc"]],
+            order: [[1, "desc"]], // fecha
             columns: [
                 { data: "Id", title: "", width: "1%", orderable: false, searchable: false, render: () => "" },
                 {
@@ -434,23 +498,18 @@ function actualizarKPIsDesdeTabla() {
     if (!gridMovs) return;
     const rows = gridMovs.rows({ search: "applied" }).data().toArray().filter(r => !r.__isStock);
 
-    // sumas de unidades
     const unidadesEntrada = rows.reduce((a, r) => a + (Number(r.Entrada) || 0), 0);
     const unidadesSalida = rows.reduce((a, r) => a + (Number(r.Salida) || 0), 0);
 
-    // cantidad de filas por tipo
     const cantMovs = rows.length;
     const cantEntradas = rows.filter(r => (Number(r.Entrada) || 0) > 0).length;
     const cantSalidas = rows.filter(r => (Number(r.Salida) || 0) > 0).length;
 
-    // pinta KPIs (ajusta IDs según tu HTML)
-    $("#kpiMovimientos").text(cantMovs.toLocaleString("es-AR"));
-    $("#kpiEntradas").text(unidadesEntrada.toLocaleString("es-AR"));  // si decides mantener “unidades”
+    $("#kpiMovimientos")?.text?.(cantMovs.toLocaleString("es-AR"));
+    $("#kpiEntradas").text(unidadesEntrada.toLocaleString("es-AR"));
     $("#kpiSalidas").text(unidadesSalida.toLocaleString("es-AR"));
-
-    // si quieres contadores separados:
-    $("#kpiEntradasCnt").text(cantEntradas.toLocaleString("es-AR"));
-    $("#kpiSalidasCnt").text(cantSalidas.toLocaleString("es-AR"));
+    $("#kpiEntradasCnt")?.text?.(cantEntradas.toLocaleString("es-AR"));
+    $("#kpiSalidasCnt")?.text?.(cantSalidas.toLocaleString("es-AR"));
 }
 
 /* ============================ Exportar PDF ============================ */
@@ -484,24 +543,19 @@ function exportarPdf() {
 }
 
 /* ============================ Modales (Ajuste / Transfer) ============================ */
-// ---------- AJUSTE ----------
+
 function abrirModalAjuste() {
-    resetModalAjuste();  
+    resetModalAjuste();
 
-    $("#ajFecha").val(new Date().toISOString().slice(0, 10));
-
-    // ✅ el value debe ser "Entrada" (no "ENTRADA")
-    $("#ajTipo").val("Entrada");
-
-    // Cantidad SIEMPRE readonly (se calcula con variantes)
+    $("#ajFecha").val(hoyISO());
+    $("#ajTipo").val("ENTRADA"); // ← coincide con el select
     $("#ajCantidad").val("0").prop("readonly", true).addClass("form-control-plaintext");
-
     $("#ajNota").val("AJUSTE MANUAL (...)");
-    $("#ajProducto").val(State.productoSel?.id || "").trigger("change");
+
+    $("#ajProducto").val(State.productoSel?.idProd || "").trigger("change");
     $("#ajVariantesWrap").empty();
     $("#ajVariantesEmpty").addClass("d-none");
 
-    // ✅ tomar sucursal del filtro para que coincida el stock
     const sucFiltro = $("#fltSucursal").val();
     if (sucFiltro) $("#ajSucursal").val(sucFiltro).trigger("change");
 
@@ -520,13 +574,13 @@ function abrirModalAjuste() {
             cargarVariantesEn("#ajVariantesWrap", "#ajVariantesEmpty", p, "#modalAjuste",
                 { contexto: "ajuste", mostrarStock: true, idSucursalOrigen: s });
         }
-        validarLimiteCantidadGeneral();   // tope general
-        $(".var-qty").trigger("input");   // revalidar variantes si hay
+        validarLimiteCantidadGeneral();
+        $(".var-qty").trigger("input");
     });
 
     $("#ajTipo").off("change.aj").on("change.aj", () => {
         validarLimiteCantidadGeneral();
-        $(".var-qty").trigger("input");   // recapea si pasaste a Salida
+        $(".var-qty").trigger("input");
     });
 
     $("#btnGuardarAjuste").off("click").on("click", guardarAjuste);
@@ -538,11 +592,9 @@ function abrirModalAjuste() {
 async function guardarAjuste() {
     if (!validarAjuste()) return;
 
-    // ✅ normalizar casing del tipo (lo que se envía al back)
     const rawTipo = ($("#ajTipo").val() || "").trim().toLowerCase();
     const tipo = rawTipo === "salida" ? "Salida" : "Entrada";
 
-    // ✅ SIEMPRE cantidades positivas; el back decide Entrada/Salida con 'Tipo'
     let vars = leerVariantes("#ajVariantesWrap").map(x => ({ ...x, Cantidad: toInt(x.Cantidad) }));
     let cantidadGeneral = toInt($("#ajCantidad").val());
 
@@ -550,9 +602,9 @@ async function guardarAjuste() {
         IdSucursal: Number($("#ajSucursal").val()),
         IdProducto: Number($("#ajProducto").val()),
         Fecha: $("#ajFecha").val(),
-        Tipo: tipo,                                 // "Entrada" | "Salida"
+        Tipo: tipo,
         Nota: ($("#ajNota").val() || "").trim(),
-        Variantes: vars.length ? vars : null,       // [{ IdProductoVariante, Cantidad }]
+        Variantes: vars.length ? vars : null,
         Cantidad: vars.length ? null : cantidadGeneral
     };
 
@@ -582,7 +634,6 @@ function validarAjuste() {
         if (!v) { $(sel).addClass("is-invalid"); ok = false; } else $(sel).removeClass("is-invalid");
     });
 
-    // Si no hay variantes, cantidad general debe ser > 0 (aunque readonly, por si acaso)
     const vars = leerVariantes("#ajVariantesWrap");
     if (!vars.length) {
         const q = toInt($("#ajCantidad").val());
@@ -595,7 +646,8 @@ function validarAjuste() {
     return ok;
 }
 
-// ---------- TRANSFERENCIA ----------
+/* ---------- TRANSFERENCIA ---------- */
+
 function _valOrFirst(selector) {
     const $sel = $(selector);
     let v = $sel.val();
@@ -610,18 +662,16 @@ function _valOrFirst(selector) {
 }
 
 function abrirModalTransfer() {
-    resetModalTransfer();     
+    resetModalTransfer();
 
-    $("#trFecha").val(new Date().toISOString().slice(0, 10));
-    $("#trProducto").val(State.productoSel?.id || "").trigger("change");
+    $("#trFecha").val(hoyISO());
+    $("#trProducto").val(State.productoSel?.idProd || "").trigger("change");
     $("#trVariantesWrap").empty();
     $("#trVariantesEmpty").addClass("d-none");
 
-    // Selecciona (o fuerza) una sucursal de origen
     const sucOrigen = _valOrFirst("#trOrigen");
     const pid = $("#trProducto").val();
 
-    // Carga inicial de variantes + stock y aplica CAP al ser contexto "transfer"
     if (pid) {
         cargarVariantesEn(
             "#trVariantesWrap",
@@ -631,12 +681,10 @@ function abrirModalTransfer() {
             { contexto: "transfer", mostrarStock: true, idSucursalOrigen: sucOrigen }
         ).then(() => {
             actualizarDisponibilidadTransfer();
-            // dispare validación/capea por si había un valor en memoria
             $("#trVariantesWrap .var-qty").trigger("input");
         });
     }
 
-    // Si cambia Producto u Origen → recargar variantes con el mismo contexto y revalidar
     $("#trProducto, #trOrigen").off("change.inv").on("change.inv", () => {
         const p = $("#trProducto").val();
         const s = _valOrFirst("#trOrigen");
@@ -660,13 +708,532 @@ function abrirModalTransfer() {
     $("#btnGuardarTransfer").off("click").on("click", guardarTransfer);
     $("#modalTransfer").modal("show");
 
-    // Validación inicial aunque no toquen nada
     setTimeout(() => {
         actualizarDisponibilidadTransfer();
         $("#trVariantesWrap .var-qty").trigger("input");
     }, 0);
 }
 
+/* ===== Transfer – disponibilidad por variante (origen) ===== */
+async function actualizarDisponibilidadTransfer() {
+    const idProd = Number($("#trProducto").val() || 0);
+    const idSuc = Number($("#trOrigen").val() || 0);
+    if (!idProd || !idSuc) {
+        State.stockVarOrigen = {};
+        $(".var-help .var-disp").text("-");
+        validarCantidadesTransfer();
+        return;
+    }
+
+    const map = {};
+    (State.existencias || [])
+        .filter(x => Number(x.IdProducto) === idProd && Number(x.IdSucursal) === idSuc)
+        .forEach(x => {
+            const idVar = Number(x.IdProductoVariante || x.IdVariante || 0);
+            if (!idVar) return;
+            map[idVar] = (map[idVar] || 0) + Math.trunc(Number(x.Cantidad) || 0);
+        });
+    State.stockVarOrigen = map;
+
+    $("#trVariantesWrap .var-qty").each(function () {
+        const idVar = Number($(this).data("id") || 0);
+        const disp = Math.trunc(State.stockVarOrigen[idVar] || 0);
+        const $row = $(this).closest(".var-row");
+        $row.find(".var-help .var-disp").text(fmtQty(disp));
+
+        let v = toInt($(this).val());
+        if (v > disp) { v = disp; $(this).val(fmtQty(v)); }
+    });
+
+    validarCantidadesTransfer();
+}
+
+function validarCantidadesTransfer() {
+    let ok = true;
+    $("#trVariantesWrap .var-qty").each(function () {
+        const idVar = Number($(this).data("id") || 0);
+        const disp = Math.trunc(State.stockVarOrigen[idVar] || 0);
+
+        let q = toInt($(this).val());
+        if (q > disp) q = disp;
+
+        $(this).val(q ? fmtQty(q) : "0");
+
+        const $help = $(this).closest(".var-row").find(".var-help");
+        $help.removeClass("text-danger").addClass("text-muted");
+
+        if (q > disp) {
+            $(this).addClass("is-invalid");
+            $help.removeClass("text-muted").addClass("text-danger");
+            ok = false;
+        } else {
+            $(this).removeClass("is-invalid");
+        }
+    });
+
+    if (!ok) {
+        $("#errorTransfer").removeClass("d-none").text("No hay stock suficiente en la sucursal de origen para una o más variantes.");
+    } else {
+        $("#errorTransfer").addClass("d-none").text("");
+    }
+    return ok;
+}
+
+/* ============================ Variantes (UI comunes) ============================ */
+
+async function cargarVariantesEn(wrapperSel, emptySel, idProducto, modalSel, opts = {}) {
+    const { mostrarStock = false, idSucursalOrigen = null, contexto = null } = opts;
+
+    try {
+        if (!idProducto) {
+            $(wrapperSel).empty();
+            $(emptySel).removeClass("d-none");
+            return;
+        }
+
+        const rVar = await fetch(`/Ventas/VariantesPorProducto?idProducto=${idProducto}`, {
+            headers: { Authorization: "Bearer " + (window.token || "") }
+        });
+        const data = await rVar.json();
+        const listVariantes = (data || []).map(v => ({
+            id: v.Id,
+            nombre: v.Nombre || `${v.Color} / ${v.Talle}`
+        }));
+
+        let stockPorVar = {}, stockTotal = 0;
+        if (mostrarStock && idSucursalOrigen) {
+            const { porVar, total } = await obtenerExistenciasProducto(idSucursalOrigen, idProducto);
+            stockPorVar = porVar; stockTotal = Math.trunc(total || 0);
+        }
+
+        const wrap = $(wrapperSel).empty();
+        if (!listVariantes.length) { $(emptySel).removeClass("d-none"); return; }
+        $(emptySel).addClass("d-none");
+
+        listVariantes.forEach(v => {
+            const stockVar = Math.trunc(stockPorVar[v.id] || 0);
+            const row = $(`
+                <div class="var-row d-flex align-items-center justify-content-between">
+                    <div class="var-name">${v.nombre}</div>
+                    <div class="var-cant d-flex flex-column align-items-end" style="min-width:110px">
+                        <input type="text" class="form-control Inputmiles var-qty" data-id="${v.id}" value="0" style="width: 100px; text-align:right;">
+                        <small class="text-muted mt-1 stock-chip var-help">
+                            Stock: <span class="var-disp" data-stock="${v.id}">${fmtQty(stockVar)}</span>
+                        </small>
+                    </div>
+                </div>
+            `);
+            wrap.append(row);
+        });
+
+        const $cantGeneral = $("#ajCantidad");
+        const onInput = () => {
+            $(".var-qty").each(function () {
+                let v = toInt($(this).val());
+                const idVar = Number($(this).data("id"));
+                if (contexto === "transfer" || ($("#ajTipo").val() === "SALIDA" && contexto === "ajuste")) {
+                    const max = Math.trunc(stockPorVar[idVar] || 0);
+                    if (v > max) v = max;
+                }
+                $(this).val(v ? fmtQty(v) : "0");
+            });
+
+            let suma = 0;
+            $(".var-qty").each(function () { suma += toInt($(this).val()); });
+            $cantGeneral.val(fmtQty(suma)).prop("readonly", true).addClass("form-control-plaintext");
+
+            validarLimiteCantidadGeneral(stockTotal);
+        };
+
+        $(".var-qty").off("input").on("input", onInput);
+        onInput();
+
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+function leerVariantes(wrapperSel) {
+    const arr = [];
+    $(wrapperSel).find(".var-qty").each(function () {
+        const id = Number($(this).data("id") || 0);
+        const q = toInt($(this).val());
+        if (id > 0 && q > 0) arr.push({ IdProductoVariante: id, Cantidad: q });
+    });
+    return arr;
+}
+
+/* ============================ Helpers de back ============================ */
+
+async function listaSucursalesFilter() {
+    const r = await fetch("/Sucursales/Lista", { headers: { Authorization: "Bearer " + (window.token || "") } });
+    const sucs = await r.json();
+    return sucs.map(x => ({ Id: x.Id, Nombre: x.Nombre }));
+}
+
+async function obtenerExistenciasProducto(idSucursal, idProducto) {
+    const url = `/Inventario/Existencias?idSucursal=${idSucursal}&idProducto=${idProducto}`;
+    const r = await fetch(url, { headers: { Authorization: "Bearer " + (window.token || "") } });
+    const data = await r.json();
+
+    const porVar = {};
+    let total = 0;
+
+    (data || []).forEach(x => {
+        const q = Math.trunc(Number(x.Cantidad || 0));
+        total += q;
+        if (x.IdProductoVariante != null) {
+            porVar[x.IdProductoVariante] = (porVar[x.IdProductoVariante] || 0) + q;
+        }
+    });
+
+    return { porVar, total: Math.trunc(total) };
+}
+
+/* ============================ Lógica de tope general (Ajuste) ============================ */
+
+function validarLimiteCantidadGeneral(stockTotalForzado) {
+    if (!$("#modalAjuste").is(":visible")) return;
+
+    const tipo = ($("#ajTipo").val() || "").toUpperCase();
+    const pid = $("#ajProducto").val();
+    const suc = $("#ajSucursal").val();
+    const $cant = $("#ajCantidad");
+
+    const sumaVar = $(".var-qty").toArray().reduce((a, el) => a + toInt($(el).val()), 0);
+    if (sumaVar > 0) { $cant.removeClass("is-invalid"); return; }
+
+    if (tipo !== "SALIDA") {
+        $("#ajProducto, #ajSucursal").removeClass("is-invalid");
+        $("#errorAjuste").addClass("d-none").text("Debes completar los campos requeridos.");
+        $cant.removeClass("is-invalid");
+        return;
+    }
+
+    if (!pid || !suc) {
+        if (!pid) $("#ajProducto").addClass("is-invalid"); else $("#ajProducto").removeClass("is-invalid");
+        if (!suc) $("#ajSucursal").addClass("is-invalid"); else $("#ajSucursal").removeClass("is-invalid");
+        $("#errorAjuste").removeClass("d-none").text("Debes completar los campos requeridos");
+        return;
+    } else {
+        $("#ajProducto, #ajSucursal").removeClass("is-invalid");
+        $("#errorAjuste").addClass("d-none").text("Debes completar los campos requeridos.");
+    }
+
+    (async () => {
+        let stockTotal = typeof stockTotalForzado === "number" ? Math.trunc(stockTotalForzado) : 0;
+        if (stockTotalForzado == null) {
+            const r = await obtenerExistenciasProducto(suc, pid);
+            stockTotal = Math.trunc(r.total || 0);
+        }
+
+        let v = toInt($cant.val());
+        if (v > stockTotal) {
+            v = stockTotal;
+            $cant.val(fmtQty(v)).addClass("is-invalid");
+        } else {
+            $cant.removeClass("is-invalid");
+        }
+    })();
+}
+
+function resetModalAjuste() {
+    limpiarModal('#modalAjuste', '#errorAjuste');
+    $('#ajFecha').val(hoyISO());
+    $('#ajTipo').val('ENTRADA');
+    $('#ajCantidad').val('0').prop('readonly', true).addClass('form-control-plaintext');
+    $('#ajNota').val('AJUSTE MANUAL (...)');
+    $('#ajSucursal').val('').trigger('change');
+    $('#ajProducto').val('').trigger('change');
+    $('#ajVariantesWrap').empty();
+    $('#ajVariantesEmpty').removeClass('d-none');
+}
+
+function resetModalTransfer() {
+    limpiarModal('#modalTransfer', '#errorTransfer');
+    $('#trFecha').val(hoyISO());
+    $('#trNota').val('');
+    $('#trOrigen').val('').trigger('change');
+    $('#trDestino').val('').trigger('change');
+    $('#trProducto').val('').trigger('change');
+    $('#trVariantesWrap').empty();
+    $('#trVariantesEmpty').removeClass('d-none');
+}
+
+/* ============================ OC: Ingreso y Reversión ============================ */
+
+function abrirModalIngresoOC() {
+    limpiarModal('#modalIngresoOC', '#errorIngresoOC');
+    $("#ocFecha").val(hoyISO());
+    $("#ocNota").val('');
+    $("#ocVariantesWrap").empty();
+    $("#ocVariantesEmpty").addClass("d-none"); // se mostrará si no hay líneas
+    $("#ocSucursal").val('').trigger('change');
+    $("#modalIngresoOC").modal("show");
+
+    // Select2 de OC disponibles (finalizadas y sin asociar)
+    initOrReinitSelect2($("#ocNumero"), {
+        dropdownParent: $("#modalIngresoOC"),
+        width: "100%",
+        placeholder: "Buscar OC finalizadas sin ingreso…",
+        allowClear: true,
+        ajax: {
+            delay: 250,
+            transport: function (params, success, failure) {
+                const term = params.data?.term || "";
+                fetch(`/Inventario/OC/Disponibles?q=${encodeURIComponent(term)}&top=30`, {
+                    headers: { Authorization: "Bearer " + (window.token || "") }
+                }).then(r => r.json()).then(success).catch(failure);
+            },
+            processResults: function (data) {
+                return { results: data || [] };
+            }
+        },
+        templateResult: function (item) {
+            if (!item.id) return item.text;
+            return $(`<div>OC #${item.id} <small class="text-muted"> ${item.text?.replace(/^OC #\d+\s*•\s*/, '') || ''}</small></div>`);
+        }
+    });
+
+    // Cada vez que elijo una OC, cargo variantes agrupadas por producto
+    $("#ocNumero").off("change.oc").on("change.oc", async function () {
+        const idOC = Number($(this).val() || 0);
+        await cargarVariantesOC_porSeleccion(idOC);
+    });
+}
+
+/* ===== Variantes de la OC – agrupadas por producto ===== */
+async function cargarVariantesOC_porSeleccion(idOC) {
+    const wrap = $("#ocVariantesWrap").empty();
+    $("#ocVariantesEmpty").addClass("d-none");
+
+    if (!idOC) { $("#ocVariantesEmpty").removeClass("d-none"); return; }
+
+    try {
+        const r = await fetch(`/Inventario/OC/Variantes?idOrdenCorte=${idOC}`, {
+            headers: { Authorization: "Bearer " + (window.token || "") }
+        });
+        if (!r.ok) throw new Error(await r.text());
+        const data = await r.json();
+
+        if (!data || !data.length) { $("#ocVariantesEmpty").removeClass("d-none"); return; }
+
+        // Group: { IdProducto, Producto, variantes[] }
+        const grupos = new Map();
+        (data || []).forEach(v => {
+            const idp = Number(v.IdProducto);
+            const nombreProd = (v.Producto && String(v.Producto).trim()) || State.productNames[idp] || `Producto ${idp}`;
+            if (!grupos.has(idp)) grupos.set(idp, { id: idp, nombre: nombreProd, vars: [] });
+            grupos.get(idp).vars.push({ idv: Number(v.IdProductoVariante), nombre: (v.Variante || "").trim() });
+        });
+
+        // Render
+        Array.from(grupos.values()).sort((a, b) => a.nombre.localeCompare(b.nombre)).forEach(g => {
+            // Título de producto
+            const header = $(`
+                <div class="mb-2 mt-3 fw-bold" style="border-bottom:1px dashed rgba(255,255,255,.15); padding-bottom:.25rem;">
+                    ${g.nombre}
+                </div>
+            `);
+            wrap.append(header);
+
+            // Variantes del producto
+            g.vars.forEach(v => {
+                const row = $(`
+                    <div class="var-row d-flex align-items-center justify-content-between">
+                        <div class="var-name">${v.nombre}</div>
+                        <div class="var-cant d-flex flex-column align-items-end" style="min-width:110px">
+                            <input type="text" class="form-control Inputmiles oc-qty" 
+                                   data-idprod="${g.id}" data-idvar="${v.idv}"
+                                   value="0" style="width: 100px; text-align:right;">
+                        </div>
+                    </div>
+                `);
+                wrap.append(row);
+            });
+        });
+
+    } catch (e) {
+        console.error(e);
+        $("#ocVariantesEmpty").removeClass("d-none");
+    }
+}
+
+async function guardarIngresoOC() {
+    let ok = true;
+    ["#ocFecha", "#ocSucursal", "#ocNumero"].forEach(sel => {
+        const v = $(sel).val();
+        if (!v) { $(sel).addClass("is-invalid"); ok = false; } else $(sel).removeClass("is-invalid");
+    });
+    $("#errorIngresoOC").toggleClass("d-none", ok).text(ok ? "" : "Debes completar los campos requeridos");
+    if (!ok) return;
+
+    const idSucursal = Number($("#ocSucursal").val());
+    const idOC = Number($("#ocNumero").val());
+    const fecha = $("#ocFecha").val();
+    const nota = ($("#ocNota").val() || "").trim();
+
+    const lineas = [];
+    $("#ocVariantesWrap .oc-qty").each(function () {
+        const q = toInt($(this).val());
+        const idp = Number($(this).data("idprod") || 0);
+        const idv = Number($(this).data("idvar") || 0);
+        if (q > 0 && idp > 0 && idv > 0) lineas.push({ IdProducto: idp, IdProductoVariante: idv, Cantidad: q });
+    });
+
+    if (lineas.length === 0) {
+        $("#errorIngresoOC").removeClass("d-none").text("Debes completar los campos requeridos");
+        return;
+    }
+
+    const payload = {
+        IdSucursal: idSucursal,
+        IdOrdenCorte: idOC,
+        Fecha: fecha,
+        Nota: nota,
+        Variantes: lineas
+    };
+
+    try {
+        const r = await fetch("/Inventario/IngresoDesdeOC", {
+            method: "POST",
+            headers: { Authorization: "Bearer " + (window.token || ""), "Content-Type": "application/json;charset=utf-8" },
+            body: JSON.stringify(payload)
+        });
+        if (!r.ok) throw new Error(await r.text());
+        const j = await r.json();
+        if (!j?.valor) {
+            const msg = j?.mensaje || "No se pudo registrar el ingreso.";
+            throw new Error(msg);
+        }
+        $("#modalIngresoOC").modal("hide");
+        exitoModal("Ingreso por OC registrado.");
+        await Promise.all([cargarProductos(), cargarMovimientos()]);
+    } catch (e) {
+        console.error(e);
+        errorModal(e.message || "No se pudo registrar el ingreso por OC.");
+    }
+}
+
+/* -------- Revertir OC (solo OCs con ingreso en la sucursal elegida) -------- */
+
+function abrirModalRevertOC() {
+    limpiarModal('#modalRevertOC', '#errorRevertOC');
+
+    // Resetear selects
+    const $suc = $("#rvSucursal");
+    const $oc = $("#rvNumero");
+
+    if ($.fn.select2) {
+        $suc.select2({ dropdownParent: $("#modalRevertOC"), width: "100%", placeholder: "Seleccione" });
+    }
+
+    safeDestroySelect2($oc);
+    $oc.empty().prop("disabled", true);
+
+    $suc.off("change.revert").on("change.revert", function () {
+        const idSucursal = Number($(this).val() || 0);
+        cargarOCsParaRevertir(idSucursal);
+    });
+
+    $("#btnConfirmRevertOC").off("click.revert").on("click.revert", async () => {
+        if (!toggleRevertButton()) return;
+
+        const idSucursal = Number($("#rvSucursal").val());
+        const idOC = Number($("#rvNumero").val());
+
+        try {
+            const r = await fetch(`/Inventario/RevertirIngresoOC?idSucursal=${idSucursal}&idOrdenCorte=${idOC}`, {
+                method: "POST",
+                headers: { Authorization: "Bearer " + (window.token || "") }
+            });
+            if (!r.ok) throw new Error(await r.text());
+            const j = await r.json();
+        
+            $("#modalRevertOC").modal("hide");
+            exitoModal("Ingreso por OC revertido.");
+            await Promise.all([cargarProductos(), cargarMovimientos()]);
+        } catch (e) {
+            console.error(e);
+            errorModal(e.message || "No se pudo revertir el ingreso por OC.");
+        }
+    });
+
+    $("#modalRevertOC").modal("show");
+    toggleRevertButton();
+}
+
+async function ejecutarRevertOC() {
+    let ok = true;
+    ["#rvSucursal", "#rvNumero"].forEach(sel => {
+        const v = $(sel).val();
+        if (!v) { $(sel).addClass("is-invalid"); ok = false; } else $(sel).removeClass("is-invalid");
+    });
+    $("#errorRevertOC").toggleClass("d-none", ok).text(ok ? "" : "Debes completar los campos requeridos");
+    if (!ok) return;
+
+    const idSucursal = Number($("#rvSucursal").val());
+    const idOC = Number($("#rvNumero").val());
+
+    try {
+        const r = await fetch(`/Inventario/RevertirIngresoOC?idSucursal=${idSucursal}&idOrdenCorte=${idOC}`, {
+            method: "POST",
+            headers: { Authorization: "Bearer " + (window.token || "") }
+        });
+        if (!r.ok) throw new Error(await r.text());
+        const j = await r.json();
+        $("#modalRevertOC").modal("hide");
+        exitoModal("Ingreso por OC revertido.");
+        await Promise.all([cargarProductos(), cargarMovimientos()]);
+    } catch (e) {
+        console.error(e);
+        errorModal(e.message || "No se pudo revertir el ingreso por OC.");
+    }
+}
+
+async function cargarOCsParaRevertir(idSucursal) {
+    const $oc = $("#rvNumero");
+
+    safeDestroySelect2($oc);
+    $oc.empty();
+
+    if (!idSucursal || Number(idSucursal) <= 0) {
+        $oc.prop("disabled", true);
+        toggleRevertButton();
+        return;
+    }
+
+    $oc.prop("disabled", false);
+
+    $oc.select2({
+        dropdownParent: $("#modalRevertOC"),
+        width: "100%",
+        placeholder: "Elegí una OC para revertir",
+        allowClear: true,
+        ajax: {
+            delay: 300,
+            transport: function (params, success, failure) {
+                const term = encodeURIComponent((params.data && params.data.term) || "");
+                const top = 20;
+                const url = `/Inventario/OC/ConIngreso?idSucursal=${idSucursal}&q=${term}&top=${top}`;
+
+                fetch(url, { headers: { Authorization: "Bearer " + (window.token || "") } })
+                    .then(r => r.ok ? r.json() : [])
+                    .then(data => success({ results: data || [] }))
+                    .catch(() => success({ results: [] }));
+            },
+            processResults: (payload) => {
+                const results = (payload && payload.results) || [];
+                return { results };
+            }
+        }
+    });
+
+    $oc.off("select2:select select2:clear").on("select2:select select2:clear", toggleRevertButton);
+    toggleRevertButton();
+}
+
+/* -------- Guardar transferencia -------- */
 async function guardarTransfer() {
     let ok = true;
     ["#trFecha", "#trOrigen", "#trDestino", "#trProducto"].forEach(sel => {
@@ -708,291 +1275,4 @@ async function guardarTransfer() {
         console.error(e);
         errorModal("No se pudo guardar la transferencia.");
     }
-}
-
-/* ===== Transfer – disponibilidad por variante (origen) ===== */
-
-async function actualizarDisponibilidadTransfer() {
-    const idProd = Number($("#trProducto").val() || 0);
-    const idSuc = Number($("#trOrigen").val() || 0);
-    if (!idProd || !idSuc) {
-        State.stockVarOrigen = {};
-        $(".var-help .var-disp").text("-");
-        validarCantidadesTransfer();
-        return;
-    }
-
-    // mapa de disponibilidad por variante en ORIGEN usando State.existencias
-    const map = {};
-    (State.existencias || [])
-        .filter(x => Number(x.IdProducto) === idProd && Number(x.IdSucursal) === idSuc)
-        .forEach(x => {
-            const idVar = Number(x.IdProductoVariante || x.IdVariante || 0);
-            if (!idVar) return;
-            map[idVar] = (map[idVar] || 0) + Math.trunc(Number(x.Cantidad) || 0);
-        });
-    State.stockVarOrigen = map;
-
-    // pintar ayudas y capear valores si superan stock
-    $("#trVariantesWrap .var-qty").each(function () {
-        const idVar = Number($(this).data("id") || 0);
-        const disp = Math.trunc(State.stockVarOrigen[idVar] || 0);
-        const $row = $(this).closest(".var-row");
-        $row.find(".var-help .var-disp").text(fmtQty(disp));
-
-        let v = toInt($(this).val());
-        if (v > disp) { v = disp; $(this).val(fmtQty(v)); }
-    });
-
-    validarCantidadesTransfer();
-}
-
-function validarCantidadesTransfer() {
-    let ok = true;
-    $("#trVariantesWrap .var-qty").each(function () {
-        const idVar = Number($(this).data("id") || 0);
-        const disp = Math.trunc(State.stockVarOrigen[idVar] || 0);
-
-        let q = toInt($(this).val());
-        if (q > disp) q = disp;
-
-        // Normalizo y reflejo
-        $(this).val(q ? fmtQty(q) : "0");
-
-        const $help = $(this).closest(".var-row").find(".var-help");
-        $help.removeClass("text-danger").addClass("text-muted");
-
-        if (q > disp) {
-            $(this).addClass("is-invalid");
-            $help.removeClass("text-muted").addClass("text-danger");
-            ok = false;
-        } else {
-            $(this).removeClass("is-invalid");
-        }
-    });
-
-    if (!ok) {
-        $("#errorTransfer").removeClass("d-none").text("No hay stock suficiente en la sucursal de origen para una o más variantes.");
-    } else {
-        $("#errorTransfer").addClass("d-none").text("");
-    }
-    return ok;
-}
-
-/* ============================ Variantes (UI comunes) ============================ */
-
-// wrapperSel: contenedor de filas
-// emptySel:   cartel "sin variantes"
-// idProducto: producto seleccionado
-// modalSel:   modal padre (para select2)
-// opts:       { mostrarStock: bool, idSucursalOrigen: number, contexto: 'ajuste' | 'transfer' }
-async function cargarVariantesEn(wrapperSel, emptySel, idProducto, modalSel, opts = {}) {
-    const { mostrarStock = false, idSucursalOrigen = null, contexto = null } = opts;
-
-    try {
-        if (!idProducto) {
-            $(wrapperSel).empty();
-            $(emptySel).removeClass("d-none");
-            return;
-        }
-
-        // 1) Variantes del producto
-        const rVar = await fetch(`/Ventas/VariantesPorProducto?idProducto=${idProducto}`, {
-            headers: { Authorization: "Bearer " + (window.token || "") }
-        });
-        const data = await rVar.json();
-        const listVariantes = (data || []).map(v => ({
-            id: v.Id,
-            nombre: v.Nombre || `${v.Color} / ${v.Talle}`
-        }));
-
-        // 2) Stock por variante (si corresponde)
-        let stockPorVar = {}, stockTotal = 0;
-        if (mostrarStock && idSucursalOrigen) {
-            const { porVar, total } = await obtenerExistenciasProducto(idSucursalOrigen, idProducto);
-            stockPorVar = porVar; stockTotal = Math.trunc(total || 0);
-        }
-
-        const wrap = $(wrapperSel).empty();
-        if (!listVariantes.length) { $(emptySel).removeClass("d-none"); return; }
-        $(emptySel).addClass("d-none");
-
-        // 3) Filas – input a la derecha y “Stock: …” debajo
-        listVariantes.forEach(v => {
-            const stockVar = Math.trunc(stockPorVar[v.id] || 0);
-            const row = $(`
-                <div class="var-row d-flex align-items-center justify-content-between">
-                    <div class="var-name">${v.nombre}</div>
-                    <div class="var-cant d-flex flex-column align-items-end" style="min-width:110px">
-                        <input type="text"
-                               class="form-control Inputmiles var-qty"
-                               data-id="${v.id}"
-                               value="0"
-                               style="width: 100px; text-align:right;">
-                        <small class="text-muted mt-1 stock-chip var-help">
-                            Stock: <span class="var-disp" data-stock="${v.id}">${fmtQty(stockVar)}</span>
-                        </small>
-                    </div>
-                </div>
-            `);
-            wrap.append(row);
-        });
-
-        // 4) Eventos: normalizar enteros, capear por stock cuando corresponda y sumar
-        const $cantGeneral = $("#ajCantidad");
-
-        const onInput = () => {
-            $(".var-qty").each(function () {
-                // sólo enteros
-                let v = toInt($(this).val());
-                const idVar = Number($(this).data("id"));
-
-                // Capear según contexto:
-                // - Transfer: SIEMPRE capea al stock de origen
-                // - Ajuste SALIDA: capea al stock
-                // - Ajuste ENTRADA: no capea
-                if (contexto === "transfer" || ($("#ajTipo").val() === "SALIDA" && contexto === "ajuste")) {
-                    const max = Math.trunc(stockPorVar[idVar] || 0);
-                    if (v > max) v = max;
-                }
-                $(this).val(v ? fmtQty(v) : "0");
-            });
-
-            // Suma total variantes → actualiza cantidad general (readonly)
-            let suma = 0;
-            $(".var-qty").each(function () { suma += toInt($(this).val()); });
-            $cantGeneral.val(fmtQty(suma)).prop("readonly", true).addClass("form-control-plaintext");
-
-            // Verificar tope general (sólo ajuste salida sin variantes, queda igual por consistencia)
-            validarLimiteCantidadGeneral(stockTotal);
-        };
-
-        $(".var-qty").off("input").on("input", onInput);
-        // set inicial
-        onInput();
-
-    } catch (e) {
-        console.error(e);
-    }
-}
-
-function leerVariantes(wrapperSel) {
-    const arr = [];
-    $(wrapperSel).find(".var-qty").each(function () {
-        const id = Number($(this).data("id") || 0);
-        const q = toInt($(this).val());
-        if (id > 0 && q > 0) arr.push({ IdProductoVariante: id, Cantidad: q });
-    });
-    return arr;
-}
-
-/* ============================ Helpers de back ============================ */
-
-async function listaSucursalesFilter() {
-    const r = await fetch("/Sucursales/Lista", { headers: { Authorization: "Bearer " + (window.token || "") } });
-    const sucs = await r.json();
-    return sucs.map(x => ({ Id: x.Id, Nombre: x.Nombre }));
-}
-
-async function obtenerExistenciasProducto(idSucursal, idProducto) {
-    const url = `/Inventario/Existencias?idSucursal=${idSucursal}&idProducto=${idProducto}`;
-    const r = await fetch(url, { headers: { Authorization: "Bearer " + (window.token || "") } });
-    const data = await r.json();
-
-    const porVar = {}; // { idVar: cantidad }
-    let total = 0;
-
-    (data || []).forEach(x => {
-        const q = Math.trunc(Number(x.Cantidad || 0));
-        total += q;
-        if (x.IdProductoVariante != null) {
-            porVar[x.IdProductoVariante] = (porVar[x.IdProductoVariante] || 0) + q;
-        }
-    });
-
-    return { porVar, total: Math.trunc(total) };
-}
-
-/* ============================ Lógica de tope general (Ajuste) ============================ */
-
-function validarLimiteCantidadGeneral(stockTotalForzado) {
-    if (!$("#modalAjuste").is(":visible")) return;
-
-    const tipo = ($("#ajTipo").val() || "").toUpperCase();
-    const pid = $("#ajProducto").val();
-    const suc = $("#ajSucursal").val();
-    const $cant = $("#ajCantidad");
-
-    // si hay variantes (>0), la cantidad general es suma readonly (ya seteada)
-    const sumaVar = $(".var-qty").toArray().reduce((a, el) => a + toInt($(el).val()), 0);
-    if (sumaVar > 0) { $cant.removeClass("is-invalid"); return; }
-
-    if (tipo !== "SALIDA") {
-        $("#ajProducto, #ajSucursal").removeClass("is-invalid");
-        $("#errorAjuste").addClass("d-none").text("Debes completar los campos obligatorios.");
-        $cant.removeClass("is-invalid");
-        return;
-    }
-
-    if (!pid || !suc) {
-        if (!pid) $("#ajProducto").addClass("is-invalid"); else $("#ajProducto").removeClass("is-invalid");
-        if (!suc) $("#ajSucursal").addClass("is-invalid"); else $("#ajSucursal").removeClass("is-invalid");
-        $("#errorAjuste").removeClass("d-none")
-            .text("Para SALIDA elegí Producto y Sucursal para validar stock disponible.");
-        return;
-    } else {
-        $("#ajProducto, #ajSucursal").removeClass("is-invalid");
-        $("#errorAjuste").addClass("d-none").text("Debes completar los campos obligatorios.");
-    }
-
-    (async () => {
-        let stockTotal = typeof stockTotalForzado === "number" ? Math.trunc(stockTotalForzado) : 0;
-        if (stockTotalForzado == null) {
-            const r = await obtenerExistenciasProducto(suc, pid);
-            stockTotal = Math.trunc(r.total || 0);
-        }
-
-        let v = toInt($cant.val());
-        if (v > stockTotal) {
-            v = stockTotal;
-            $cant.val(fmtQty(v)).addClass("is-invalid");
-        } else {
-            $cant.removeClass("is-invalid");
-        }
-    })();
-}
-
-
-function resetModalAjuste() {
-    limpiarModal('#modalAjuste', '#errorAjuste');
-
-    // defaults seguros
-    $('#ajFecha').val(new Date().toISOString().slice(0, 10));
-    $('#ajTipo').val('Entrada');         // valor “humano” que usás
-    $('#ajCantidad').val('0').prop('readonly', true).addClass('form-control-plaintext'); // siempre suma variantes
-    $('#ajNota').val('AJUSTE MANUAL (...)');
-
-    // combos en blanco
-    $('#ajSucursal').val('').trigger('change');
-    $('#ajProducto').val('').trigger('change');
-
-    // variantes vacías
-    $('#ajVariantesWrap').empty();
-    $('#ajVariantesEmpty').removeClass('d-none');
-}
-
-function resetModalTransfer() {
-    limpiarModal('#modalTransfer', '#errorTransfer');
-
-    $('#trFecha').val(new Date().toISOString().slice(0, 10));
-    $('#trNota').val('');
-
-    // combos en blanco
-    $('#trOrigen').val('').trigger('change');
-    $('#trDestino').val('').trigger('change');
-    $('#trProducto').val('').trigger('change');
-
-    // variantes vacías
-    $('#trVariantesWrap').empty();
-    $('#trVariantesEmpty').removeClass('d-none');
 }
