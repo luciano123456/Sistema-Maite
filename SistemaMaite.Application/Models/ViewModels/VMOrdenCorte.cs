@@ -68,6 +68,7 @@ namespace SistemaMaite.Application.Models.ViewModels
         public decimal CantidadProducir { get; set; }
         public decimal CantidadProducidas { get; set; }
         public decimal Diferencias { get; set; }
+        public decimal? ImporteTotal { get; set; }
         public int IdEstado { get; set; }
         public string? NotaInterna { get; set; }
         public string? Estado { get; set; }

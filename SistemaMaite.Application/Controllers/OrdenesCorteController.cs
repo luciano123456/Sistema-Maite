@@ -139,7 +139,8 @@ namespace SistemaMaite.Application.Controllers
                     IdEstado = e.IdEstado,
                     NotaInterna = e.NotaInterna,
                     Taller = e.IdTallerNavigation?.Nombre ?? "",
-                    Estado = e.IdEstadoNavigation?.Nombre ?? ""
+                    Estado = e.IdEstadoNavigation?.Nombre ?? "",
+                    ImporteTotal = e.ImporteTotal ?? 0
                 }).ToList()
             };
 
@@ -267,7 +268,8 @@ namespace SistemaMaite.Application.Controllers
                     CantidadProducidas = e.CantidadProducidas,
                     Diferencias = e.Diferencias,
                     IdEstado = e.IdEstado,
-                    NotaInterna = e.NotaInterna
+                    NotaInterna = e.NotaInterna,
+                    ImporteTotal = e.ImporteTotal
                     // IdCorte se setea en el repo cuando ya sabemos el Id de la orden
                 });
             }
