@@ -14,6 +14,7 @@
     <Content Remove="wwwroot\js\ComprasNuevoModif.js" />
     <Content Remove="wwwroot\js\CuentasCorrientes.js" />
     <Content Remove="wwwroot\js\CuentasCorrientesProveedores.js" />
+    <Content Remove="wwwroot\js\CuentasCorrientesTalleres.js" />
     <Content Remove="wwwroot\js\Gastos.js" />
     <Content Remove="wwwroot\js\Insumos.js" />
     <Content Remove="wwwroot\js\Inventario.js" />
@@ -37,6 +38,7 @@
   <ItemGroup>
     <None Include="wwwroot\Imagenes\Clientes.png" />
     <None Include="wwwroot\js\Cajas.js" />
+    <None Include="wwwroot\js\CuentasCorrientesTalleres.js" />
     <None Include="wwwroot\js\OrdenesCorteNuevoModif.js" />
     <None Include="wwwroot\js\OrdenesCorte.js" />
     <None Include="wwwroot\js\Inventario.js" />

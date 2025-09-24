@@ -131,6 +131,10 @@ builder.Services.AddScoped<IOrdenesCorteService, OrdenesCorteService>();
 builder.Services.AddScoped<ITalleresService, TalleresService>();
 builder.Services.AddScoped<ITalleresRepository<Taller>, TalleresRepository>();
 
+builder.Services.AddScoped<ICuentasCorrientesTallRepository<TalleresCuentaCorriente>, CuentasCorrientesTallRepository>();
+builder.Services.AddScoped<ICuentasCorrientesTallService, CuentasCorrientesTallService>();
+
+
 builder.Services.AddControllersWithViews()
     .AddJsonOptions(o =>
     {
