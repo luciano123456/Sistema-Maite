@@ -402,6 +402,12 @@
                         <!-- AUTO: A prod. - Prod. -->
                         <input type="text" id="txtEtDif" class="form-control auto-field" value="0" readonly />
                     </div>
+                   
+                     <div class="col-md-2">
+                        <label class="form-label">Importe Total</label>
+                        <input type="text" id="txtImporteTotal" class="form-control Inputmiles editable-field" value="0" />
+                    </div>
+
                     <div class="col-md-2">
                         <label class="form-label">Estado</label>
                         <select id="cmbEtEstado" class="form-select editable-field">
@@ -410,7 +416,7 @@
                         <div class="invalid-feedback">Campo obligatorio</div>
                     </div>
 
-                    <div class="col-10">
+                    <div class="col-8">
                         <label class="form-label">Nota interna</label>
                         <input type="text" id="txtEtNota" class="form-control editable-field" />
                     </div>
@@ -435,5 +441,5 @@
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
     <script src="~/js/utils/moment.js"></script>
-    <script src="~/js/OrdenesCorteNuevoModif.js?v=3.0"></script>
+    <script src="~/js/OrdenesCorteNuevoModif.js?v=3.1"></script>
 }

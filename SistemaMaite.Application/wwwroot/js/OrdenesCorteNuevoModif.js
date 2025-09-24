@@ -780,7 +780,8 @@ function guardarEtapa() {
         diasReales: calcDiasReales(entrada, salidaReal),
         idEstado: parseInt(document.getElementById("cmbEtEstado").value || 0, 10),
         estadoNombre: document.getElementById("cmbEtEstado").selectedOptions[0]?.textContent || "",
-        nota: (document.getElementById("txtEtNota").value || "").trim()
+        nota: (document.getElementById("txtEtNota").value || "").trim(),
+        ImporteTotal: formatearSinMiles(document.getElementById("txtImporteTotal").value) || 0
     };
     if (State.editEtapaIndex >= 0) State.etapas[State.editEtapaIndex] = { ...State.etapas[State.editEtapaIndex], ...row };
     else State.etapas.push(row);
@@ -815,6 +816,7 @@ function editarEtapa(i) {
     document.getElementById("txtEtP").value = _toMiles(it.producidas);
     document.getElementById("txtEtDif").value = _toMiles((it.aProducir || 0) - (it.producidas || 0));
     document.getElementById("txtEtNota").value = it.nota || "";
+    document.getElementById("txtImporteTotal").value = formatearMiles(it.ImporteTotal) || 0;
 
     const diasEd = document.getElementById("txtEtDiasReales");
     if (diasEd) {
@@ -911,7 +913,8 @@ async function cargarOC(id) {
             fechaEntrada: entrada, fechaSalidaAprox: e.FechaSalidaAproximada, fechaSalidaReal: real,
             aProducir: parseFloat(e.CantidadProducir || 0), producidas: parseFloat(e.CantidadProducidas || 0), diferencias: parseFloat(e.Diferencias || 0),
             diasReales: calcDiasReales(entrada, real),
-            idEstado: e.IdEstado, estadoNombre: e.Estado || "", nota: e.NotaInterna || ""
+            idEstado: e.IdEstado, estadoNombre: e.Estado || "", nota: e.NotaInterna || "",
+            ImporteTotal: e.ImporteTotal || 0
         };
     });
     refreshEtapas();
@@ -974,7 +977,8 @@ async function guardarOC() {
             CantidadProducir: e.aProducir, CantidadProducidas: e.producidas,
             Diferencias: (e.aProducir || 0) - (e.producidas || 0),
             DiasReales: e.diasReales ?? calcDiasReales(e.fechaEntrada, e.fechaSalidaReal),
-            IdEstado: e.idEstado, NotaInterna: e.nota
+            IdEstado: e.idEstado, NotaInterna: e.nota,
+            ImporteTotal: e.ImporteTotal || 0
         }))
     };
 
