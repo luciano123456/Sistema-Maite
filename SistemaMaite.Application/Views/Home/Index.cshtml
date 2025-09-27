@@ -2,211 +2,316 @@
     ViewData["Title"] = "Sistema de Gestion";
     Layout = null;
 }
-
 @using Microsoft.Extensions.Configuration
-
 @inject IConfiguration Configuration
-
 @{
     var ambienteTest = Configuration.GetValue<int>("AmbienteTest");
 }
-
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>@ViewData["Title"]</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    @*<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-LUfwmPel+Fu+sGprUURlOB3Jv3EE6l/BKrJ8rBN3tOSl2l+3uxGg6XZem8uf6Fdi" crossorigin="anonymous">*@
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" />
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
-    <link href="~/css/site.css" rel="stylesheet" />
-    <link href="~/css/home.css" rel="stylesheet" />
-
-
-
+    <link rel="stylesheet" href="~/css/site.css" />
+    <link rel="stylesheet" href="~/css/home.css?v=7.1" />
 </head>
-<body class="@(ambienteTest == 1 ? "fondo-test" : "")">
-
+<body class="app-body @(ambienteTest==1 ? "fondo-test" : "")">
 
     <partial name="~/Views/Shared/Partials/NavbarLogin.cshtml" />
-
     @if (ambienteTest == 1)
     {
         <div class="marca-agua-svg"></div>
     }
 
-    <div class="container-fluid">
+    <div class="container px-3 px-md-4">
 
-        <div class="row mt-5">
-            <!-- Columna del logo -->
-            <div class="col-lg-12 mb-5 divLogo">
-                <img src="/Imagenes/logo.png" class="img-fluid imageLogo" alt="Logo">
-            </div>
+        <!-- HERO (solo logo centrado) -->
+        <div class="hero">
+            <img src="/Imagenes/logo.png" class="brand-logo" alt="Logo" />
         </div>
 
-
-      
-        <div class="row">
-
-            <!-- Columna del menú -->
-            <div class="col-lg-12">
-                <div class="card">
-                    <div class="card-body">
-                        <div class="row row-cols-md-1 row-cols-lg-6 g-4">
-
-                            
-                            <div class="col">
-                                <div class="d-flex flex-column align-items-center">
-                                    <img src="~/Imagenes/Menu Principal/Clientes.png" class="img-fluid max-img-size" alt="Lista de Clientes" title="Lista de Clientes">
-                                    <button type="button" class="btn mt-2 btnMenu" onclick="window.location.href='@Url.Action("Index", "Clientes")'">Lista de Clientes</button>
-                                </div>
-                            </div>
-
-
-                            <div class="col">
-                                <div class="d-flex flex-column align-items-center">
-                                    <img src="~/Imagenes/Menu Principal/CuentaCorriente.png" class="img-fluid max-img-size" alt="Gastos" title="CC. De Clientes">
-                                    <button type="button" class="btn mt-2 btnMenu" onclick="window.location.href='@Url.Action("Index", "CuentasCorrientes")'">CC. De Clientes</button>
-                                </div>
-                            </div>
-
-                            <div class="col">
-                                <div class="d-flex flex-column align-items-center">
-                                    <img src="~/Imagenes/Menu Principal/CuentaCorriente.png" class="img-fluid max-img-size" alt="Gastos" title="CC. De Proveedores">
-                                    <button type="button" class="btn mt-2 btnMenu" onclick="window.location.href='@Url.Action("Index", "CuentasCorrientesProveedores")'">CC. De Proveedores</button>
-                                </div>
-                            </div>
-
-                            <div class="col">
-                                <div class="d-flex flex-column align-items-center">
-                                    <img src="~/Imagenes/Menu Principal/CuentaCorriente.png" class="img-fluid max-img-size" alt="Gastos" title="CC. De Talleres">
-                                    <button type="button" class="btn mt-2 btnMenu" onclick="window.location.href='@Url.Action("Index", "CuentasCorrientesTalleres")'">CC. De Talleres</button>
-                                </div>
-                            </div>
-
-                               <div class="col">
-                                <div class="d-flex flex-column align-items-center">
-                                    <img src="~/Imagenes/Menu Principal/Personal.png" class="img-fluid max-img-size" alt="Lista de Personal" title="Lista de Personal">
-                                    <button type="button" class="btn mt-2 btnMenu" onclick="window.location.href='@Url.Action("Index", "Personal")'">Lista de Personal</button>
-                                </div>
-                            </div>
-
-                            <div class="col">
-                                <div class="d-flex flex-column align-items-center">
-                                    <img src="~/Imagenes/Menu Principal/Usuarios.png" class="img-fluid max-img-size" alt="Lista de Usuarios" title="Lista de Usuarios">
-                                    <button type="button" class="btn mt-2 btnMenu" onclick="window.location.href='@Url.Action("Index", "Usuarios")'">Lista de Usuarios</button>
-                                </div>
-                            </div>
-
-
-                            <div class="col">
-                                <div class="d-flex flex-column align-items-center">
-                                    <img src="~/Imagenes/Menu Principal/Productos.png" class="img-fluid max-img-size" alt="Lista de Productos" title="Lista de Productos">
-                                    <button type="button" class="btn mt-2 btnMenu" onclick="window.location.href='@Url.Action("Index", "Productos")'">Lista de Productos</button>
-                                </div>
-                            </div>
-
-                            <div class="col">
-                                <div class="d-flex flex-column align-items-center">
-                                    <img src="~/Imagenes/Menu Principal/Insumos.png" class="img-fluid max-img-size" alt="Lista de Insumos" title="Lista de Insumos">
-                                    <button type="button" class="btn mt-2 btnMenu" onclick="window.location.href='@Url.Action("Index", "Insumos")'">Lista de Insumos</button>
-                                </div>
-                            </div>
-
-
-                             <div class="col">
-                                <div class="d-flex flex-column align-items-center">
-                                    <img src="~/Imagenes/Menu Principal/Cajas.png" class="img-fluid max-img-size" alt="Cajas" title="Cajas">
-                                    <button type="button" class="btn mt-2 btnMenu" onclick="window.location.href='@Url.Action("Index", "Cajas")'">Cajas</button>
-                                </div>
-                            </div>
-
-                            <div class="col">
-                                <div class="d-flex flex-column align-items-center">
-                                    <img src="~/Imagenes/Menu Principal/Ventas.png" class="img-fluid max-img-size" alt="Gastos" title="Ventas">
-                                    <button type="button" class="btn mt-2 btnMenu" onclick="window.location.href='@Url.Action("Index", "Ventas")'">Ventas</button>
-                                </div>
-                            </div>
-
-                            
-                            <div class="col">
-                                <div class="d-flex flex-column align-items-center">
-                                    <img src="~/Imagenes/Menu Principal/Compras.png" class="img-fluid max-img-size" alt="Gastos" title="Compras">
-                                    <button type="button" class="btn mt-2 btnMenu" onclick="window.location.href='@Url.Action("Index", "Compras")'">Compras</button>
-                                </div>
-                            </div>
-
-
-                            <div class="col">
-                                <div class="d-flex flex-column align-items-center">
-                                    <img src="~/Imagenes/Menu Principal/OrdenCorte.png" class="img-fluid max-img-size" alt="Ordenes de Corte" title="Ordenes de Corte">
-                                    <button type="button" class="btn mt-2 btnMenu" onclick="window.location.href='@Url.Action("Index", "OrdenesCorte")'">Ordenes de Corte</button>
-                                </div>
-                            </div>
-
-                               <div class="col">
-                                <div class="d-flex flex-column align-items-center">
-                                    <img src="~/Imagenes/Menu Principal/Lista Proveedores.png" class="img-fluid max-img-size" alt="Lista de Proveedores" title="Lista de Proveedores">
-                                    <button type="button" class="btn mt-2 btnMenu" onclick="window.location.href='@Url.Action("Index", "Proveedores")'">Lista de Proveedores</button>
-                                </div>
-                            </div>
-
-
-                            <div class="col">
-                                <div class="d-flex flex-column align-items-center">
-                                    <img src="~/Imagenes/Menu Principal/Talleres.png" class="img-fluid max-img-size" alt="Lista de Talleres" title="Lista de Talleres">
-                                    <button type="button" class="btn mt-2 btnMenu" onclick="window.location.href='@Url.Action("Index", "Talleres")'">Lista de Talleres</button>
-                                </div>
-                            </div>
-
-                            <div class="col">
-                                <div class="d-flex flex-column align-items-center">
-                                    <img src="~/Imagenes/Menu Principal/Gastos.png" class="img-fluid max-img-size" alt="Gastos" title="Gastos">
-                                    <button type="button" class="btn mt-2 btnMenu" onclick="window.location.href='@Url.Action("Index", "Gastos")'">Gastos</button>
-                                </div>
-                            </div>
-
-                             <div class="col">
-                                <div class="d-flex flex-column align-items-center">
-                                    <img src="~/Imagenes/Menu Principal/Gastos.png" class="img-fluid max-img-size" alt="Inventario" title="Inventario">
-                                    <button type="button" class="btn mt-2 btnMenu" onclick="window.location.href='@Url.Action("Index", "Inventario")'">Inventario</button>
-                                </div>
-                            </div>
-
-                            <div class="col">
-                                <div class="d-flex flex-column align-items-center">
-                                    <img src="~/Imagenes/Menu Principal/Pagos Personal.png" class="img-fluid max-img-size" alt="Sueldos" title="Sueldos">
-                                    <button type="button"
-                                            class="btn mt-2 btnMenu"
-                                            onclick="window.location.href='@Url.Action("Index", "PersonalSueldos")'">
-                                        Pagos a Personal
-                                    </button>
-                                </div>
-                            </div>
-
-
-                            <div class="col">
-                                <div class="d-flex flex-column align-items-center">
-                                    <img src="~/Imagenes/Menu Principal/Configuraciones.png" class="img-fluid max-img-size" alt="Configuraciones" title="Configuraciones">
-                                    <button type="button" class="btn mt-2 btnMenu" onclick="abrirConfiguraciones()">Configuraciones</button>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="d-flex flex-column align-items-center">
-                                    <img src="~/Imagenes/Menu Principal/Analisis.png" class="img-fluid max-img-size" alt="Analisis de Datos" title="Analisis de Datos">
-                                    <button type="button" class="btn mt-2 btnMenu" onclick="errorModal('El analisis de datos no se encuentra disponible en este momento.')">Analisis de Datos</button>
-
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+        <!-- FAVORITOS (full width) -->
+        <section class="dash-card fullwidth" data-card-id="favoritos"
+                 data-default-style="--hdr-from:#e08700;--hdr-to:#ef990a;"
+                 style="--hdr-from:#e08700;--hdr-to:#ef990a;">
+            <header class="dash-card__header">
+                <div class="header-left">
+                    <button class="btn-header card-handle" title="Mover sección"><i class="fa fa-hand-paper-o"></i></button>
+                    <i class="fa fa-star"></i><span> Favoritos</span>
                 </div>
-            </div>
-        </div>
-    </div>
+                <div class="header-actions">
+                    <button class="btn-header color-open" title="Colores"><i class="fa fa-paint-brush"></i></button>
+                    <button class="btn-header reset-card" title="Restablecer"><i class="fa fa-undo"></i></button>
+                </div>
+            </header>
+            <div id="tiles-favoritos" class="tiles tiles-inline tiles-favs"></div>
+        </section>
 
+        <!-- GRID (3 columnas) -->
+        <div id="cols">
+
+            <!-- PRODUCCIÓN -->
+            <section class="dash-card" data-card-id="produccion"
+                     data-default-style="--hdr-from:#7446d8;--hdr-to:#9b69e7;">
+                <header class="dash-card__header">
+                    <div class="header-left">
+                        <button class="btn-header card-handle"><i class="fa fa-hand-paper-o"></i></button>
+                        <i class="fa fa-wrench"></i><span> Producción</span>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn-header color-open"><i class="fa fa-paint-brush"></i></button>
+                        <button class="btn-header reset-card"><i class="fa fa-undo"></i></button>
+                    </div>
+                </header>
+                <div class="tiles">
+                    <a class="tile" data-id="prod-ordenes" data-title="Órdenes de Corte" href="@Url.Action("Index","OrdenesCorte")">
+                        <i class="fa fa-file-text-o"></i><span>Órdenes de Corte</span>
+                        <button class="tile-handle" title="Arrastrar"><i class="fa fa-hand-paper-o"></i></button>
+                    </a>
+                    <a class="tile" data-id="prod-talleres" data-title="Talleres" href="@Url.Action("Index","Talleres")">
+                        <i class="fa fa-industry"></i><span>Talleres</span>
+                        <button class="tile-handle" title="Arrastrar"><i class="fa fa-hand-paper-o"></i></button>
+                    </a>
+                    <a class="tile" data-id="prod-estados" data-title="Estados" href="@Url.Action("Index","OrdenesCorteEstados")">
+                        <i class="fa fa-flag"></i><span>Estados</span>
+                        <button class="tile-handle" title="Arrastrar"><i class="fa fa-hand-paper-o"></i></button>
+                    </a>
+                </div>
+            </section>
+
+            <!-- INVENTARIO -->
+            <section class="dash-card" data-card-id="inventario"
+                     data-default-style="--hdr-from:#0aa57d;--hdr-to:#18c3a2;">
+                <header class="dash-card__header">
+                    <div class="header-left">
+                        <button class="btn-header card-handle"><i class="fa fa-hand-paper-o"></i></button>
+                        <i class="fa fa-archive"></i><span> Inventario</span>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn-header color-open"><i class="fa fa-paint-brush"></i></button>
+                        <button class="btn-header reset-card"><i class="fa fa-undo"></i></button>
+                    </div>
+                </header>
+                <div class="tiles">
+                    <a class="tile" data-id="inv-productos" data-title="Productos" href="@Url.Action("Index","Productos")">
+                        <i class="fa fa-cubes"></i><span>Productos</span><button class="tile-handle"><i class="fa fa-hand-paper-o"></i></button>
+                    </a>
+                    <a class="tile" data-id="inv-inventario" data-title="Inventario" href="@Url.Action("Index","Inventario")">
+                        <i class="fa fa-database"></i><span>Inventario</span><button class="tile-handle"><i class="fa fa-hand-paper-o"></i></button>
+                    </a>
+                    <a class="tile" data-id="inv-insumos" data-title="Insumos" href="@Url.Action("Index","Insumos")">
+                        <i class="fa fa-cog"></i><span>Insumos</span><button class="tile-handle"><i class="fa fa-hand-paper-o"></i></button>
+                    </a>
+                    <a class="tile" data-id="inv-compras" data-title="Compras" href="@Url.Action("Index","Compras")">
+                        <i class="fa fa-shopping-bag"></i><span>Compras</span><button class="tile-handle"><i class="fa fa-hand-paper-o"></i></button>
+                    </a>
+                </div>
+            </section>
+
+            <!-- VENTAS -->
+            <section class="dash-card" data-card-id="ventas"
+                     data-default-style="--hdr-from:#2546bd;--hdr-to:#2f5ae7;">
+                <header class="dash-card__header">
+                    <div class="header-left">
+                        <button class="btn-header card-handle"><i class="fa fa-hand-paper-o"></i></button>
+                        <i class="fa fa-shopping-cart"></i><span> Ventas</span>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn-header color-open"><i class="fa fa-paint-brush"></i></button>
+                        <button class="btn-header reset-card"><i class="fa fa-undo"></i></button>
+                    </div>
+                </header>
+                <div class="tiles">
+                    <a class="tile" data-id="ventas-clientes" data-title="Clientes" href="@Url.Action("Index","Clientes")">
+                        <i class="fa fa-users"></i><span>Clientes</span><button class="tile-handle"><i class="fa fa-hand-paper-o"></i></button>
+                    </a>
+                    <a class="tile" data-id="ventas-ventas" data-title="Ventas" href="@Url.Action("Index","Ventas")">
+                        <i class="fa fa-file-text-o"></i><span>Ventas</span><button class="tile-handle"><i class="fa fa-hand-paper-o"></i></button>
+                    </a>
+                    <a class="tile" data-id="ventas-ccclientes" data-title="CC. de Clientes" href="@Url.Action("Index","CuentasCorrientes")">
+                        <i class="fa fa-balance-scale"></i><span>CC. de Clientes</span><button class="tile-handle"><i class="fa fa-hand-paper-o"></i></button>
+                    </a>
+                </div>
+            </section>
+
+            <!-- PROV & PERSONAL -->
+            <section class="dash-card" data-card-id="provper"
+                     data-default-style="--hdr-from:#128f80;--hdr-to:#1ab39f;">
+                <header class="dash-card__header">
+                    <div class="header-left">
+                        <button class="btn-header card-handle"><i class="fa fa-hand-paper-o"></i></button>
+                        <i class="fa fa-address-book"></i><span> Proveedores & Personal</span>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn-header color-open"><i class="fa fa-paint-brush"></i></button>
+                        <button class="btn-header reset-card"><i class="fa fa-undo"></i></button>
+                    </div>
+                </header>
+                <div class="tiles">
+                    <a class="tile" data-id="prov-proveedores" data-title="Proveedores" href="@Url.Action("Index","Proveedores")">
+                        <i class="fa fa-truck"></i><span>Proveedores</span><button class="tile-handle"><i class="fa fa-hand-paper-o"></i></button>
+                    </a>
+                    <a class="tile" data-id="prov-personal" data-title="Personal" href="@Url.Action("Index","Personal")">
+                        <i class="fa fa-id-badge"></i><span>Personal</span><button class="tile-handle"><i class="fa fa-hand-paper-o"></i></button>
+                    </a>
+                    <a class="tile" data-id="prov-pagos" data-title="Pagos a Personal" href="@Url.Action("Index","PersonalSueldos")">
+                        <i class="fa fa-credit-card"></i><span>Pagos a Personal</span><button class="tile-handle"><i class="fa fa-hand-paper-o"></i></button>
+                    </a>
+                </div>
+            </section>
+
+            <!-- FINANZAS -->
+            <section class="dash-card" data-card-id="finanzas"
+                     data-default-style="--hdr-from:#c77b03;--hdr-to:#e39813;">
+                <header class="dash-card__header">
+                    <div class="header-left">
+                        <button class="btn-header card-handle"><i class="fa fa-hand-paper-o"></i></button>
+                        <i class="fa fa-credit-card"></i><span> Finanzas</span>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn-header color-open"><i class="fa fa-paint-brush"></i></button>
+                        <button class="btn-header reset-card"><i class="fa fa-undo"></i></button>
+                    </div>
+                </header>
+                <div class="tiles">
+                    <a class="tile" data-id="fin-cajas" data-title="Cajas" href="@Url.Action("Index","Cajas")">
+                        <i class="fa fa-money"></i><span>Cajas</span><button class="tile-handle"><i class="fa fa-hand-paper-o"></i></button>
+                    </a>
+                    <a class="tile" data-id="fin-gastos" data-title="Gastos" href="@Url.Action("Index","Gastos")">
+                        <i class="fa fa-line-chart"></i><span>Gastos</span><button class="tile-handle"><i class="fa fa-hand-paper-o"></i></button>
+                    </a>
+                    <a class="tile" data-id="fin-ccprov" data-title="CC. de Proveedores" href="@Url.Action("Index","CuentasCorrientesProveedores")">
+                        <i class="fa fa-book"></i><span>CC. de Proveedores</span><button class="tile-handle"><i class="fa fa-hand-paper-o"></i></button>
+                    </a>
+                    <a class="tile" data-id="fin-cctalleres" data-title="CC. de Talleres" href="@Url.Action("Index","CuentasCorrientesTalleres")">
+                        <i class="fa fa-bar-chart"></i><span>CC. de Talleres</span><button class="tile-handle"><i class="fa fa-hand-paper-o"></i></button>
+                    </a>
+                </div>
+            </section>
+
+            <!-- EXTRAS -->
+            <section class="dash-card" data-card-id="extras"
+                     data-default-style="--hdr-from:#6a11cb;--hdr-to:#2575fc;">
+                <header class="dash-card__header">
+                    <div class="header-left">
+                        <button class="btn-header card-handle"><i class="fa fa-hand-paper-o"></i></button>
+                        <i class="fa fa-puzzle-piece"></i><span> Extras</span>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn-header color-open"><i class="fa fa-paint-brush"></i></button>
+                        <button class="btn-header reset-card"><i class="fa fa-undo"></i></button>
+                    </div>
+                </header>
+                <div class="tiles">
+                    <a class="tile" data-id="fin-ccusuarios" data-title="CC. de Talleres" href="@Url.Action("Index","Usuarios")">
+                        <i class="fa fa-user"></i><span>Usuarios</span><button class="tile-handle"><i class="fa fa-hand-paper-o"></i></button>
+                    </a>
+                    <a class="tile" data-id="ext-analisis" data-title="Análisis de datos" href="javascript:void(0)" onclick="errorModal('Análisis de datos aún no disponible');">
+                        <i class="fa fa-line-chart"></i><span>Análisis de datos</span>
+                        <button class="tile-handle"><i class="fa fa-hand-paper-o"></i></button>
+                    </a>
+                </div>
+            </section>
+
+            <!-- CONFIGURACIONES (fullwidth por defecto, al mover se vuelve normal) -->
+            <section class="dash-card fullwidth" data-card-id="config"
+                     data-default-style="--hdr-from:#5b6b7c;--hdr-to:#6e7f93;">
+                <header class="dash-card__header">
+                    <div class="header-left">
+                        <button class="btn-header card-handle" title="Mover sección"><i class="fa fa-hand-paper-o"></i></button>
+                        <i class="fa fa-cogs"></i><span> Configuraciones</span>
+                    </div>
+                    <div class="header-actions">
+                        <button class="btn-header size-toggle" title="Achicar/Expandir"><i class="fa fa-compress"></i></button>
+                        <button class="btn-header color-open" title="Colores"><i class="fa fa-paint-brush"></i></button>
+                        <button class="btn-header reset-card" title="Restablecer"><i class="fa fa-undo"></i></button>
+                    </div>
+                </header>
+
+                <div id="config-all" class="config-grid scroll-clip">
+                    <button class="conf-tile" data-id="conf-usuarios" onclick="abrirConfiguracion('Usuarios','Usuarios')">
+                        <i class="fa fa-user"></i><span>Usuarios</span>
+                        <span class="tile-handle" title="Arrastrar"><i class="fa fa-hand-paper-o"></i></span>
+                    </button>
+
+                    <button class="conf-tile" data-id="conf-listas" onclick="abrirConfiguracion('Lista de Precios','ListasPrecios')">
+                        <i class="fa fa-tags"></i><span>Listas de Precios</span>
+                        <span class="tile-handle" title="Arrastrar"><i class="fa fa-hand-paper-o"></i></span>
+                    </button>
+
+                    <button class="conf-tile" data-id="conf-roles" onclick="abrirConfiguracion('Rol','Roles')">
+                        <i class="fa fa-shield"></i><span>Roles</span>
+                        <span class="tile-handle" title="Arrastrar"><i class="fa fa-hand-paper-o"></i></span>
+                    </button>
+
+                    <button class="conf-tile" data-id="conf-suc" onclick="abrirConfiguracion('Sucursal','Sucursales')">
+                        <i class="fa fa-building"></i><span>Sucursales</span>
+                        <span class="tile-handle" title="Arrastrar"><i class="fa fa-hand-paper-o"></i></span>
+                    </button>
+
+                    <button class="conf-tile" data-id="conf-cuentas" onclick="abrirConfiguracion('Cuenta','Cuentas')">
+                        <i class="fa fa-university"></i><span>Cuentas</span>
+                        <span class="tile-handle" title="Arrastrar"><i class="fa fa-hand-paper-o"></i></span>
+                    </button>
+
+                    <button class="conf-tile" data-id="conf-bancos" onclick="abrirConfiguracion('Banco','Bancos')">
+                        <i class="fa fa-bank"></i><span>Bancos</span>
+                        <span class="tile-handle" title="Arrastrar"><i class="fa fa-hand-paper-o"></i></span>
+                    </button>
+
+                    <button class="conf-tile" data-id="conf-colores" onclick="abrirConfiguracion('Color','Colores')">
+                        <i class="fa fa-eyedropper"></i><span>Colores</span>
+                        <span class="tile-handle" title="Arrastrar"><i class="fa fa-hand-paper-o"></i></span>
+                    </button>
+
+                    <button class="conf-tile" data-id="conf-puestos" onclick="abrirConfiguracion('Personal Puesto','PersonalPuestos')">
+                        <i class="fa fa-users"></i><span>Personal Puestos</span>
+                        <span class="tile-handle" title="Arrastrar"><i class="fa fa-hand-paper-o"></i></span>
+                    </button>
+
+                    <button class="conf-tile" data-id="conf-gcats" onclick="abrirConfiguracion('Gastos Categorias','GastosCategorias')">
+                        <i class="fa fa-folder-open"></i><span>Gastos Categorías</span>
+                        <span class="tile-handle" title="Arrastrar"><i class="fa fa-hand-paper-o"></i></span>
+                    </button>
+
+                    <button class="conf-tile" data-id="conf-pcats" onclick="abrirConfiguracion('Productos Categorias','ProductosCategoria')">
+                        <i class="fa fa-archive"></i><span>Productos Categorías</span>
+                        <span class="tile-handle" title="Arrastrar"><i class="fa fa-hand-paper-o"></i></span>
+                    </button>
+
+                    <button class="conf-tile" data-id="conf-icats" onclick="abrirConfiguracion('Insumos Categorias','InsumosCategoria')">
+                        <i class="fa fa-cog"></i><span>Insumos Categorías</span>
+                        <span class="tile-handle" title="Arrastrar"><i class="fa fa-hand-paper-o"></i></span>
+                    </button>
+
+                    <button class="conf-tile" data-id="conf-ptalles" onclick="abrirConfiguracion('Productos Categorias Talles','ProductosCategoriasTalle','Productos Categoria','ProductosCategoria','Categoria')">
+                        <i class="fa fa-th"></i><span>Productos Categorías Talles</span>
+                        <span class="tile-handle" title="Arrastrar"><i class="fa fa-hand-paper-o"></i></span>
+                    </button>
+
+                    <button class="conf-tile" data-id="conf-oc-est" onclick="abrirConfiguracion('Estados Ordenes de Corte','OrdenesCorteEstados')">
+                        <i class="fa fa-flag"></i><span>Estados Órdenes de Corte</span>
+                        <span class="tile-handle" title="Arrastrar"><i class="fa fa-hand-paper-o"></i></span>
+                    </button>
+
+                    <button class="conf-tile" data-id="conf-oc-et" onclick="abrirConfiguracion('Etapas Estados Ordenes de Corte','OrdenesCorteEtapasEstados')">
+                        <i class="fa fa-step-forward"></i><span>Etapas Estados Órdenes de Corte</span>
+                        <span class="tile-handle" title="Arrastrar"><i class="fa fa-hand-paper-o"></i></span>
+                    </button>
+                </div>
+            </section>
+
+
+        </div><!-- /#cols -->
+    </div><!-- /.container -->
+    <!-- BOTÓN FIJO RESET GLOBAL -->
+    <div class="global-actions">
+        <button id="btn-factory" class="btn btn-danger"><i class="fa fa-history"></i> Restablecer todo</button>
+    </div>
 
     <!-- Modal Configuraciones -->
     <div class="modal fade" id="modalConfiguracion" tabindex="-1" aria-labelledby="modalConfiguracionLabel" aria-hidden="true">
@@ -241,9 +346,9 @@
 
                         <div id="divConfiguracionCombo" class="mt-2" hidden>
                             <label id="lblConfiguracionCombo" for="cmbConfiguracion" class="form-label fw-bold"></label>
-                        <select class="form-select" id="cmbConfiguracion" required>
+                            <select class="form-select" id="cmbConfiguracion" required>
                                 <option value="">Seleccione...</option>
-                        </select>
+                            </select>
                         </div>
 
                         <div class="d-flex gap-2 mt-3">
@@ -272,138 +377,106 @@
         </div>
     </div>
 
-    <div class="modal fade" id="ModalEdicionConfiguraciones" tabindex="-1" aria-labelledby="ModalEdicionConfiguracionesLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered modal-edicion" role="document">
-            <div class="modal-content">
-                <div class="modal-header colorEncabezado">
-                    <h5 class="modal-title fw-bold" id="ModalEdicionConfiguracionesLabel">Configuraciones</h5>
+    <!-- MODAL COLORES -->
+    <div class="modal fade" id="colorModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content color-modal">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fa fa-paint-brush"></i> Colores</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
-
-                <div class="modal-body px-4">
-                    <!-- Usá gutters en vez de margin-left -->
-                    <div class="row gx-2 gy-3">
-
-                        <div class="col-12 col-sm-6 col-lg-3">
-                            <div class="d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Rol','Roles')">
-                                <img src="/Imagenes/configuraciones.png" class="imgConfiguraciones me-2" alt="">
-                                <span>Roles</span>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <h6 class="mb-2">Seleccioná qué cambiar</h6>
+                            <div id="applyList" class="list-group small"></div>
+                            <div class="form-check mt-2">
+                                <input type="checkbox" id="chkAll" class="form-check-input">
+                                <label class="form-check-label" for="chkAll">Seleccionar todos</label>
+                            </div>
+                            <div class="form-check form-switch mt-3">
+                                <input id="chkPreview" class="form-check-input" type="checkbox" checked>
+                                <label class="form-check-label" for="chkPreview">Vista previa</label>
                             </div>
                         </div>
+                        <div class="col-md-8">
+                            <!-- SIMULADOR -->
+                            <div id="simulator" class="sim-card">
+                                <div class="sim-header"><i class="fa fa-check"></i><span>Cabecera ejemplo</span></div>
+                                <div class="sim-tiles"></div>
+                            </div>
 
-                        <div class="col-12 col-sm-6 col-lg-3">
-                            <div class="d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Condicion de IVA','CondicionesIVA')">
-                                <img src="/Imagenes/configuraciones.png" class="imgConfiguraciones me-2" alt="">
-                                <span>Condiciones IVA</span>
+                            <!-- PALETA -->
+                            <div class="row g-3 align-items-end">
+                                <div class="col-sm-4">
+                                    <label class="form-label">Header: desde</label>
+                                    <input type="color" id="inpFrom" class="form-control form-control-color" value="#39475f">
+                                </div>
+                                <div class="col-sm-4">
+                                    <label class="form-label">Header: hasta</label>
+                                    <input type="color" id="inpTo" class="form-control form-control-color" value="#53627a">
+                                </div>
+                                <div class="col-sm-4">
+                                    <label class="form-label">Texto header</label>
+                                    <input type="color" id="inpText" class="form-control form-control-color" value="#ffffff">
+                                </div>
+                                <div class="col-sm-4">
+                                    <label class="form-label">Icono header</label>
+                                    <input type="color" id="inpIcon" class="form-control form-control-color" value="#ffffff">
+                                </div>
+                                <div class="col-sm-4">
+                                    <label class="form-label">Borde tiles</label>
+                                    <input type="color" id="inpBorder" class="form-control form-control-color" value="#3a4457">
+                                </div>
+                            </div>
+
+                            <hr class="border-secondary my-3">
+
+                            <!-- FONDO DE SECCIÓN -->
+                            <div class="row g-3 align-items-end">
+                                <div class="col-sm-4">
+                                    <label class="form-label">Fondo: desde</label>
+                                    <input type="color" id="inpBgFrom" class="form-control form-control-color" value="#0f1724">
+                                </div>
+                                <div class="col-sm-4 form-group-bgto">
+                                    <label class="form-label">Fondo: hasta</label>
+                                    <input type="color" id="inpBgTo" class="form-control form-control-color" value="#162033" disabled>
+                                </div>
+                                <div class="col-sm-4">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="chkBgGrad">
+                                        <label class="form-check-label" for="chkBgGrad">Usar degradado</label>
+                                    </div>
+                                    <div class="small text-muted mt-1">Si desactivás, se usa solo el color “desde”.</div>
+                                </div>
+                            </div>
+
+                            <div class="small text-muted mt-2">
+                                Nota: el color “Borde tiles” no afecta cabecera.
                             </div>
                         </div>
-
-                        <div class="col-12 col-sm-6 col-lg-3">
-                            <div class="d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Lista de Precios','ListasPrecios')">
-                                <img src="/Imagenes/configuraciones.png" class="imgConfiguraciones me-2" alt="">
-                                <span>Lista de Precios</span>
-                            </div>
-                        </div>
-
-                        <div class="col-12 col-sm-6 col-lg-3">
-                            <div class="d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Banco','Bancos')">
-                                <img src="/Imagenes/configuraciones.png" class="imgConfiguraciones me-2" alt="">
-                                <span>Bancos</span>
-                            </div>
-                        </div>
-
-                        <div class="col-12 col-sm-6 col-lg-3">
-                            <div class="d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Sucursal','Sucursales')">
-                                <img src="/Imagenes/configuraciones.png" class="imgConfiguraciones me-2" alt="">
-                                <span>Sucursales</span>
-                            </div>
-                        </div>
-
-                        <div class="col-12 col-sm-6 col-lg-3">
-                            <div class="d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Cuenta','Cuentas')">
-                                <img src="/Imagenes/configuraciones.png" class="imgConfiguraciones me-2" alt="">
-                                <span>Cuentas</span>
-                            </div>
-                        </div>
-
-                        <div class="col-12 col-sm-6 col-lg-3">
-                            <div class="d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Color','Colores')">
-                                <img src="/Imagenes/configuraciones.png" class="imgConfiguraciones me-2" alt="">
-                                <span>Colores</span>
-                            </div>
-                        </div>
-
-                        <div class="col-12 col-sm-6 col-lg-3">
-                            <div class="d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Personal Puesto','PersonalPuestos')">
-                                <img src="/Imagenes/configuraciones.png" class="imgConfiguraciones me-2" alt="">
-                                <span>Personal Puestos</span>
-                            </div>
-                        </div>
-
-                        <div class="col-12 col-sm-6 col-lg-3">
-                            <div class="d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Gastos Categorias','GastosCategorias')">
-                                <img src="/Imagenes/configuraciones.png" class="imgConfiguraciones me-2" alt="">
-                                <span>Gastos Categorias</span>
-                            </div>
-                        </div>
-
-                        <div class="col-12 col-sm-6 col-lg-3">
-                            <div class="d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Productos Categorias','ProductosCategoria')">
-                                <img src="/Imagenes/configuraciones.png" class="imgConfiguraciones me-2" alt="">
-                                <span>Productos Categorias</span>
-                            </div>
-                        </div>
-
-                          <div class="col-12 col-sm-6 col-lg-3">
-                            <div class="d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Insumos Categorias','InsumosCategoria')">
-                                <img src="/Imagenes/configuraciones.png" class="imgConfiguraciones me-2" alt="">
-                                <span>Insumos Categorias</span>
-                            </div>
-                        </div>
-
-                        <div class="col-12 col-sm-6 col-lg-3">
-                            <div class="d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Productos Categorias Talles','ProductosCategoriasTalle', 'Productos Categoria', 'ProductosCategoria', 'Categoria')">
-                                <img src="/Imagenes/configuraciones.png" class="imgConfiguraciones me-2" alt="">
-                                <span>Productos Categorias Talles</span>
-
-                            </div>
-                        </div>
-
-
-                        <div class="col-12 col-sm-6 col-lg-3">
-                            <div class="d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Estados Ordenes de Corte','OrdenesCorteEstados')">
-                                <img src="/Imagenes/configuraciones.png" class="imgConfiguraciones me-2" alt="">
-                                <span>Estados Ordenes de Cortes</span>
-                            </div>
-                        </div>
-
-                        <div class="col-12 col-sm-6 col-lg-3">
-                            <div class="d-flex align-items-center btnConfiguraciones" onclick="abrirConfiguracion('Etapas Estados Ordenes de Corte','OrdenesCorteEtapasEstados')">
-                                <img src="/Imagenes/configuraciones.png" class="imgConfiguraciones me-2" alt="">
-                                <span>Etapas Estados Ordenes de Cortes</span>
-                            </div>
-                        </div>
-
-
                     </div>
                 </div>
-
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btnaccion" data-bs-dismiss="modal">Cerrar</button>
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button id="btnSaveColors" class="btn btn-primary">Guardar</button>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- Plantillas -->
+    <template id="tpl-fav-empty">
+        <div class="tile tile-empty"><i class="fa fa-star-o"></i><span>Tus accesos más usados aparecerán aquí</span></div>
+    </template>
+    <template id="tpl-sim-tile">
+        <div class="sim-tile"><i class="fa fa-check"></i><span>Tile ejemplo</span></div>
+    </template>
 
-
-
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
     <partial name="~/Views/Utils/Modals.cshtml" />
-
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/home.js?v=1.5"></script>
+    <script src="~/js/home.js?v=7.1"></script>
     <script src="~/js/site.js"></script>
-
 </body>
 </html>

@@ -1,849 +1,696 @@
-﻿//#########################################################################################################################################################
-//#########################################################################################################################################################
-//#############################################################################CLIENTES####################################################################
-const precioZonaInput = document.getElementById('txtPrecioZona');
+﻿/************************************************************
+ * HOME – JS
+ * - DnD secciones con guía visual (insert/swap) y ajuste de "Configuraciones"
+ * - Tiles: DnD solo dentro de su tarjeta
+ * - Favoritos Top-8 (colores propios, no hereda)
+ * - Modal Colores: Header, Tiles, Fondo (de/ hasta + “usar degradado”)
+ * - Reset: restaura header + tiles + fondo + orden
+ ************************************************************/
 
-let nombreConfiguracion
-let controllerConfiguracion;
-let comboNombre;
-let lblComboNombre;
-let listaVacia = false;
+/* ====================== HELPERS ====================== */
+const qs = (s, r = document) => (typeof s === 'string' ? r.querySelector(s) : s);
+const qsa = (s, r = document) => Array.from(r.querySelectorAll(s));
+const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
+const load = (k, fb) => { try { const v = localStorage.getItem(k); return v != null ? JSON.parse(v) : (fb ?? null); } catch { return (fb ?? null); } };
+const setCssVars = (el, vars) => { for (const [k, v] of Object.entries(vars)) if (v != null) el.style.setProperty(k, v); };
+const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
+function toHex(color, fb = '#ffffff') {
+    if (!color) return fb; const c = String(color).trim();
+    if (c.startsWith('#')) return (c.length === 4 ? `#${c[1]}${c[1]}${c[2]}${c[2]}${c[3]}${c[3]}` : c).toLowerCase();
+    const m = c.match(/\d+(\.\d+)?/g); if (!m || m.length < 3) return fb;
+    const [r, g, b] = m.map(n => clamp(Math.round(Number(n)), 0, 255));
+    return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+}
 
-async function nuevoCliente() {
-    limpiarModalCliente();
-    $('#txtNombreCliente').on('input', function () {
-        validarCamposCliente()
+/* ====================== LS KEYS ====================== */
+const LS = {
+    COLORS_CARD: id => `ui.colors.card.${id}`,   // header + fondo
+    COLORS_TILE: id => `ui.colors.tile.${id}`,
+    ORDER_GRID: 'ui.order.grid',               // tarjetas en #cols
+    ORDER_TILES: id => `ui.order.tiles.${id}`,
+    VISITS: 'ui.visits'
+};
+
+/* ====================== FÁBRICA ====================== */
+let factoryTilesOrderByCard = new Map();
+let factoryStyleByCard = new Map();
+
+function captureFactory() {
+    qsa('.dash-card').forEach(card => {
+        const id = card.dataset.cardId;
+        const tiles = qsa('.tile, .conf-tile', card); // 👈 ahora toma ambos tipos
+        tiles.forEach((t, ix) => t.dataset.homeIndex = String(ix));
+        factoryTilesOrderByCard.set(id, tiles.map(t => t.dataset.id));
+        factoryStyleByCard.set(id, card.getAttribute('data-default-style') || card.getAttribute('style') || '');
     });
-    validarCamposCliente();
-    await listaProvincias();
-    $('#ModalEdicionCliente').modal('show');
-    $("#btnGuardar").text("Registrar");
-    $("#ModalEdicionClienteLabel").text("Nuevo Cliente");
-    $('#lblNombre').css('color', 'red');
-    $('#txtNombre').css('border-color', 'red');
 }
 
 
-async function listaProvincias() {
-    const url = `/Clientes/ListaProvincias`;
-    const response = await fetch(url);
-    const data = await response.json();
+/* ====================== FAVORITOS ====================== */
+function getVisits() { return load(LS.VISITS, {}); }
+function bumpVisit(tileId) {
+    const v = getVisits(); v[tileId] = (v[tileId] || 0) + 1; save(LS.VISITS, v);
+    refreshFavorites();
+}
+function refreshFavorites() {
+    const container = qs('#tiles-favoritos'); if (!container) return;
+    container.innerHTML = '';
+    const visits = Object.entries(getVisits()).sort((a, b) => b[1] - a[1]);
+    const top = [];
+    for (const [id] of visits) {
+        const tile = document.querySelector(`.tile[data-id="${id}"]`);
+        if (tile) top.push(tile);
+        if (top.length === 8) break; // Top-8
+    }
+    if (top.length === 0) {
+        const tpl = qs('#tpl-fav-empty'); if (tpl) container.append(tpl.content.firstElementChild.cloneNode(true));
+        return;
+    }
+    top.forEach((tpl, ix) => {
+        const clone = tpl.cloneNode(true);
+        // NO heredar estilos de sección
+        clone.removeAttribute('style');
+        clone.querySelector('.tile-handle')?.remove();
+        clone.addEventListener('click', () => tpl.click());
+        const star = document.createElement('i'); star.className = 'fa fa-star fav-rank';
+        clone.insertBefore(star, clone.firstChild);
+        clone.classList.add(ix === 0 ? 'rank-1' : ix === 1 ? 'rank-2' : ix === 2 ? 'rank-3' : 'rank-4');
+        container.append(clone);
+    });
+}
 
-    $('#ProvinciasClientes option').remove();
+/* ====================== MODAL COLORES ====================== */
+let colorTargetCard = null;
 
-    selectProvincias = document.getElementById("ProvinciasClientes");
+function buildApplyList(card) {
+    const list = qs('#applyList'); if (!list) return; list.innerHTML = '';
+    const mk = (val, txt) => {
+        const l = document.createElement('label');
+        l.className = 'list-group-item d-flex align-items-center gap-2';
+        l.innerHTML = `<input class="form-check-input me-2" type="checkbox" value="${val}"><span>${txt}</span>`;
+        return l;
+    };
+    list.append(mk('header', 'Cabecera'));
+    list.append(mk('bg', 'Fondo de la sección'));
+    qsa('.tile', card).forEach(t => {
+        const title = t.dataset.title || t.textContent.trim();
+        list.append(mk(t.dataset.id, title));
+    });
+    // reset "Seleccionar todos"
+    const chkAll = qs('#chkAll'); if (chkAll) { chkAll.checked = false; }
+}
 
-    for (i = 0; i < data.length; i++) {
-        option = document.createElement("option");
-        option.value = data[i].Id;
-        option.text = data[i].Nombre;
-        selectProvincias.appendChild(option);
+function getSelectedTargets() {
+    const list = qs('#applyList'); if (!list) return { header: false, bg: false, tiles: [] };
+    const checks = Array.from(list.querySelectorAll('input[type="checkbox"]:checked')).map(c => c.value);
+    return { header: checks.includes('header'), bg: checks.includes('bg'), tiles: checks.filter(v => v !== 'header' && v !== 'bg') };
+}
 
+function buildSimulator(card) {
+    const sim = qs('#simulator'); if (!sim) return;
+    const sh = sim.querySelector('.sim-header'); const box = sim.querySelector('.sim-tiles');
+    const cs = getComputedStyle(card);
+    // header ejemplo
+    sh.style.background = `linear-gradient(90deg, ${toHex(cs.getPropertyValue('--hdr-from') || '#39475f')}, ${toHex(cs.getPropertyValue('--hdr-to') || '#53627a')})`;
+    sh.style.color = toHex(cs.getPropertyValue('--hdr-text') || '#ffffff');
+    sh.querySelector('i').style.color = toHex(cs.getPropertyValue('--hdr-icon') || '#ffffff');
+    // tiles ejemplo (mantenemos 4)
+    box.innerHTML = '';
+    const count = Math.max(4, qsa('.tile', card).length);
+    for (let i = 0; i < count; i++) {
+        const t = qs('#tpl-sim-tile')?.content.firstElementChild.cloneNode(true) || Object.assign(document.createElement('div'), { className: 'sim-tile', innerHTML: '<i class="fa fa-check"></i><span>Tile ejemplo</span>' });
+        t.style.background = `linear-gradient(180deg, ${toHex(cs.getPropertyValue('--tl-from') || '#2d3542')}, ${toHex(cs.getPropertyValue('--tl-to') || '#2a3240')})`;
+        t.style.color = toHex(cs.getPropertyValue('--tl-text') || '#e8f0ff');
+        t.style.borderColor = toHex(cs.getPropertyValue('--tl-b') || '#3a4457');
+        t.querySelector('i').style.color = toHex(cs.getPropertyValue('--tl-icon') || '#e8f0ff');
+        box.append(t);
     }
 }
 
-function limpiarModalCliente() {
-    const campos = ["IdCliente", "NombreCliente", "TelefonoCliente", "DireccionCliente", "IdProvinciaCliente", "LocalidadCliente", "DNICliente"];
-    campos.forEach(campo => {
-        $(`#txt${campo}`).val("");
-    });
+/* Inputs */
+const inputs = {
+    from: '#inpFrom',
+    to: '#inpTo',
+    text: '#inpText',
+    icon: '#inpIcon',
+    border: '#inpBorder',
+    bgFrom: '#inpBgFrom',
+    bgTo: '#inpBgTo',
+    bgGrad: '#chkBgGrad',
+    preview: '#chkPreview',
+    selectAll: '#chkAll'
+};
 
-    $("#lblNombre, #txtNombre").css("color", "").css("border-color", "");
+function enableBgTo(on) {
+    const to = qs(inputs.bgTo);
+    if (!to) return;
+    to.disabled = !on;
+    to.closest('.form-group-bgto')?.classList.toggle('disabled', !on);
 }
 
-function registrarCliente() {
-    if (validarCamposCliente()) {
-        const idCliente = $("#txtIdCliente").val();
-        const nuevoModelo = {
-            "Id": idCliente !== "" ? idCliente : 0,
-            "Nombre": $("#txtNombreCliente").val(),
-            "Telefono": $("#txtTelefonoCliente").val(),
-            "Direccion": $("#txtDireccionCliente").val(),
-            "IdProvincia": $("#ProvinciasClientes").val(),
-            "Localidad": $("#txtLocalidadCliente").val(),
-            "DNI": $("#txtDNICliente").val()
-        };
+/* Para saber si el cambio vino desde inputs de fondo */
+let lastChangeWasBg = false;
 
-        const url = "Clientes/Insertar";
-        const method = idCliente === "" ? "POST" : "PUT";
+function applyColorPreview() {
+    if (!colorTargetCard) return;
 
-        fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json;charset=utf-8'
-            },
-            body: JSON.stringify(nuevoModelo)
-        })
-            .then(response => {
-                if (!response.ok) throw new Error(response.statusText);
-                return response.json();
-            })
-            .then(dataJson => {
-                const mensaje = idCliente === "" ? "Cliente registrado correctamente" : "Cliente modificado correctamente";
-                $('#ModalEdicionCliente').modal('hide');
-                exitoModal(mensaje);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-    } else {
-        errorModal('Debes completar los campos requeridos');
+    // reconstruyo simulador base
+    buildSimulator(colorTargetCard);
+
+    const vals = {
+        from: qs(inputs.from)?.value,
+        to: qs(inputs.to)?.value,
+        text: qs(inputs.text)?.value,
+        icon: qs(inputs.icon)?.value,
+        border: qs(inputs.border)?.value,
+        bgFrom: qs(inputs.bgFrom)?.value,
+        bgTo: qs(inputs.bgTo)?.value,
+        bgGrad: qs(inputs.bgGrad)?.checked
+    };
+
+    // selección actual
+    let sel = getSelectedTargets();
+
+    // si el cambio fue de "fondo", garantizo que se previsualice
+    if (lastChangeWasBg) sel = { ...sel, bg: true };
+
+    // ======== SIMULADOR ========
+    const sim = qs('#simulator');
+
+    // header (sim)
+    if (sel.header) {
+        const sh = sim.querySelector('.sim-header');
+        sh.classList.add('active');
+        sh.style.background = `linear-gradient(90deg, ${vals.from}, ${vals.to})`;
+        sh.style.color = vals.text;
+        sh.querySelector('i').style.color = vals.icon;
     }
-}
 
-
-function validarCamposCliente() {
-    const nombre = $("#txtNombreCliente").val();
-    const camposValidos = nombre !== "";
-
-    $("#lblNombreCliente").css("color", camposValidos ? "" : "red");
-    $("#txtNombreCliente").css("border-color", camposValidos ? "" : "red");
-
-
-    return camposValidos;
-}
-
-//##########################################################################################################################################################
-//##########################################################################################################################################################
-//#############################################################################Proveedores#################################################################
-
-
-function registrarProveedor() {
-    if (validarCamposProveedor()) {
-        const idProveedor = $("#txtIdProveedor").val();
-        const nuevoModelo = {
-            "Id": idProveedor !== "" ? idProveedor : 0,
-            "Nombre": $("#txtNombreProveedor").val(),
-            "Apodo": $("#txtApodoProveedor").val(),
-            "Ubicacion": $("#txtUbicacionProveedor").val(),
-            "Telefono": $("#txtTelefonoProveedor").val(),
-        };
-
-        const url = "Proveedores/Insertar";
-        const method = "POST";
-
-        fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json;charset=utf-8'
-            },
-            body: JSON.stringify(nuevoModelo)
-        })
-            .then(response => {
-                if (!response.ok) throw new Error(response.statusText);
-                return response.json();
-            })
-            .then(dataJson => {
-                const mensaje = "Proveedor registrado correctamente";
-                $('#ModalEdicionProveedor').modal('hide');
-                exitoModal(mensaje);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-    } else {
-        errorModal('Debes completar los campos requeridos');
+    // tiles (sim)
+    if (sel.tiles.length > 0) {
+        qsa('.sim-tiles .sim-tile', sim).forEach(el => {
+            el.classList.add('active');
+            el.style.background = `linear-gradient(180deg, ${vals.from}, ${vals.to})`;
+            el.style.color = vals.text;
+            el.style.borderColor = vals.border;
+            el.querySelector('i').style.color = vals.icon;
+        });
     }
-}
 
+    // ======== TARJETA REAL (si preview está activo) ========
+    if (!qs(inputs.preview)?.checked) return;
 
-function validarCamposProveedor() {
-    const nombre = $("#txtNombreProveedor").val();
-    const camposValidos = nombre !== "";
-
-    $("#lblNombreProveedor").css("color", camposValidos ? "" : "red");
-    $("#txtNombreProveedor").css("border-color", camposValidos ? "" : "red");
-
-    return camposValidos;
-}
-function nuevoProveedor() {
-    $('#txtNombreProveedor').on('input', function () {
-        validarCamposProveedor()
-    });
-    limpiarModalProveedor();
-    $('#ModalEdicionProveedor').modal('show');
-    $("#btnGuardarProveedor").text("Registrar");
-    $("#ModalEdicionProveedorLabel").text("Nuevo Proveedor");
-    $('#lblNombreProveedor').css('color', 'red');
-    $('#txtNombreProveedor').css('border-color', 'red');
-}
-
-async function mostrarModalProveedor(modelo) {
-    const campos = ["IdProveedor", "NombreProveedor", "ApodoProveedor", "UbicacionProveedor", "TelefonoProveedor"];
-    campos.forEach(campo => {
-        $(`#txt${campo}`).val(modelo[campo]);
-    });
-
-
-    $('#modalEdicionProveedor').modal('show');
-    $("#btnGuardarProveedor").text("Guardar");
-    $("#modalEdicionProveedorLabel").text("Editar Proveedor");
-
-    $('#lblNombreProveedor, #txtNombreProveedor').css('color', '').css('border-color', '');
-}
-
-
-
-
-function limpiarModalProveedor() {
-    const campos = ["IdProveedor", "NombreProveedor", "ApodoProveedor", "UbicacionProveedor", "TelefonoProveedor"];
-    campos.forEach(campo => {
-        $(`#txt${campo}`).val("");
-    });
-
-    $("#lblNombreProveedor, #txtNombreProveedor").css("color", "").css("border-color", "");
-}
-
-
-//##########################################################################################################################################################
-//##########################################################################################################################################################
-//#########################################################################CHOFERES########################################################################
-
-function registrarChofer() {
-    if (validarCamposChofer()) {
-        const idChofer = $("#txtIdChofer").val();
-        const nuevoModelo = {
-            "Id": idChofer !== "" ? idChofer : 0,
-            "Nombre": $("#txtNombreChofer").val(),
-            "Telefono": $("#txtTelefonoChofer").val(),
-            "Direccion": $("#txtDireccionChofer").val(),
-            "DNI": $("#txtDNIChofer").val()
-        };
-
-        const url = "Choferes/Insertar";
-        const method = "POST";
-
-        fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json;charset=utf-8'
-            },
-            body: JSON.stringify(nuevoModelo)
-        })
-            .then(response => {
-                if (!response.ok) throw new Error(response.statusText);
-                return response.json();
-            })
-            .then(dataJson => {
-                const mensaje = "Chofer registrado correctamente";
-                $('#modalEdicionChofer').modal('hide');
-                exitoModal(mensaje);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-    } else {
-        errorModal('Debes completar los campos requeridos');
+    // header (real)
+    if (sel.header) {
+        setCssVars(colorTargetCard, {
+            '--hdr-from': vals.from,
+            '--hdr-to': vals.to,
+            '--hdr-text': vals.text,
+            '--hdr-icon': vals.icon
+        });
     }
-}
 
+    // tiles (reales seleccionados)
+    if (sel.tiles.length > 0) {
+        sel.tiles.forEach(tid => {
+            const t = colorTargetCard.querySelector(`.tile[data-id="${tid}"]`);
+            if (t) {
+                setCssVars(t, {
+                    '--tl-from': vals.from,
+                    '--tl-to': vals.to,
+                    '--tl-text': vals.text,
+                    '--tl-icon': vals.icon,
+                    '--tl-b': vals.border
+                });
+            }
+        });
+    }
 
-function validarCamposChofer() {
-    const nombre = $("#txtNombreChofer").val();
-    const camposValidos = nombre !== "";
-
-    $("#lblNombreChofer").css("color", camposValidos ? "" : "red");
-    $("#txtNombreChofer").css("border-color", camposValidos ? "" : "red");
-
-    return camposValidos;
-}
-function nuevoChofer() {
-    limpiarModal();
-
-    $('#txtNombreChofer').on('input', function () {
-        validarCamposChofer()
-    });
-
-    $('#modalEdicionChofer').modal('show');
-    $("#btnGuardarChofer").text("Registrar");
-    $("#modalEdicionChoferLabel").text("Nuevo Chofer");
-    $('#lblNombreChofer').css('color', 'red');
-    $('#txtNombreChofer').css('border-color', 'red');
-}
-
-
-
-async function mostrarModalChofer(modelo) {
-    const campos = ["IdChofer", "NombreChofer", "TelefonoChofer", "DireccionChofer"];
-    campos.forEach(campo => {
-        $(`#txt${campo}`).val(modelo[campo]);
-    });
-
-
-    $('#modalEdicionChofer').modal('show');
-    $("#btnGuardarChofer").text("Guardar");
-    $("#modalEdicionChoferLabel").text("Editar Chofer");
-
-    $('#lblNombreChofer, #txtNombreChofer').css('color', '').css('border-color', '');
-}
-
-function limpiarModal() {
-    const campos = ["IdChofer", "NombreChofer", "TelefonoChofer", "DireccionChofer"];
-    campos.forEach(campo => {
-        $(`#txt${campo}`).val("");
-    });
-
-    $("#lblNombreChofer, #txtNombreChofer").css("color", "").css("border-color", "");
-}
-
-
-
-//##########################################################################################################################################################
-//##########################################################################################################################################################
-//#########################################################################ZONAS########################################################################
-
-function registrarZona() {
-    if (validarCamposZona()) {
-        const idZona = $("#txtIdZona").val();
-        const nuevoModelo = {
-            "Id": idZona !== "" ? idZona : 0,
-            "Nombre": $("#txtNombreZona").val(),
-            "Precio": formatoNumero($("#txtPrecioZona").val()),
-        };
-
-        const url = "Zonas/Insertar";
-        const method = "POST";
-
-        fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json;charset=utf-8'
-            },
-            body: JSON.stringify(nuevoModelo)
-        })
-            .then(response => {
-                if (!response.ok) throw new Error(response.statusText);
-                return response.json();
-            })
-            .then(dataJson => {
-                const mensaje = "Zona registrada correctamente";
-                $('#modalEdicionZona').modal('hide');
-                exitoModal(mensaje);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-    } else {
-        errorModal('Debes completar los campos requeridos');
+    // fondo de sección (real, independiente)
+    if (sel.bg) {
+        if (vals.bgGrad) {
+            colorTargetCard.style.background = `linear-gradient(180deg, ${vals.bgFrom}, ${vals.bgTo})`;
+        } else {
+            colorTargetCard.style.background = vals.bgFrom;
+        }
     }
 }
 
 
-function validarCamposZona() {
-    const nombre = $("#txtNombreZona").val();
-    const camposValidos = nombre !== "";
+/* listeners live preview (sin autoseleccionar 'header') */
+['input', 'change'].forEach(evt => {
+    document.addEventListener(evt, (e) => {
+        if (!colorTargetCard) return;
 
-    $("#lblNombreZona").css("color", camposValidos ? "" : "red");
-    $("#txtNombreZona").css("border-color", camposValidos ? "" : "red");
+        const ids = [
+            inputs.from, inputs.to, inputs.text, inputs.icon, inputs.border,
+            inputs.bgFrom, inputs.bgTo, inputs.bgGrad, inputs.preview, inputs.selectAll
+        ];
+        if (!ids.some(sel => e.target.matches(sel))) return;
 
-    return camposValidos;
-}
-function nuevaZona() {
-    limpiarModalZona();
+        // Fondo: habilitar/deshabilitar 'hasta' y asegurar preview del fondo
+        if (e.target.matches(inputs.bgGrad)) {
+            enableBgTo(e.target.checked);
+            lastChangeWasBg = true;
+            const chkBg = qs('#applyList input[value="bg"]');
+            if (chkBg) chkBg.checked = true;
+        }
+        if (e.target.matches(inputs.bgFrom) || e.target.matches(inputs.bgTo)) {
+            lastChangeWasBg = true;
+            const chkBg = qs('#applyList input[value="bg"]');
+            if (chkBg) chkBg.checked = true;
+        }
 
-    $('#txtNombreZona').on('input', function () {
-        validarCamposZona()
+        // NO autoseleccionar 'header' nunca: si el usuario no lo tilda, no se pinta.
+        // (Dejamos 'border' igual; los tiles solo se pintan si están seleccionados)
+
+        // Seleccionar todos
+        if (e.target.matches(inputs.selectAll)) {
+            const on = e.target.checked;
+            qsa('#applyList input[type="checkbox"]').forEach(c => { c.checked = on; });
+        }
+
+        if (!(e.target.matches(inputs.bgFrom) || e.target.matches(inputs.bgTo) || e.target.matches(inputs.bgGrad))) {
+            lastChangeWasBg = false;
+        }
+
+        applyColorPreview(); // respeta la selección actual (header/tiles/bg)
     });
-
-    $('#modalEdicionZona').modal('show');
-    $("#btnGuardarZona").text("Registrar");
-    $("#modalEdicionZonaLabel").text("Nueva Zona");
-    $('#lblNombreZona').css('color', 'red');
-    $('#txtNombreZona').css('border-color', 'red');
-}
-
-
-
-async function mostrarModalZona(modelo) {
-    const campos = ["IdZona", "NombreZona", "PrecioZona"];
-    campos.forEach(campo => {
-        $(`#txt${campo}`).val(modelo[campo]);
-    });
-
-
-    $('#modalEdicionZona').modal('show');
-    $("#btnGuardarZona").text("Guardar");
-    $("#modalEdicionZonaLabel").text("Editar Chofer");
-
-    $('#lblNombreZona, #txtNombreZona').css('color', '').css('border-color', '');
-}
-
-function limpiarModalZona() {
-    const campos = ["IdZona", "NombreZona", "PrecioZona"];
-    campos.forEach(campo => {
-        $(`#txt${campo}`).val("");
-    });
-
-    $("#lblNombreZona, #txtNombreZona").css("color", "").css("border-color", "");
-}
-
-//##########################################################################################################################################################
-//##########################################################################################################################################################
-//#########################################################################USUARIOS#########################################################################
-
-function registrarUsuario() {
-    if (validarCamposUsuario()) {
-        const nuevoModelo = {
-            "Id": 0,
-            "Usuario": $("#txtUserUsuario").val(),
-            "Nombre": $("#txtNombreUsuario").val(),
-            "Apellido": $("#txtApellidoUsuario").val(),
-            "DNI": $("#txtDniUsuario").val(),
-            "Telefono": $("#txtTelefonoUsuario").val(),
-            "Direccion": $("#txtDireccionUsuario").val(),
-            "IdRol": $("#RolesUsuario").val(),
-            "IdEstado": $("#EstadosUsuario").val(),
-            "Contrasena": $("#txtContrasenaUsuario").val()
-        };
-
-        const url = "Usuarios/Insertar";
-        const method = "POST";
-
-        fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json;charset=utf-8'
-            },
-            body: JSON.stringify(nuevoModelo)
-        })
-            .then(response => {
-                if (!response.ok) throw new Error(response.statusText);
-                return response.json();
-            })
-            .then(dataJson => {
-                const mensaje = "Usuario registrado correctamente";
-                $('#ModalEdicionUsuario').modal('hide');
-                exitoModal(mensaje);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-            });
-    } else {
-        errorModal('Debes completar los campos requeridos');
-    }
-}
-
-
-function validarCamposUsuario() {
-    const nombre = $("#txtNombreUsuario").val();
-    const usuario = $("#txtUserUsuario").val();
-    const apellido = $("#txtApellidoUsuario").val();
-    const contrasena = $("#txtContrasenaUsuario").val();
-
-
-    // Validación independiente para cada campo
-    const nombreValido = nombre !== "";
-    const usuarioValido = usuario !== "";
-    const apellidoValido = apellido !== "";
-    const contrasenaValido = contrasena !== "";
-
-    // Cambiar el color de texto y borde según la validez de los campos
-    $("#lblNombreUsuario").css("color", nombreValido ? "" : "red");
-    $("#txtNombreUsuario").css("border-color", nombreValido ? "" : "red");
-
-    $("#lblUserUsuario").css("color", usuarioValido ? "" : "red");
-    $("#txtUserUsuario").css("border-color", usuarioValido ? "" : "red");
-
-    $("#lblApellidoUsuario").css("color", apellidoValido ? "" : "red");
-    $("#txtApellidoUsuario").css("border-color", apellidoValido ? "" : "red");
-
-
-    $("#lblContrasenaUsuario").css("color", contrasenaValido ? "" : "red");
-    $("#txtContrasenaUsuario").css("border-color", contrasenaValido ? "" : "red");
-
-
-
-    // La función retorna 'true' si todos los campos son válidos, de lo contrario 'false'
-    return nombreValido && usuarioValido && apellidoValido && contrasenaValido;
-}
-
-
-
-function nuevoUsuario() {
-    limpiarModalUsuario();
-
-    $('#txtNombreUsuario, #txtUserUsuario, #txtApellidoUsuario, #txtContrasenaUsuario').on('input', function () {
-        validarCamposUsuario()
-    });
-
-    listaEstados();
-    listaRoles();
-
-    $('#ModalEdicionUsuario').modal('show');
-    $("#btnGuardarUsuario").text("Registrar");
-    $("#ModalEdicionUsuarioLabel").text("Nuevo Usuario");
-    $('#lblUserUsuario').css('color', 'red');
-    $('#txtUserUsuario').css('border-color', 'red');
-
-    $('#lblNombreUsuario').css('color', 'red');
-    $('#txtNombreUsuario').css('border-color', 'red');
-
-    $('#lblApellidoUsuario').css('color', 'red');
-    $('#txtApellidoUsuario').css('border-color', 'red');
-
-    $('#lblContrasenaUsuario').css('color', 'red');
-    $('#txtContrasenaUsuario').css('border-color', 'red');
-}
-
-
-function limpiarModalUsuario() {
-    const campos = ["IdUsuario", "UserUsuario", "NombreUsuario", "ApellidoUsuario", "DniUsuario", "TelefonoUsuario", "DireccionUsuario", "ContrasenaUsuario"];
-    campos.forEach(campo => {
-        $(`#txt${campo}`).val("");
-    });
-
-    $('#lblUserUsuario, #txtUserUsuario').css('color', '').css('border-color', '');
-    $('#lblNombreUsuario, #txtNombreUsuario').css('color', '').css('border-color', '');
-    $('#lblApellidoUsuario, #txtApellidoUsuario').css('color', '').css('border-color', '');
-}
-
-
-//##########################################################################################################################################################
-//##########################################################################################################################################################
-//#########################################################################PRODUCTOS########################################################################
-
-function nuevoProducto() {
-
-    limpiarModalProducto();
-    listaMarcasProducto();
-    listaCategoriasProducto();
-    listaMonedasProducto();
-    listaUnidadesDeMedidaProducto();
-    document.getElementById("MarcasProducto").removeAttribute("disabled");
-    document.getElementById("txtDescripcionProducto").removeAttribute("disabled");
-    document.getElementById("CategoriasProducto").removeAttribute("disabled");
-    document.getElementById("MonedasProducto").removeAttribute("disabled");
-    document.getElementById("UnidadesDeMedidasProducto").removeAttribute("disabled");
-    document.getElementById("txtPrecioCostoProducto").classList.remove("txtEdicion");
-    document.getElementById("txtPorcentajeGananciaProducto").classList.remove("txtEdicion");
-    document.getElementById("txtPrecioVentaProducto").classList.remove("txtEdicion");
-    document.getElementById('txtTotalProducto').setAttribute('hidden', 'hidden');
-    document.getElementById('lblTotalProducto').setAttribute('hidden', 'hidden');
-    $('#modalEdicionProductos').modal('show');
-    $("#btnGuardarProducto").text("Registrar");
-    $("#modalEdicionProductoLabel").text("Nuevo Producto");
-    asignarCamposObligatoriosProducto()
-}
-
-function actualizarProductoCantidad() {
-    const selectedText = $('#UnidadesDeMedidasProducto option:selected').text(); // Obtiene el texto seleccionado
-
-    if (selectedText === 'Pallet') {
-        // Muestra el label y el input
-        document.getElementById('txtProductoCantidad').removeAttribute('hidden');
-        document.getElementById('lblProductoCantidad').removeAttribute('hidden');
-        document.getElementById('txtTotalProducto').removeAttribute('hidden');
-        document.getElementById('lblTotalProducto').removeAttribute('hidden');
-        document.getElementById('txtProductoCantidad').removeAttribute('readonly');
-
-    } else {
-        // Oculta el label y el input
-        document.getElementById('txtTotalProducto').setAttribute('hidden', 'hidden');
-        document.getElementById('lblTotalProducto').setAttribute('hidden', 'hidden');
-        document.getElementById('txtProductoCantidad').setAttribute('hidden', 'hidden');
-        document.getElementById('lblProductoCantidad').setAttribute('hidden', 'hidden');
-    }
-}
-
-$('#txtProductoCantidad').on('input blur', function () {
-    calcularTotalProducto();
 });
 
+qs('#btnSaveColors')?.addEventListener('click', () => {
+    if (!colorTargetCard) return;
+    const selected = getSelectedTargets();
+    const vals = {
+        from: qs(inputs.from)?.value,
+        to: qs(inputs.to)?.value,
+        text: qs(inputs.text)?.value,
+        icon: qs(inputs.icon)?.value,
+        border: qs(inputs.border)?.value,
+        bgFrom: qs(inputs.bgFrom)?.value,
+        bgTo: qs(inputs.bgTo)?.value,
+        bgGrad: qs(inputs.bgGrad)?.checked
+    };
+    const cardId = colorTargetCard.dataset.cardId;
 
-function asignarCamposObligatoriosProducto() {
-    $('#lblDescripcionProducto').css('color', 'red');
-    $('#txtDescripcionProducto').css('border-color', 'red');
-    $('#lblPrecioCostoProducto').css('color', 'red');
-    $('#txtPrecioCostoProducto').css('border-color', 'red');
-    $('#lblPorcentajeGananciaProducto').css('color', 'red');
-    $('#txtPorcentajeGananciaProducto').css('border-color', 'red');
-}
-
-async function listaMarcasProducto() {
-    const url = `/Marcas/Lista`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    $('#MarcasProducto option').remove();
-
-    select = document.getElementById("MarcasProducto");
-
-    for (i = 0; i < data.length; i++) {
-        option = document.createElement("option");
-        option.value = data[i].Id;
-        option.text = data[i].Nombre;
-        select.appendChild(option);
-
+    // Header
+    if (selected.header) {
+        const base = load(LS.COLORS_CARD(cardId), {}) || {};
+        save(LS.COLORS_CARD(cardId), { ...base, hdrFrom: vals.from, hdrTo: vals.to, hdrText: vals.text, hdrIcon: vals.icon });
+        setCssVars(colorTargetCard, { '--hdr-from': vals.from, '--hdr-to': vals.to, '--hdr-text': vals.text, '--hdr-icon': vals.icon });
     }
-}
 
-async function listaCategoriasProducto() {
-    const url = `/Categorias/Lista`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    $('#CategoriasProducto option').remove();
-
-    select = document.getElementById("CategoriasProducto");
-
-    for (i = 0; i < data.length; i++) {
-        option = document.createElement("option");
-        option.value = data[i].Id;
-        option.text = data[i].Nombre;
-        select.appendChild(option);
-
+    // Fondo (independiente)
+    if (selected.bg) {
+        const base = load(LS.COLORS_CARD(cardId), {}) || {};
+        save(LS.COLORS_CARD(cardId), { ...base, bgFrom: vals.bgFrom, bgTo: vals.bgTo, bgGrad: !!vals.bgGrad });
+        if (vals.bgGrad) {
+            colorTargetCard.style.background = `linear-gradient(180deg, ${vals.bgFrom}, ${vals.bgTo})`;
+        } else {
+            colorTargetCard.style.background = vals.bgFrom;
+        }
     }
-}
 
-async function listaMonedasProducto() {
-    const url = `/Monedas/Lista`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    $('#MonedasProducto option').remove();
-
-    select = document.getElementById("MonedasProducto");
-
-    for (i = 0; i < data.length; i++) {
-        option = document.createElement("option");
-        option.value = data[i].Id;
-        option.text = data[i].Nombre;
-        select.appendChild(option);
-
-    }
-}
-
-$('#UnidadesDeMedidasProducto').on('change', function () {
-    document.getElementById('txtProductoCantidad').value = 1;
-    actualizarProductoCantidad();
-});
-
-async function listaUnidadesDeMedidaProducto() {
-    const url = `/UnidadesDeMedidas/Lista`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    $('#UnidadesDeMedidasProducto option').remove();
-
-    select = document.getElementById("UnidadesDeMedidasProducto");
-
-    for (i = 0; i < data.length; i++) {
-        option = document.createElement("option");
-        option.value = data[i].Id;
-        option.text = data[i].Nombre;
-        select.appendChild(option);
-
-    }
-}
-
-function limpiarModalProducto() {
-    const campos = ["IdProducto", "DescripcionProducto", "PrecioCostoProducto", "PrecioVentaProducto", "PorcentajeGananciaProducto"];
-    campos.forEach(campo => {
-        $(`#txt${campo}`).val("");
+    // Tiles
+    selected.tiles.forEach(tid => {
+        const cfg = { tileFrom: vals.from, tileTo: vals.to, tileText: vals.text, tileIcon: vals.icon, tileBorder: vals.border };
+        save(LS.COLORS_TILE(tid), cfg);
+        const t = colorTargetCard.querySelector(`.tile[data-id="${tid}"]`);
+        if (t) setCssVars(t, { '--tl-from': cfg.tileFrom, '--tl-to': cfg.tileTo, '--tl-text': cfg.tileText, '--tl-icon': cfg.tileIcon, '--tl-b': cfg.tileBorder });
     });
 
-    $("#imgProducto").attr("src", "");
-    $("#imgProd").val("");
+    bootstrap.Modal.getInstance(qs('#colorModal'))?.hide();
+    (window.exitoModal || ((m) => alert(m)))('Colores guardados');
+});
 
+function openColorModal(card) {
+    colorTargetCard = card;
+    buildApplyList(card);
+    buildSimulator(card);
+
+    // precargar
+    const cs = getComputedStyle(card);
+    qs(inputs.from).value = toHex(cs.getPropertyValue('--hdr-from') || '#39475f');
+    qs(inputs.to).value = toHex(cs.getPropertyValue('--hdr-to') || '#53627a');
+    qs(inputs.text).value = toHex(cs.getPropertyValue('--hdr-text') || '#ffffff');
+    qs(inputs.icon).value = toHex(cs.getPropertyValue('--hdr-icon') || '#ffffff');
+    qs(inputs.border).value = toHex(cs.getPropertyValue('--tl-b') || '#3a4457');
+
+    // fondo guardado / actual
+    const saved = load(LS.COLORS_CARD(card.dataset.cardId), null);
+    const bgFrom = saved?.bgFrom || '#0f1724';
+    const bgTo = saved?.bgTo || bgFrom;
+    const bgGrad = !!saved?.bgGrad;
+    qs(inputs.bgFrom).value = toHex(bgFrom);
+    qs(inputs.bgTo).value = toHex(bgTo);
+    qs(inputs.bgGrad).checked = bgGrad;
+    enableBgTo(bgGrad);
+
+    // desmarcar todo al abrir
+    qsa('#applyList input[type="checkbox"]').forEach(c => c.checked = false);
+    qs('#chkAll') && (qs('#chkAll').checked = false);
+    lastChangeWasBg = false;
+
+    new bootstrap.Modal(qs('#colorModal')).show();
+    setTimeout(applyColorPreview, 0);
 }
 
-function registrarProducto() {
-    if (validarCamposProducto()) {
-        sumarPorcentajeProducto(); //Por si las dudas
-        let productoCantidad = $("#txtProductoCantidad").val();
-        const idProducto = $("#txtIdProducto").val();
-        const nuevoModelo = {
-            IdCliente: -1,
-            IdProveedor: -1,
-            "Id": idProducto !== "" ? idProducto : 0,
-            "Descripcion": $("#txtDescripcionProducto").val(),
-            "IdMarca": $("#MarcasProducto").val(),
-            "IdCategoria": $("#CategoriasProducto").val(),
-            "IdMoneda": $("#MonedasProducto").val(),
-            "IdUnidadDeMedida": $("#UnidadesDeMedidasProducto").val(),
-            "PCosto": parseDecimal($("#txtPrecioCostoProducto").val()),
-            "PVenta": parseDecimal($("#txtPrecioVentaProducto").val()),
-            "PorcGanancia": parseDecimal($("#txtPorcentajeGananciaProducto").val()),
-            "ProductoCantidad": (isNaN(productoCantidad) || productoCantidad === null || productoCantidad.trim() === "") ? 1 : parseFloat(productoCantidad),
-            "Image": null,
+/* aplicar guardados */
+function applySavedColors() {
+    qsa('.dash-card').forEach(card => {
+        const cfg = load(LS.COLORS_CARD(card.dataset.cardId), null);
+        if (cfg) {
+            setCssVars(card, { '--hdr-from': cfg.hdrFrom, '--hdr-to': cfg.hdrTo, '--hdr-text': cfg.hdrText, '--hdr-icon': cfg.hdrIcon });
+            if (cfg.bgGrad) {
+                card.style.background = `linear-gradient(180deg, ${cfg.bgFrom || '#0f1724'}, ${cfg.bgTo || cfg.bgFrom || '#0f1724'})`;
+            } else if (cfg.bgFrom) {
+                card.style.background = cfg.bgFrom;
+            }
+        }
+        // tiles
+        qsa('.tile', card).forEach(t => {
+            const c2 = load(LS.COLORS_TILE(t.dataset.id), null);
+            if (c2) setCssVars(t, { '--tl-from': c2.tileFrom, '--tl-to': c2.tileTo, '--tl-text': c2.tileText, '--tl-icon': c2.tileIcon, '--tl-b': c2.tileBorder });
+        });
+    });
+}
+
+/* ====================== RESET TARJETA ====================== */
+function resetCardLive(card) {
+    const id = card.dataset.cardId;
+
+    // quitar colores guardados
+    localStorage.removeItem(LS.COLORS_CARD(id));
+    qsa('.tile, .conf-tile', card).forEach(t => localStorage.removeItem(LS.COLORS_TILE(t.dataset.id)));
+
+    // restaurar estilo por defecto
+    const def = factoryStyleByCard.get(id) || '';
+    if (def) card.setAttribute('style', def); else card.removeAttribute('style');
+
+    // restaurar orden (ahora con .tile y .conf-tile)
+    const factory = factoryTilesOrderByCard.get(id) || [];
+    const cont = qs('.tiles, .config-grid', card);
+    const map = {}; qsa('.tile, .conf-tile', card).forEach(t => map[t.dataset.id] = t);
+    if (cont) {
+        cont.innerHTML = '';
+        factory.forEach(tid => map[tid] && cont.append(map[tid]));
+    }
+    localStorage.removeItem(LS.ORDER_TILES(id));
+
+    showReloadOverlay();
+    setTimeout(() => location.reload(), 250);
+}
+
+
+/* ====================== DnD SECCIONES ====================== */
+function saveGridOrder() {
+    const ids = qsa('#cols .dash-card').map(d => d.dataset.cardId);
+    save(LS.ORDER_GRID, ids);
+}
+function restoreGridOrder() {
+    const data = load(LS.ORDER_GRID, null); if (!data) return;
+    const cont = qs('#cols');
+    data.forEach(id => {
+        const el = document.querySelector(`.dash-card[data-card-id="${id}"]`);
+        if (el) cont.append(el);
+    });
+    fixConfigState();
+}
+function fixConfigState() {
+    const conf = document.querySelector('.dash-card[data-card-id="config"]');
+    if (!conf) return;
+
+    const pref = load(LS.CARD_SIZE('config'), null);
+    if (pref) { // si el usuario eligió, se respeta
+        setCardSize(conf, pref);
+        return;
+    }
+
+    // Sin preferencia explícita: automático si queda sola en su fila
+    if (isAloneInRow(conf)) conf.classList.add('fullwidth');
+    else conf.classList.remove('fullwidth');
+
+    updateSizeToggleIcon(conf);
+}
+
+/* Guía visual + Placeholder */
+function bindCardDnD() {
+    qsa('.dash-card .card-handle').forEach(handle => {
+        const card = handle.closest('.dash-card');
+        let ghost, placeholder, offX, offY;
+
+        const onMove = (e) => {
+            ghost.style.left = `${e.clientX - offX}px`; ghost.style.top = `${e.clientY - offY}px`;
+
+            const container = qs('#cols');
+            const nodes = qsa('.dash-card, .placeholder-card', container).filter(n => n !== ghost);
+            let inserted = false;
+            for (const n of nodes) {
+                if (n === placeholder) continue;
+                const r = n.getBoundingClientRect();
+                // barra de inserción superior o inferior según posición del puntero
+                if (e.clientY < r.top + r.height / 2) {
+                    container.insertBefore(placeholder, n);
+                    inserted = true; break;
+                }
+            }
+            if (!inserted) container.append(placeholder);
+
+            // guía de candidatos
+            qsa('#cols .dash-card').forEach(c => c.classList.add('dz-candidate'));
+            placeholder.classList.add('dz-candidate');
         };
 
-        const url = "Productos/Insertar";
-        const method = "POST";
+        const onUp = () => {
+            document.removeEventListener('pointermove', onMove);
+            document.removeEventListener('pointerup', onUp);
+            ghost.remove(); placeholder.replaceWith(card);
+            card.style.removeProperty('width'); card.style.removeProperty('height');
+            qsa('#cols .dash-card').forEach(c => c.classList.remove('dz-candidate'));
+            saveGridOrder(); fixConfigState();
+        };
 
-        fetch(url, {
-            method: method,
-            headers: {
-                'Content-Type': 'application/json;charset=utf-8'
-            },
-            body: JSON.stringify(nuevoModelo)
-        })
-            .then(response => {
-                if (!response.ok) throw new Error(response.statusText);
-                return response.json();
-            })
-            .then(dataJson => {
-                const mensaje = "Producto registrado correctamente";
-                $('#modalEdicionProductos').modal('hide');
-                exitoModal(mensaje);
-            })
-            .catch(error => {
-                console.error('Error:', error);
+        handle.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            const rect = card.getBoundingClientRect();
+            offX = e.clientX - rect.left; offY = e.clientY - rect.top;
+
+            ghost = card.cloneNode(true); ghost.classList.add('drag-ghost');
+            ghost.style.width = `${rect.width}px`; ghost.style.height = `${rect.height}px`;
+            ghost.style.left = `${rect.left}px`; ghost.style.top = `${rect.top}px`;
+
+            placeholder = document.createElement('div'); placeholder.className = 'placeholder-card';
+            card.parentElement.insertBefore(placeholder, card); card.remove();
+
+            document.body.append(ghost);
+            document.addEventListener('pointermove', onMove);
+            document.addEventListener('pointerup', onUp);
+        });
+    });
+}
+
+/* ====================== TILES DnD (intra-sección) ====================== */
+function saveTilesOrder(card) {
+    const ids = qsa('.tile, .conf-tile', card).map(t => t.dataset.id);
+    save(LS.ORDER_TILES(card.dataset.cardId), ids);
+}
+function restoreTilesOrder() {
+    qsa('.dash-card').forEach(card => {
+        const order = load(LS.ORDER_TILES(card.dataset.cardId), null);
+        if (!order) return;
+        const cont = qs('.tiles, .config-grid', card);
+        if (!cont) return;
+        const map = {};
+        qsa('.tile, .conf-tile', card).forEach(t => map[t.dataset.id] = t);
+        order.forEach(id => map[id] && cont.append(map[id]));
+    });
+}
+
+
+function bindTileDnD() {
+    qsa('.tile, .conf-tile').forEach(tile => {
+        const handle = tile.querySelector('.tile-handle');
+        let ghost, placeholder, offX, offY, dragging = false, originCard = null, lastBox = null;
+
+        const startDrag = (e) => {
+            if (!handle) return;
+            dragging = true;
+            e.preventDefault();
+            e.stopPropagation();
+
+            const rect = tile.getBoundingClientRect();
+            offX = e.clientX - rect.left;
+            offY = e.clientY - rect.top;
+            originCard = tile.closest('.dash-card');
+
+            ghost = tile.cloneNode(true);
+            ghost.classList.add('drag-ghost');
+            Object.assign(ghost.style, {
+                width: `${rect.width}px`,
+                height: `${rect.height}px`,
+                left: `${rect.left}px`,
+                top: `${rect.top}px`,
+                position: 'fixed',
+                zIndex: 9999,
+                pointerEvents: 'none'
             });
-    } else {
-        errorModal('Debes completar los campos requeridos');
-    }
+
+            placeholder = document.createElement('div');
+            placeholder.className = 'placeholder-tile'; // 👈 mismo placeholder para todos
+
+            tile.parentElement.insertBefore(placeholder, tile);
+            tile.remove();
+
+            document.body.append(ghost);
+            document.addEventListener('pointermove', onMove);
+            document.addEventListener('pointerup', onUp);
+        };
+
+        const highlightBox = (box) => {
+            if (lastBox && lastBox !== box) lastBox.classList.remove('dz-zone');
+            if (box) box.classList.add('dz-zone');
+            lastBox = box || null;
+        };
+
+        const onMove = (e) => {
+            ghost.style.left = `${e.clientX - offX}px`;
+            ghost.style.top = `${e.clientY - offY}px`;
+
+            const box = document.elementFromPoint(e.clientX, e.clientY)?.closest('.tiles, .config-grid');
+            // mismo comportamiento: solo dentro de la MISMA card
+            if (!box || box.closest('.dash-card') !== originCard) {
+                highlightBox(null);
+                return;
+            }
+            highlightBox(box);
+
+            const nodes = qsa('.tile, .conf-tile, .placeholder-tile', box).filter(n => n !== ghost);
+            let inserted = false;
+            for (const n of nodes) {
+                if (n === placeholder) continue;
+                const r = n.getBoundingClientRect();
+                if (e.clientY < r.top + r.height / 2) {
+                    box.insertBefore(placeholder, n);
+                    inserted = true;
+                    break;
+                }
+            }
+            if (!inserted) box.append(placeholder);
+        };
+
+        const cleanup = () => {
+            document.removeEventListener('pointermove', onMove);
+            document.removeEventListener('pointerup', onUp);
+            ghost?.remove();
+            lastBox?.classList.remove('dz-zone');
+            lastBox = null;
+        };
+
+        const onUp = () => {
+            cleanup();
+            placeholder.replaceWith(tile);
+            const destCard = tile.closest('.dash-card');
+            saveTilesOrder(destCard);
+            dragging = false;
+        };
+
+        handle?.addEventListener('pointerdown', startDrag);
+        handle?.addEventListener('click', e => e.preventDefault()); // que la manito no dispare el click
+        tile.addEventListener('click', (e) => {
+            if (dragging) { e.preventDefault(); e.stopPropagation(); }
+        }, true);
+    });
 }
 
-
-function abrirConfiguraciones() {
-    $('#ModalEdicionConfiguraciones').modal('show');
-    $("#btnGuardarConfiguracion").text("Aceptar");
-    $("#modalEdicionLabel").text("Configuraciones");
+/* ====================== RESET GLOBAL ====================== */
+function bindFactoryReset() {
+    qs('#btn-factory')?.addEventListener('click', async () => {
+        const ok = await (window.confirmarModal ? confirmarModal('¿Restablecer todo a fábrica?') : Promise.resolve(confirm('¿Restablecer todo a fábrica?')));
+        if (!ok) return;
+        Object.keys(localStorage).filter(k => k.startsWith('ui.')).forEach(k => localStorage.removeItem(k));
+        location.reload();
+    });
 }
 
-async function listaMarcas() {
-    const url = `/Productos/ListaMarcas`;
-    const response = await fetch(url);
-    const data = await response.json();
-
-    return data.map(marca => ({
-        Id: marca.Id,
-        Nombre: marca.Nombre
-    }));
-
+/* ====================== INIT ====================== */
+function applySavedCardOrders() {
+    restoreGridOrder();
+    fixConfigState();
 }
+function init() {
+    captureFactory();
+    applySavedColors();
+    applySavedCardOrders();
+    restoreTilesOrder();
 
+    ensureConfHandles();    // 👈 agrega manito a .conf-tile si falta
+    bindCardDnD();
+    bindTileDnD();          // 👈 ahora soporta .tile y .conf-tile
+    bindFactoryReset();
 
-$('#txtDescripcionProducto, #txtPorcentajeGananciaProducto').on('input', function () {
-    validarCamposProducto()
-});
+    qsa('.dash-card').forEach(card => {
+        qs('.color-open', card)?.addEventListener('click', () => openColorModal(card));
+        qs('.reset-card', card)?.addEventListener('click', () => resetCardLive(card));
+        qs('.size-toggle', card)?.addEventListener('click', () => toggleCardSize(card));
+    });
 
-$('#txtPrecioCostoProducto').on('input', function () {
-    validarCamposProducto()
-    sumarPorcentajeProducto()
-
-});
-$('#txtPorcentajeGananciaProducto').on('input', function () {
-    sumarPorcentajeProducto()
-});
-
-$('#txtPrecioVentaProducto').on('input', function () {
-    calcularPorcentajeProducto()
-});
-
-
-function sumarPorcentajeProducto() {
-    let precioCosto = Number($("#txtPrecioCostoProducto").val());
-    let porcentajeGanancia = Number($("#txtPorcentajeGananciaProducto").val());
-    let productoCantidad = Number($("#txtProductoCantidad").val());
-
-    if (!isNaN(precioCosto) && !isNaN(porcentajeGanancia)) {
-        let precioVenta = precioCosto + (precioCosto * (porcentajeGanancia / 100));
-        let total = precioVenta * productoCantidad
-        // Limitar el precio de venta a 2 decimales
-        precioVenta = precioVenta.toFixed(2);
-        $("#txtPrecioVentaProducto").val(precioVenta);
-        $("#txtTotalProducto").val(total);
-        calcularTotalProducto();
-    }
-}
-
-function calcularTotalProducto() {
-    let precioCosto = Number($("#txtPrecioCostoProducto").val());
-    let porcentajeGanancia = Number($("#txtPorcentajeGananciaProducto").val());
-    let productoCantidad = Number($("#txtProductoCantidad").val());
-
-    if (!isNaN(precioCosto) && !isNaN(porcentajeGanancia)) {
-        let precioVenta = precioCosto + (precioCosto * (porcentajeGanancia / 100));
-        let total = precioVenta * productoCantidad
-        // Limitar el precio de venta a 2 decimales
-        $("#txtTotalProducto").val(total);
-    }
-}
-
-
-function calcularPorcentajeProducto() {
-    let precioCosto = Number($("#txtPrecioCostoProducto").val());
-    let precioVenta = Number($("#txtPrecioVentaProducto").val());
-
-
-
-    if (!isNaN(precioCosto) && !isNaN(precioVenta) && precioCosto !== 0) {
-        let porcentajeGanancia = ((precioVenta - precioCosto) / precioCosto) * 100;
-        // Limitar el porcentaje de ganancia a 2 decimales
-        porcentajeGanancia = porcentajeGanancia.toFixed(2);
-        $("#txtPorcentajeGananciaProducto").val(porcentajeGanancia);
-    }
-}
-
-function validarCamposProducto() {
-    const descripcion = $("#txtDescripcionProducto").val();
-    const precioCosto = $("#txtPrecioCostoProducto").val();
-    const precioVenta = $("#txtPrecioVentaProducto").val();
-    const porcentajeGanancia = $("#txtPorcentajeGananciaProducto").val();
-
-    const descripcionValida = descripcion !== "";
-    const precioCostoValido = precioCosto !== "" && !isNaN(precioCosto);
-    const precioVentaValido = precioVenta !== "" && !isNaN(precioVenta);
-    const porcentajeGananciaValido = porcentajeGanancia !== "" && !isNaN(porcentajeGanancia);
-
-    $("#lblDescripcionProducto").css("color", descripcionValida ? "" : "red");
-    $("#txtDescripcionProducto").css("border-color", descripcionValida ? "" : "red");
-
-    $("#lblPrecioCostoProducto").css("color", precioCostoValido ? "" : "red");
-    $("#txtPrecioCostoProducto").css("border-color", precioCostoValido ? "" : "red");
-
-    $("#lblPorcentajeGananciaProducto").css("color", porcentajeGananciaValido ? "" : "red");
-    $("#txtPorcentajeGananciaProducto").css("border-color", porcentajeGananciaValido ? "" : "red");
-
-    return descripcionValida && precioCostoValido && precioVentaValido && porcentajeGananciaValido;
+    applyPreferredSizes();
+    refreshFavorites();
 }
 
 
 
+document.addEventListener('DOMContentLoaded', init);
+
+/* ====================== FALLBACKS MODALES ====================== */
+window.exitoModal = window.exitoModal || (msg => console.log('OK:', msg));
+window.errorModal = window.errorModal || (msg => console.error('ERROR:', msg));
+window.advertenciaModal = window.advertenciaModal || (msg => console.warn('WARN:', msg));
+window.confirmarModal = window.confirmarModal || (msg => Promise.resolve(confirm(msg)));
+window.addEventListener('resize', debounce(fixConfigState, 120));
 
 
-function formatNumber(number) {
-    return '$' + number.toLocaleString('es-AR');
+// --- utils ---
+function debounce(fn, wait = 120) {
+    let t; return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), wait); };
 }
 
-async function listaRoles() {
-    const url = `/Roles/Lista`;
-    const response = await fetch(url);
-    const data = await response.json();
+// ¿la card está sola en su fila del grid?
+function isAloneInRow(card) {
+    if (!card) return false;
+    const cards = qsa('#cols .dash-card');
+    if (cards.length === 1) return true; // único en el grid -> fullwidth
 
-    $('#RolesUsuario option').remove();
-
-    select = document.getElementById("RolesUsuario");
-
-    for (i = 0; i < data.length; i++) {
-        option = document.createElement("option");
-        option.value = data[i].Id;
-        option.text = data[i].Nombre;
-        select.appendChild(option);
-
-    }
+    const myTop = card.getBoundingClientRect().top;
+    // otros en la misma fila (misma línea de grid = misma coordenada top ± 1px)
+    const peersSameRow = cards.filter(c => {
+        if (c === card) return false;
+        return Math.abs(c.getBoundingClientRect().top - myTop) <= 1;
+    });
+    return peersSameRow.length === 0;
 }
 
-async function listaEstados() {
-    const url = `/EstadosUsuarios/Lista`;
-    const response = await fetch(url);
-    const data = await response.json();
 
-    $('#EstadosUsuario option').remove();
-
-    select = document.getElementById("EstadosUsuario");
-
-    for (i = 0; i < data.length; i++) {
-        option = document.createElement("option");
-        option.value = data[i].Id;
-        option.text = data[i].Nombre;
-        select.appendChild(option);
-
-    }
+function showReloadOverlay(msg = 'Restableciendo...') {
+    const overlay = document.createElement('div');
+    overlay.id = 'reload-overlay';
+    overlay.style.cssText = `
+    position:fixed; inset:0; z-index:99999;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(5,10,20,.65); backdrop-filter:blur(2px);
+  `;
+    overlay.innerHTML = `
+    <div style="
+      padding:18px 22px; border-radius:14px; 
+      background:#0f1724; color:#e8efff; 
+      box-shadow:0 12px 28px rgba(0,0,0,.35);
+      display:flex; align-items:center; gap:12px;
+    ">
+      <div class="spinner-border spinner-border-sm text-info" role="status"></div>
+      <span>${msg}</span>
+    </div>`;
+    document.body.appendChild(overlay);
 }
-
 
 
 
@@ -874,9 +721,9 @@ async function abrirConfiguracion(_nombreConfiguracion, _controllerConfiguracion
 
         nombreConfiguracion = _nombreConfiguracion;
         controllerConfiguracion = _controllerConfiguracion,
-        comboNombre = _comboNombre,
-        comboController = _comboController,
-        lblComboNombre = _lblComboNombre;
+            comboNombre = _comboNombre,
+            comboController = _comboController,
+            lblComboNombre = _lblComboNombre;
 
         var result = await llenarConfiguraciones()
 
@@ -926,7 +773,7 @@ async function editarConfiguracion(id) {
                 document.getElementById("agregarConfiguracion").setAttribute("hidden", "hidden");
                 document.getElementById("txtNombreConfiguracion").value = dataJson.Nombre;
                 document.getElementById("txtIdConfiguracion").value = dataJson.Id;
-                
+
                 document.getElementById("contenedorNombreConfiguracion").removeAttribute("hidden");
 
                 if (comboNombre != null) {
@@ -957,7 +804,7 @@ async function llenarConfiguraciones() {
             document.getElementById("divConfiguracionCombo").setAttribute("hidden", "hidden");
         }
 
-    
+
         document.getElementById("lblListaVacia").innerText = "";
         document.getElementById("lblListaVacia").setAttribute("hidden", "hidden");
 
@@ -979,7 +826,7 @@ async function llenarConfiguraciones() {
 
                 if (configuracion.NombreCombo != null) {
                     nombreConfig += " - " + configuracion.NombreCombo;
-                } 
+                }
 
                 var indexado = configuracion.Id
                 $("#configuracion-list").append(`
@@ -1138,6 +985,61 @@ function agregarConfiguracion() {
         document.getElementById("cmbConfiguracion").value = "";
         $('#cmbConfiguracion').css('border-color', 'red');
     }
-
 }
 
+    function abrirConfiguraciones() {
+        $('#ModalEdicionConfiguraciones').modal('show');
+        $("#btnGuardarConfiguracion").text("Aceptar");
+        $("#modalEdicionLabel").text("Configuraciones");
+}
+
+LS.CARD_SIZE = id => `ui.card.size.${id}`; // 'full' | 'normal'
+
+function getCardSizePref(card) {
+    const id = card.dataset.cardId;
+    // si no hay preferencia guardada, partimos de cómo está en el DOM
+    const def = card.classList.contains('fullwidth') ? 'full' : 'normal';
+    return load(LS.CARD_SIZE(id), def);
+}
+
+function updateSizeToggleIcon(card) {
+    const btn = qs('.size-toggle i', card);
+    if (!btn) return;
+    const mode = getCardSizePref(card);
+    btn.className = `fa ${mode === 'full' ? 'fa-compress' : 'fa-expand'}`;
+    const bwrap = btn.parentElement;
+    if (bwrap) bwrap.title = (mode === 'full') ? 'Achicar (tamaño normal)' : 'Agrandar (full width)';
+}
+
+function setCardSize(card, mode) {
+    if (mode === 'full') card.classList.add('fullwidth');
+    else card.classList.remove('fullwidth'); // tamaño normal
+    save(LS.CARD_SIZE(card.dataset.cardId), mode);
+    updateSizeToggleIcon(card);
+}
+
+function toggleCardSize(card) {
+    const next = getCardSizePref(card) === 'full' ? 'normal' : 'full';
+    setCardSize(card, next);
+}
+
+function applyPreferredSizes() {
+    qsa('.dash-card').forEach(card => {
+        const pref = load(LS.CARD_SIZE(card.dataset.cardId), null);
+        if (pref) setCardSize(card, pref);
+        else updateSizeToggleIcon(card);
+    });
+}
+
+
+function ensureConfHandles() {
+    qsa('.dash-card[data-card-id="config"] .conf-tile').forEach(btn => {
+        if (!btn.querySelector('.tile-handle')) {
+            const h = document.createElement('span');
+            h.className = 'tile-handle';
+            h.title = 'Arrastrar';
+            h.innerHTML = '<i class="fa fa-hand-paper-o"></i>';
+            btn.appendChild(h);
+        }
+    });
+}
