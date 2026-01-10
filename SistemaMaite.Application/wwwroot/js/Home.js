@@ -491,9 +491,11 @@ function bindCardDnD() {
 
 /* ====================== TILES DnD (intra-sección) ====================== */
 function saveTilesOrder(card) {
+    if (card.dataset.cardId === 'favoritos') return; // favoritos no se ordena manualmente
     const ids = qsa('.tile, .conf-tile', card).map(t => t.dataset.id);
     save(LS.ORDER_TILES(card.dataset.cardId), ids);
 }
+
 function restoreTilesOrder() {
     qsa('.dash-card').forEach(card => {
         const order = load(LS.ORDER_TILES(card.dataset.cardId), null);
@@ -508,19 +510,19 @@ function restoreTilesOrder() {
 
 
 function bindTileDnD() {
-    qsa('.tile, .conf-tile').forEach(tile => {
+    // SOLO: tiles dentro de #cols .tiles (no .tiles-favs) + conf-tile de config
+    const draggables = qsa('#cols .tiles .tile, .dash-card[data-card-id="config"] .conf-tile');
+
+    draggables.forEach(tile => {
         const handle = tile.querySelector('.tile-handle');
         let ghost, placeholder, offX, offY, dragging = false, originCard = null, lastBox = null;
 
         const startDrag = (e) => {
             if (!handle) return;
-            dragging = true;
-            e.preventDefault();
-            e.stopPropagation();
+            dragging = true; e.preventDefault(); e.stopPropagation();
 
             const rect = tile.getBoundingClientRect();
-            offX = e.clientX - rect.left;
-            offY = e.clientY - rect.top;
+            offX = e.clientX - rect.left; offY = e.clientY - rect.top;
             originCard = tile.closest('.dash-card');
 
             ghost = tile.cloneNode(true);
@@ -536,7 +538,7 @@ function bindTileDnD() {
             });
 
             placeholder = document.createElement('div');
-            placeholder.className = 'placeholder-tile'; // 👈 mismo placeholder para todos
+            placeholder.className = 'placeholder-tile';
 
             tile.parentElement.insertBefore(placeholder, tile);
             tile.remove();
@@ -556,24 +558,16 @@ function bindTileDnD() {
             ghost.style.left = `${e.clientX - offX}px`;
             ghost.style.top = `${e.clientY - offY}px`;
 
-            const box = document.elementFromPoint(e.clientX, e.clientY)?.closest('.tiles, .config-grid');
-            // mismo comportamiento: solo dentro de la MISMA card
-            if (!box || box.closest('.dash-card') !== originCard) {
-                highlightBox(null);
-                return;
-            }
-            highlightBox(box);
+            const box = document.elementFromPoint(e.clientX, e.clientY)?.closest('#cols .tiles, .dash-card[data-card-id="config"] .config-grid');
+            if (!box || box.closest('.dash-card') !== originCard) { highlightBox(null); return; }
 
+            highlightBox(box);
             const nodes = qsa('.tile, .conf-tile, .placeholder-tile', box).filter(n => n !== ghost);
             let inserted = false;
             for (const n of nodes) {
                 if (n === placeholder) continue;
                 const r = n.getBoundingClientRect();
-                if (e.clientY < r.top + r.height / 2) {
-                    box.insertBefore(placeholder, n);
-                    inserted = true;
-                    break;
-                }
+                if (e.clientY < r.top + r.height / 2) { box.insertBefore(placeholder, n); inserted = true; break; }
             }
             if (!inserted) box.append(placeholder);
         };
@@ -582,8 +576,7 @@ function bindTileDnD() {
             document.removeEventListener('pointermove', onMove);
             document.removeEventListener('pointerup', onUp);
             ghost?.remove();
-            lastBox?.classList.remove('dz-zone');
-            lastBox = null;
+            lastBox?.classList.remove('dz-zone'); lastBox = null;
         };
 
         const onUp = () => {
@@ -595,10 +588,8 @@ function bindTileDnD() {
         };
 
         handle?.addEventListener('pointerdown', startDrag);
-        handle?.addEventListener('click', e => e.preventDefault()); // que la manito no dispare el click
-        tile.addEventListener('click', (e) => {
-            if (dragging) { e.preventDefault(); e.stopPropagation(); }
-        }, true);
+        handle?.addEventListener('click', e => e.preventDefault());
+        tile.addEventListener('click', (e) => { if (dragging) { e.preventDefault(); e.stopPropagation(); } }, true);
     });
 }
 
@@ -1043,3 +1034,13 @@ function ensureConfHandles() {
         }
     });
 }
+
+
+document.addEventListener('click', (e) => {
+    const a = e.target.closest('#cols .tiles .tile'); // anclas de tiles en secciones
+    if (!a) return;
+
+    // si estuvimos arrastrando, bindTileDnD ya frenó el click y no llegamos acá
+    const id = a.dataset.id;
+    if (id) bumpVisit(id); // suma 1 en LS y luego refreshFavorites()
+}, true);
