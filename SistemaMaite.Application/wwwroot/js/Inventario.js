@@ -13,6 +13,83 @@ const State = {
     productNames: {}         // nombres fallback
 };
 
+
+State.transfer = {
+    items: [],          // [{IdProducto, Producto, Variantes:[{IdProductoVariante, Variante, Cantidad}], _k}]
+    stockOrigen: {},    // { "<idProd>|<idVar>": disponible }
+};
+
+function trKey(idProd, idVar) { return `${Number(idProd) || 0}|${Number(idVar) || 0}`; }
+
+function trGetTotalRequeridoPorVar() {
+    const totals = {}; // key => qty
+    (State.transfer.items || []).forEach(it => {
+        (it.Variantes || []).forEach(v => {
+            const k = trKey(it.IdProducto, v.IdProductoVariante);
+            totals[k] = (totals[k] || 0) + Math.trunc(Number(v.Cantidad) || 0);
+        });
+    });
+    return totals;
+}
+
+function trValidarStockGlobal(showError = true) {
+    const o = Number($("#trOrigen").val() || 0);
+    if (!o) return false;
+
+    const totals = trGetTotalRequeridoPorVar();
+    let ok = true;
+
+    // Limpiamos marcas visuales
+    $("#trResumenItems .tr-var-row").removeClass("border border-danger rounded-2 p-2");
+
+    Object.keys(totals).forEach(k => {
+        const req = Math.trunc(totals[k] || 0);
+        const disp = Math.trunc(State.transfer.stockOrigen[k] || 0);
+        if (req > disp) {
+            ok = false;
+
+            const [idProd, idVar] = k.split("|").map(x => Number(x || 0));
+            $("#trResumenItems .tr-var-row").each(function () {
+                const p = Number($(this).data("idprod") || 0);
+                const v = Number($(this).data("idvar") || 0);
+                if (p === idProd && v === idVar) {
+                    $(this).addClass("border border-danger rounded-2 p-2");
+                }
+            });
+        }
+    });
+
+    if (!ok && showError) {
+        trSetError("Hay líneas sin stock suficiente en el origen. Ajustá cantidades.");
+    } else if (ok) {
+        $("#errorTransfer").addClass("d-none").text("");
+    }
+
+    return ok;
+}
+
+
+function trClearUIErrors() {
+    $("#errorTransfer").addClass("d-none").text("");
+    $("#modalTransfer .is-invalid").removeClass("is-invalid");
+}
+
+function trSetError(msg) {
+    $("#errorTransfer").removeClass("d-none").text(msg || "Hay errores en la transferencia.");
+}
+
+function trSyncBtnState() {
+    const hasItems = (State.transfer.items || []).length > 0;
+    const baseOk =
+        !!$("#trFecha").val() &&
+        Number($("#trOrigen").val() || 0) > 0 &&
+        Number($("#trDestino").val() || 0) > 0 &&
+        Number($("#trOrigen").val() || 0) !== Number($("#trDestino").val() || 0);
+
+    const stockOk = trValidarStockGlobal(false); // no muestra error acá
+    $("#btnGuardarTransfer").prop("disabled", !(baseOk && hasItems && stockOk));
+}
+
 /* =============== Select2 helpers seguros =============== */
 
 /* =========================================================
@@ -27,6 +104,87 @@ function esc(s) {
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
 }
+
+// ===================== TRANSFER MULTI - STATE + HELPERS =====================
+
+if (!State.transfer) {
+    State.transfer = { items: [], stockOrigen: {} };
+}
+
+function trKey(idProd, idVar) {
+    return `${Number(idProd) || 0}|${Number(idVar) || 0}`;
+}
+
+function trClearUIErrors() {
+    $("#errorTransfer").addClass("d-none").text("");
+    $("#modalTransfer .is-invalid").removeClass("is-invalid");
+    $("#trResumenItems .tr-var-row").removeClass("border border-danger rounded-2 p-2");
+}
+
+function trSetError(msg) {
+    $("#errorTransfer").removeClass("d-none").text(msg || "Hay errores en la transferencia.");
+}
+
+function trGetTotalRequeridoPorVar() {
+    const totals = {}; // key => qty total pedida
+    (State.transfer.items || []).forEach(it => {
+        (it.Variantes || []).forEach(v => {
+            const k = trKey(it.IdProducto, v.IdProductoVariante);
+            totals[k] = (totals[k] || 0) + Math.trunc(Number(v.Cantidad) || 0);
+        });
+    });
+    return totals;
+}
+
+function trValidarStockGlobal(showError = true) {
+    const o = Number($("#trOrigen").val() || 0);
+    if (!o) return false;
+
+    const totals = trGetTotalRequeridoPorVar();
+    let ok = true;
+
+    // Limpia marcas previas
+    $("#trResumenItems .tr-var-row").removeClass("border border-danger rounded-2 p-2");
+
+    Object.keys(totals).forEach(k => {
+        const req = Math.trunc(totals[k] || 0);
+        const disp = Math.trunc(State.transfer.stockOrigen[k] || 0);
+        if (req > disp) {
+            ok = false;
+
+            const [idProd, idVar] = k.split("|").map(x => Number(x || 0));
+            $("#trResumenItems .tr-var-row").each(function () {
+                const p = Number($(this).data("idprod") || 0);
+                const v = Number($(this).data("idvar") || 0);
+                if (p === idProd && v === idVar) {
+                    $(this).addClass("border border-danger rounded-2 p-2");
+                }
+            });
+        }
+    });
+
+    if (!ok && showError) trSetError("Hay líneas sin stock suficiente en el origen. Ajustá cantidades.");
+    if (ok) $("#errorTransfer").addClass("d-none").text("");
+
+    return ok;
+}
+
+function trSyncBtnState() {
+    const hasItems = (State.transfer.items || []).length > 0;
+
+    const o = Number($("#trOrigen").val() || 0);
+    const d = Number($("#trDestino").val() || 0);
+
+    const baseOk =
+        !!$("#trFecha").val() &&
+        o > 0 &&
+        d > 0 &&
+        o !== d;
+
+    const stockOk = hasItems ? trValidarStockGlobal(false) : false;
+    $("#btnGuardarTransfer").prop("disabled", !(baseOk && hasItems && stockOk));
+}
+
 
 function splitVariante(nombreVar) {
     // Tu back a veces viene "Color / Talle" (ej: "NEGRO / S")
@@ -313,17 +471,22 @@ function bindUI() {
         cargarMovimientos();
     });
 
-    // Variantes en modales (ajuste/transfer)
+    // Variantes en modales (ajuste)
     $("#ajProducto").on("change", () =>
         cargarVariantesEn("#ajVariantesWrap", "#ajVariantesEmpty", $("#ajProducto").val(), "#modalAjuste", { contexto: "ajuste" })
     );
 
+    // ====== Transferencia MULTI ======
     $("#trProducto").on("change", async () => {
-        await cargarVariantesEn("#trVariantesWrap", "#trVariantesEmpty", $("#trProducto").val(), "#modalTransfer", { contexto: "transfer", mostrarStock: true, idSucursalOrigen: $("#trOrigen").val() });
-        await actualizarDisponibilidadTransfer();
+        await cargarVariantesEn(
+            "#trVariantesWrap",
+            "#trVariantesEmpty",
+            $("#trProducto").val(),
+            "#modalTransfer",
+            { contexto: "transfer", mostrarStock: true, idSucursalOrigen: $("#trOrigen").val() }
+        );
+        await actualizarDisponibilidadTransfer(); // recalcula stocks origen para el producto actual
     });
-
-    $("#trOrigen").on("change", actualizarDisponibilidadTransfer);
 
     // ====== Ingreso OC / Revertir OC ======
     $("#btnIngresoOC").on("click", abrirModalIngresoOC);
@@ -836,62 +999,282 @@ function abrirModalTransfer() {
     resetModalTransfer();
 
     $("#trFecha").val(hoyISO());
-    $("#trProducto").val(State.productoSel?.idProd || "").trigger("change");
-    $("#trVariantesWrap").empty();
-    $("#trVariantesEmpty").addClass("d-none");
 
-    const sucOrigen = _valOrFirst("#trOrigen");
-    const pid = $("#trProducto").val();
-
-    if (pid) {
-        cargarVariantesEn(
-            "#trVariantesWrap",
-            "#trVariantesEmpty",
-            pid,
-            "#modalTransfer",
-            { contexto: "transfer", mostrarStock: true, idSucursalOrigen: sucOrigen }
-        ).then(() => {
-            actualizarDisponibilidadTransfer();
-            $("#trVariantesWrap .var-qty").trigger("input");
-        });
+    // defaults
+    const sucOrigen = $("#trOrigen").val();
+    const sucDestino = $("#trDestino").val();
+    if (sucDestino && sucOrigen && Number(sucDestino) === Number(sucOrigen)) {
+        $("#trDestino").val("").trigger("change");
     }
 
-    $("#trProducto, #trOrigen").off("change.inv").on("change.inv", () => {
-        const p = $("#trProducto").val();
-        const s = _valOrFirst("#trOrigen");
+    // Preseleccionar producto del panel (si había)
+    $("#trProducto").val(State.productoSel?.idProd || "").trigger("change");
+
+    // Change origen/destino
+    $("#trOrigen, #trDestino").off("change.tr").on("change.tr", async function () {
+        trClearUIErrors();
+
+        const o = Number($("#trOrigen").val() || 0);
+        const d = Number($("#trDestino").val() || 0);
+        if (o && d && o === d) {
+            $("#trDestino").addClass("is-invalid");
+            trSetError("La sucursal de destino no puede ser igual a la de origen.");
+        }
+
+        await trRebuildStockOrigen();
+        trRenderResumenTransfer();
+        trValidarStockGlobal(true);
+        trSyncBtnState();
+
+        await actualizarDisponibilidadTransfer();
+    });
+
+    // Change producto
+    $("#trProducto").off("change.tr").on("change.tr", async function () {
+        trClearUIErrors();
+
+        const p = Number($(this).val() || 0);
+        const o = Number($("#trOrigen").val() || 0);
+
+        $("#trVariantesWrap").empty();
+        $("#trVariantesEmpty").addClass("d-none");
+
         if (!p) {
-            $("#trVariantesWrap").empty();
             $("#trVariantesEmpty").removeClass("d-none");
+            trSyncBtnState();
             return;
         }
-        cargarVariantesEn(
+
+        await cargarVariantesEn(
             "#trVariantesWrap",
             "#trVariantesEmpty",
             p,
             "#modalTransfer",
-            { contexto: "transfer", mostrarStock: true, idSucursalOrigen: s }
-        ).then(() => {
-            actualizarDisponibilidadTransfer();
-            $("#trVariantesWrap .var-qty").trigger("input");
-        });
+            { contexto: "transfer", mostrarStock: true, idSucursalOrigen: o }
+        );
+
+        await actualizarDisponibilidadTransfer();
+        trSyncBtnState();
     });
 
-    $("#btnGuardarTransfer").off("click").on("click", guardarTransfer);
+    // Input cantidades (delegado)
+    $(document).off("input.trqty").on("input.trqty", "#trVariantesWrap .var-qty", function () {
+        validarCantidadesTransfer();
+        trSyncBtnState();
+    });
+
+    // Agregar al carrito
+    $("#btnAgregarProdTransfer").off("click.tr").on("click.tr", async function () {
+        await trAgregarProductoDesdeUI();
+    });
+
+    // Vaciar
+    $("#btnVaciarTransfer").off("click.tr").on("click.tr", function () {
+        State.transfer.items = [];
+        trRenderResumenTransfer();
+        trClearUIErrors();
+        trSyncBtnState();
+    });
+
+    // Guardar
+    $("#btnGuardarTransfer").off("click.tr").on("click.tr", guardarTransfer);
+
+    // Inicializa stocks
+    trRebuildStockOrigen().then(() => {
+        trRenderResumenTransfer();
+        trSyncBtnState();
+    });
+
     $("#modalTransfer").modal("show");
 
-    setTimeout(() => {
-        actualizarDisponibilidadTransfer();
-        $("#trVariantesWrap .var-qty").trigger("input");
+    setTimeout(async () => {
+        await actualizarDisponibilidadTransfer();
+        validarCantidadesTransfer();
+        trSyncBtnState();
     }, 0);
 }
 
-/* ===== Transfer – disponibilidad por variante (origen) ===== */
+
+async function trRebuildStockOrigen() {
+    const o = Number($("#trOrigen").val() || 0);
+    State.transfer.stockOrigen = {};
+
+    if (!o) return;
+
+    (State.existencias || [])
+        .filter(x => Number(x.IdSucursal) === o)
+        .forEach(x => {
+            const idp = Number(x.IdProducto || 0);
+            const idv = Number(x.IdProductoVariante || x.IdVariante || 0);
+            if (!idp || !idv) return;
+            const k = trKey(idp, idv);
+            State.transfer.stockOrigen[k] = (State.transfer.stockOrigen[k] || 0) + Math.trunc(Number(x.Cantidad) || 0);
+        });
+}
+
+
+async function trAgregarProductoDesdeUI() {
+    trClearUIErrors();
+
+    // Validaciones base
+    let ok = true;
+    ["#trFecha", "#trOrigen", "#trDestino", "#trProducto"].forEach(sel => {
+        const v = $(sel).val();
+        if (!v) { $(sel).addClass("is-invalid"); ok = false; } else $(sel).removeClass("is-invalid");
+    });
+
+    const o = Number($("#trOrigen").val() || 0);
+    const d = Number($("#trDestino").val() || 0);
+    if (o && d && o === d) { $("#trDestino").addClass("is-invalid"); ok = false; }
+
+    // cantidades del producto actual
+    ok = validarCantidadesTransfer() && ok;
+
+    const vars = leerVariantes("#trVariantesWrap");
+    if (!vars.length) {
+        trSetError("Ingresá cantidades por variante antes de agregar.");
+        trSyncBtnState();
+        return;
+    }
+
+    if (!ok) {
+        trSetError("Revisá los campos requeridos y/o cantidades.");
+        trSyncBtnState();
+        return;
+    }
+
+    const idProd = Number($("#trProducto").val() || 0);
+    const prodTxt = $("#trProducto option:selected").text().trim();
+
+    // Armamos item
+    const item = {
+        IdProducto: idProd,
+        Producto: prodTxt,
+        Variantes: vars.map(v => ({
+            IdProductoVariante: Number(v.IdProductoVariante),
+            Variante: $(`#trVariantesWrap .var-qty[data-id='${Number(v.IdProductoVariante)}']`).closest(".var-row").find(".var-name").text().trim(),
+            Cantidad: Math.trunc(Number(v.Cantidad) || 0)
+        }))
+    };
+    item._k = `${item.IdProducto}`;
+
+    // merge: si ya existe el producto, sumamos por variante
+    const ex = (State.transfer.items || []).find(x => String(x._k) === String(item._k));
+    if (!ex) {
+        State.transfer.items.push(item);
+    } else {
+        const map = new Map((ex.Variantes || []).map(v => [Number(v.IdProductoVariante), v]));
+        (item.Variantes || []).forEach(vn => {
+            const key = Number(vn.IdProductoVariante);
+            const cur = map.get(key);
+            if (!cur) map.set(key, { ...vn });
+            else cur.Cantidad = Math.trunc((Number(cur.Cantidad) || 0) + (Number(vn.Cantidad) || 0));
+        });
+        ex.Variantes = Array.from(map.values()).filter(v => (Number(v.Cantidad) || 0) > 0);
+    }
+
+    // reset cantidades del "para agregar"
+    $("#trVariantesWrap .var-qty").val("0").trigger("input");
+
+    // re-render + validar stock global
+    trRenderResumenTransfer();
+    trValidarStockGlobal(true);
+    trSyncBtnState();
+}
+
+
+function trRenderResumenTransfer() {
+    const $wrap = $("#trResumenItems").empty();
+    const items = State.transfer.items || [];
+
+    if (!items.length) {
+        $wrap.append(`<div class="alert alert-warning mb-0" id="trEmptyMsg">No hay productos agregados todavía.</div>`);
+        return;
+    }
+
+    items.forEach((it, idx) => {
+        const vars = (it.Variantes || []).filter(v => (Number(v.Cantidad) || 0) > 0);
+
+        const card = $(`
+      <div class="card-glass p-3 mb-2" data-idx="${idx}">
+        <div class="d-flex align-items-center justify-content-between gap-2">
+          <div class="fw-bold">${esc(it.Producto || ("Producto " + it.IdProducto))}</div>
+          <button type="button" class="btn btn-sm btn-outline-danger tr-del-prod">
+            <i class="fa fa-trash"></i>
+          </button>
+        </div>
+        <div class="mt-2 tr-vars"></div>
+      </div>
+    `);
+
+        const $vars = card.find(".tr-vars");
+        vars.forEach(v => {
+            const k = trKey(it.IdProducto, v.IdProductoVariante);
+            const disp = Math.trunc(State.transfer.stockOrigen[k] || 0);
+
+            // total pedido (sumando todos los items) se calcula después por validator, acá mostramos "disp" y el valor
+            const row = $(`
+        <div class="d-flex align-items-center justify-content-between gap-2 py-1 tr-var-row" data-idprod="${it.IdProducto}" data-idvar="${v.IdProductoVariante}">
+          <div style="min-width:0; flex:1;">
+            <div class="text-truncate">${esc(v.Variante || ("Variante " + v.IdProductoVariante))}</div>
+            <small class="text-muted">Stock origen: <b class="tr-disp">${fmtQty(disp)}</b></small>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-secondary">${fmtQty(v.Cantidad)}</span>
+            <button type="button" class="btn btn-sm btn-outline-light tr-del-var" title="Quitar variante">
+              <i class="fa fa-times"></i>
+            </button>
+          </div>
+        </div>
+      `);
+            $vars.append(row);
+        });
+
+        $wrap.append(card);
+    });
+
+    // borrar producto
+    $wrap.find(".tr-del-prod").off("click").on("click", function () {
+        const idx = Number($(this).closest("[data-idx]").data("idx"));
+        if (!Number.isFinite(idx)) return;
+        State.transfer.items.splice(idx, 1);
+        trRenderResumenTransfer();
+        trValidarStockGlobal(true);
+        trClearUIErrors();
+        trSyncBtnState();
+    });
+
+    // borrar variante
+    $wrap.find(".tr-del-var").off("click").on("click", function () {
+        const $row = $(this).closest(".tr-var-row");
+        const idProd = Number($row.data("idprod") || 0);
+        const idVar = Number($row.data("idvar") || 0);
+
+        const it = (State.transfer.items || []).find(x => Number(x.IdProducto) === idProd);
+        if (!it) return;
+
+        it.Variantes = (it.Variantes || []).filter(v => Number(v.IdProductoVariante) !== idVar);
+        it.Variantes = (it.Variantes || []).filter(v => (Number(v.Cantidad) || 0) > 0);
+
+        // si se queda sin variantes => borrar producto
+        if (!(it.Variantes || []).length) {
+            State.transfer.items = (State.transfer.items || []).filter(x => Number(x.IdProducto) !== idProd);
+        }
+
+        trRenderResumenTransfer();
+        trValidarStockGlobal(true);
+        trClearUIErrors();
+        trSyncBtnState();
+    });
+}
+
 async function actualizarDisponibilidadTransfer() {
     const idProd = Number($("#trProducto").val() || 0);
     const idSuc = Number($("#trOrigen").val() || 0);
+
     if (!idProd || !idSuc) {
         State.stockVarOrigen = {};
-        $(".var-help .var-disp").text("-");
+        $("#trVariantesWrap .var-help .var-disp").text("-");
         validarCantidadesTransfer();
         return;
     }
@@ -904,11 +1287,13 @@ async function actualizarDisponibilidadTransfer() {
             if (!idVar) return;
             map[idVar] = (map[idVar] || 0) + Math.trunc(Number(x.Cantidad) || 0);
         });
+
     State.stockVarOrigen = map;
 
     $("#trVariantesWrap .var-qty").each(function () {
         const idVar = Number($(this).data("id") || 0);
         const disp = Math.trunc(State.stockVarOrigen[idVar] || 0);
+
         const $row = $(this).closest(".var-row");
         $row.find(".var-help .var-disp").text(fmtQty(disp));
 
@@ -918,6 +1303,194 @@ async function actualizarDisponibilidadTransfer() {
 
     validarCantidadesTransfer();
 }
+
+function trRenderResumenTransfer() {
+    const $wrap = $("#trResumenItems").empty();
+    const items = State.transfer.items || [];
+
+    if (!items.length) {
+        $wrap.append(`<div class="alert alert-warning mb-0" id="trEmptyMsg">No hay productos agregados todavía.</div>`);
+        return;
+    }
+
+    items.forEach((it, idx) => {
+        const vars = (it.Variantes || []).filter(v => (Number(v.Cantidad) || 0) > 0);
+
+        const card = $(`
+          <div class="card-glass p-3 mb-2" data-idx="${idx}">
+            <div class="d-flex align-items-center justify-content-between gap-2">
+              <div class="fw-bold">${esc(it.Producto || ("Producto " + it.IdProducto))}</div>
+              <button type="button" class="btn btn-sm btn-outline-danger tr-del-prod">
+                <i class="fa fa-trash"></i>
+              </button>
+            </div>
+            <div class="mt-2 tr-vars"></div>
+          </div>
+        `);
+
+        const $vars = card.find(".tr-vars");
+        vars.forEach(v => {
+            const k = trKey(it.IdProducto, v.IdProductoVariante);
+            const disp = Math.trunc(State.transfer.stockOrigen[k] || 0);
+
+            const row = $(`
+              <div class="d-flex align-items-center justify-content-between gap-2 py-1 tr-var-row"
+                   data-idprod="${it.IdProducto}" data-idvar="${v.IdProductoVariante}">
+                <div style="min-width:0; flex:1;">
+                  <div class="text-truncate">${esc(v.Variante || ("Variante " + v.IdProductoVariante))}</div>
+                  <small class="text-muted">Stock origen: <b class="tr-disp">${fmtQty(disp)}</b></small>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-secondary">${fmtQty(v.Cantidad)}</span>
+                  <button type="button" class="btn btn-sm btn-outline-light tr-del-var" title="Quitar variante">
+                    <i class="fa fa-times"></i>
+                  </button>
+                </div>
+              </div>
+            `);
+
+            $vars.append(row);
+        });
+
+        $wrap.append(card);
+    });
+
+    // borrar producto completo
+    $wrap.find(".tr-del-prod").off("click").on("click", function () {
+        const idx = Number($(this).closest("[data-idx]").data("idx"));
+        if (!Number.isFinite(idx)) return;
+
+        State.transfer.items.splice(idx, 1);
+        trRenderResumenTransfer();
+        trValidarStockGlobal(true);
+        trClearUIErrors();
+        trSyncBtnState();
+    });
+
+    // borrar una variante
+    $wrap.find(".tr-del-var").off("click").on("click", function () {
+        const $row = $(this).closest(".tr-var-row");
+        const idProd = Number($row.data("idprod") || 0);
+        const idVar = Number($row.data("idvar") || 0);
+
+        const it = (State.transfer.items || []).find(x => Number(x.IdProducto) === idProd);
+        if (!it) return;
+
+        it.Variantes = (it.Variantes || []).filter(v => Number(v.IdProductoVariante) !== idVar);
+        it.Variantes = (it.Variantes || []).filter(v => (Number(v.Cantidad) || 0) > 0);
+
+        if (!(it.Variantes || []).length) {
+            State.transfer.items = (State.transfer.items || []).filter(x => Number(x.IdProducto) !== idProd);
+        }
+
+        trRenderResumenTransfer();
+        trValidarStockGlobal(true);
+        trClearUIErrors();
+        trSyncBtnState();
+    });
+}
+
+
+async function trAgregarProductoDesdeUI() {
+    trClearUIErrors();
+
+    let ok = true;
+    ["#trFecha", "#trOrigen", "#trDestino", "#trProducto"].forEach(sel => {
+        const v = $(sel).val();
+        if (!v) { $(sel).addClass("is-invalid"); ok = false; } else $(sel).removeClass("is-invalid");
+    });
+
+    const o = Number($("#trOrigen").val() || 0);
+    const d = Number($("#trDestino").val() || 0);
+    if (o && d && o === d) { $("#trDestino").addClass("is-invalid"); ok = false; }
+
+    ok = validarCantidadesTransfer() && ok;
+
+    const vars = leerVariantes("#trVariantesWrap");
+    if (!vars.length) {
+        trSetError("Ingresá cantidades por variante antes de agregar.");
+        trSyncBtnState();
+        return;
+    }
+
+    if (!ok) {
+        trSetError("Revisá los campos requeridos y/o cantidades.");
+        trSyncBtnState();
+        return;
+    }
+
+    const idProd = Number($("#trProducto").val() || 0);
+    const prodTxt = $("#trProducto option:selected").text().trim();
+
+    const item = {
+        IdProducto: idProd,
+        Producto: prodTxt,
+        Variantes: vars.map(v => ({
+            IdProductoVariante: Number(v.IdProductoVariante),
+            Variante: $(`#trVariantesWrap .var-qty[data-id='${Number(v.IdProductoVariante)}']`).closest(".var-row").find(".var-name").text().trim(),
+            Cantidad: Math.trunc(Number(v.Cantidad) || 0)
+        }))
+    };
+    item._k = `${item.IdProducto}`;
+
+    const ex = (State.transfer.items || []).find(x => String(x._k) === String(item._k));
+    if (!ex) {
+        State.transfer.items.push(item);
+    } else {
+        const map = new Map((ex.Variantes || []).map(v => [Number(v.IdProductoVariante), v]));
+        (item.Variantes || []).forEach(vn => {
+            const key = Number(vn.IdProductoVariante);
+            const cur = map.get(key);
+            if (!cur) map.set(key, { ...vn });
+            else cur.Cantidad = Math.trunc((Number(cur.Cantidad) || 0) + (Number(vn.Cantidad) || 0));
+        });
+        ex.Variantes = Array.from(map.values()).filter(v => (Number(v.Cantidad) || 0) > 0);
+    }
+
+    // limpiar inputs del producto actual
+    $("#trVariantesWrap .var-qty").val("0").trigger("input");
+
+    trRenderResumenTransfer();
+    trValidarStockGlobal(true);
+    trSyncBtnState();
+}
+
+
+
+/* ===== Transfer – disponibilidad por variante (origen) ===== */
+function validarCantidadesTransfer() {
+    let ok = true;
+
+    $("#trVariantesWrap .var-qty").each(function () {
+        const idVar = Number($(this).data("id") || 0);
+        const disp = Math.trunc(State.stockVarOrigen[idVar] || 0);
+
+        let q = toInt($(this).val());
+        if (q > disp) q = disp;
+
+        $(this).val(q ? fmtQty(q) : "0");
+
+        const $help = $(this).closest(".var-row").find(".var-help");
+        $help.removeClass("text-danger").addClass("text-muted");
+
+        if (q > disp) {
+            $(this).addClass("is-invalid");
+            $help.removeClass("text-muted").addClass("text-danger");
+            ok = false;
+        } else {
+            $(this).removeClass("is-invalid");
+        }
+    });
+
+    if (!ok) {
+        $("#errorTransfer").removeClass("d-none").text("No hay stock suficiente en el origen para una o más variantes.");
+    } else {
+        $("#errorTransfer").addClass("d-none").text("");
+    }
+
+    return ok;
+}
+
 
 function validarCantidadesTransfer() {
     let ok = true;
@@ -1122,14 +1695,29 @@ function resetModalAjuste() {
 
 function resetModalTransfer() {
     limpiarModal('#modalTransfer', '#errorTransfer');
+
     $('#trFecha').val(hoyISO());
     $('#trNota').val('');
+
     $('#trOrigen').val('').trigger('change');
     $('#trDestino').val('').trigger('change');
     $('#trProducto').val('').trigger('change');
+
     $('#trVariantesWrap').empty();
     $('#trVariantesEmpty').removeClass('d-none');
+
+    // carrito multi
+    State.transfer.items = [];
+    State.transfer.stockOrigen = {};
+
+    // resumen
+    $("#trResumenItems").empty().append(`<div class="alert alert-warning mb-0" id="trEmptyMsg">No hay productos agregados todavía.</div>`);
+
+    trClearUIErrors();
+    trSyncBtnState();
 }
+
+
 
 /* ============================ OC: Ingreso y Reversión ============================ */
 
@@ -1404,46 +1992,68 @@ async function cargarOCsParaRevertir(idSucursal) {
     toggleRevertButton();
 }
 
-/* -------- Guardar transferencia -------- */
 async function guardarTransfer() {
+    trClearUIErrors();
+
     let ok = true;
-    ["#trFecha", "#trOrigen", "#trDestino", "#trProducto"].forEach(sel => {
+    ["#trFecha", "#trOrigen", "#trDestino"].forEach(sel => {
         const v = $(sel).val();
         if (!v) { $(sel).addClass("is-invalid"); ok = false; } else $(sel).removeClass("is-invalid");
     });
 
-    ok = validarCantidadesTransfer() && ok;
+    const o = Number($("#trOrigen").val() || 0);
+    const d = Number($("#trDestino").val() || 0);
+    if (o && d && o === d) { $("#trDestino").addClass("is-invalid"); ok = false; }
 
-    $("#errorTransfer").toggleClass("d-none", ok);
-    if (!ok) return;
+    const productos = (State.transfer.items || []).map(it => ({
+        IdProducto: Number(it.IdProducto),
+        Variantes: (it.Variantes || []).map(v => ({
+            IdProductoVariante: Number(v.IdProductoVariante),
+            Cantidad: Math.trunc(Number(v.Cantidad) || 0)
+        })).filter(v => v.Cantidad > 0)
+    })).filter(it => it.IdProducto > 0 && it.Variantes.length > 0);
 
-    const vars = leerVariantes("#trVariantesWrap");
-    if (!vars.length) {
-        $("#errorTransfer").removeClass("d-none").text("Ingresá cantidades por variante.");
+    if (!productos.length) {
+        ok = false;
+        trSetError("Agregá al menos un producto con cantidades por variante.");
+    }
+
+    if (ok) ok = trValidarStockGlobal(true) && ok;
+
+    if (!ok) {
+        if ($("#errorTransfer").hasClass("d-none")) trSetError("Revisá los campos requeridos.");
+        trSyncBtnState();
         return;
     }
 
     const payload = {
         Fecha: $("#trFecha").val(),
-        IdSucursalOrigen: Number($("#trOrigen").val()),
-        IdSucursalDestino: Number($("#trDestino").val()),
-        IdProducto: Number($("#trProducto").val()),
+        IdSucursalOrigen: o,
+        IdSucursalDestino: d,
         Nota: ($("#trNota").val() || "").trim(),
-        Variantes: vars
+        Productos: productos   // ✅ ACÁ está el fix
     };
 
     try {
-        const r = await fetch("/Inventario/Transferir", {
+        const r = await fetch("/Inventario/TransferirMulti", {
             method: "POST",
-            headers: { Authorization: "Bearer " + (window.token || ""), "Content-Type": "application/json;charset=utf-8" },
+            headers: {
+                Authorization: "Bearer " + (window.token || ""),
+                "Content-Type": "application/json;charset=utf-8"
+            },
             body: JSON.stringify(payload)
         });
+
         if (!r.ok) throw new Error(await r.text());
+        const j = await r.json();
+
+        if (j && j.valor === false) throw new Error(j.mensaje || "No se pudo guardar la transferencia.");
+
         await Promise.all([cargarProductos(), cargarMovimientos()]);
         $("#modalTransfer").modal("hide");
         exitoModal("Transferencia registrada.");
     } catch (e) {
         console.error(e);
-        errorModal("No se pudo guardar la transferencia.");
+        errorModal(e.message || "No se pudo guardar la transferencia.");
     }
 }

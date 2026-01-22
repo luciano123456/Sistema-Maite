@@ -244,32 +244,36 @@
         </div>
     </div>
 </div>
-
-<!-- MODAL: Transferencia -->
+<!-- MODAL: Transferencia (MULTI-PRODUCTO) -->
 <div class="modal fade" id="modalTransfer" tabindex="-1" role="dialog" aria-labelledby="modalTransferLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-edicion" role="document">
+    <div class="modal-dialog modal-dialog-centered modal-xl modal-edicion" role="document">
         <div class="modal-content">
             <div class="modal-header colorEncabezado">
                 <h5 class="modal-title fw-bold" id="modalTransferLabel">
-                    <i class="fa fa-exchange me-2"></i> Nueva transferencia
+                    <i class="fa fa-exchange me-2"></i> Nueva transferencia (multi-producto)
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
+
             <div class="modal-body">
                 <form id="formTransfer" class="row g-3">
-                    <div class="col-md-4">
+
+                    <!-- Cabecera -->
+                    <div class="col-md-3">
                         <label class="form-label">Fecha</label>
                         <input type="date" id="trFecha" class="form-control" required>
                         <div class="invalid-feedback">Campo obligatorio</div>
                     </div>
-                    <div class="col-md-4">
+
+                    <div class="col-md-3">
                         <label class="form-label">Sucursal Origen</label>
                         <select id="trOrigen" class="form-control" required>
                             <option value="">Seleccione</option>
                         </select>
                         <div class="invalid-feedback">Campo obligatorio</div>
                     </div>
-                    <div class="col-md-4">
+
+                    <div class="col-md-3">
                         <label class="form-label">Sucursal Destino</label>
                         <select id="trDestino" class="form-control" required>
                             <option value="">Seleccione</option>
@@ -277,38 +281,85 @@
                         <div class="invalid-feedback">Campo obligatorio</div>
                     </div>
 
-                    <div class="col-md-8">
-                        <label class="form-label">Producto</label>
+                    <div class="col-md-3">
+                        <label class="form-label">Nota</label>
+                        <input type="text" id="trNota" class="form-control" placeholder="Transferencia entre Sucursales">
+                    </div>
+
+                    <hr class="my-2" />
+
+                    <!-- Agregar producto: 2 columnas + botón alineado arriba (NO queda abajo) -->
+                    <div class="col-12">
+                        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                            <div class="fw-bold">
+                                <i class="fa fa-plus-circle text-info me-2"></i> Agregar producto
+                            </div>
+                            <small class="text-muted">
+                                Elegí un producto, cargá cantidades por variante y presioná <b>Agregar</b>.
+                            </small>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-8">
                         <select id="trProducto" class="form-control" required>
                             <option value="">Seleccione</option>
                         </select>
                         <div class="invalid-feedback">Campo obligatorio</div>
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label">Nota</label>
-                        <input type="text" id="trNota" class="form-control" placeholder="Transferencia entre Sucursales">
+
+                    <div class="col-lg-4 d-flex align-items-start">
+                        <button type="button" class="btn btn-info w-100 d-flex align-items-center justify-content-center" id="btnAgregarProdTransfer">
+                            <i class="fa fa-plus me-2"></i> Agregar
+                        </button>
                     </div>
 
+                    <!-- Variantes del producto seleccionado (para agregar) -->
                     <div class="col-12">
                         <div class="d-flex align-items-center mb-2">
-                            <h6 class="mb-0"><i class="fa fa-tags text-info me-2"></i> Variantes a transferir</h6>
+                            <h6 class="mb-0">
+                                <i class="fa fa-tags text-info me-2"></i> Variantes del producto (para agregar)
+                            </h6>
                             <small class="text-muted ms-2">(Ingresá cantidades por variante)</small>
                         </div>
-                        <div id="trVariantesWrap" class="variantes-wrap"></div>
+
+                        <!-- scroller para que no explote la altura -->
+                        <div id="trVariantesWrap" class="variantes-wrap" style="max-height: 280px; overflow:auto;"></div>
+
                         <div id="trVariantesEmpty" class="alert alert-secondary py-2 mt-2 d-none">
                             Este producto no tiene variantes definidas.
                         </div>
                     </div>
 
-                    <div id="errorTransfer" class="alert alert-danger d-none col-12">
+                    <!-- Productos incluidos -->
+                    <div class="col-12 mt-2">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <h6 class="mb-0">
+                                <i class="fa fa-list text-info me-2"></i> Productos incluidos en la transferencia
+                            </h6>
+
+                            <button type="button" class="btn btn-sm btn-outline-danger" id="btnVaciarTransfer">
+                                <i class="fa fa-trash me-1"></i> Vaciar
+                            </button>
+                        </div>
+
+                        <div id="trResumenItems" class="transfer-items-wrap">
+                            <div class="alert alert-warning mb-0" id="trEmptyMsg">No hay productos agregados todavía.</div>
+                        </div>
+                    </div>
+
+                    <!-- Error general (se actualiza solo) -->
+                    <div id="errorTransfer" class="alert alert-danger d-none col-12 mb-0">
                         Debes completar los campos requeridos
                     </div>
+
                 </form>
             </div>
+
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                     <i class="fa fa-arrow-left"></i> Volver
                 </button>
+
                 <button type="button" class="btn btn-primary" id="btnGuardarTransfer">
                     <i class="fa fa-check"></i> Transferir
                 </button>
