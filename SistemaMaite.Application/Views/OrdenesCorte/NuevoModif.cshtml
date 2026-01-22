@@ -329,9 +329,17 @@
                 <form class="row g-3">
                     <div class="col-md-8">
                         <label class="form-label">Insumo</label>
-                        <select id="cmbInsumo" class="form-select editable-field" required>
-                            <option value="">Seleccione</option>
-                        </select>
+                        <div class="d-flex gap-2">
+                            <select id="cmbInsumo" class="form-select editable-field" required>
+                                <option value="">Seleccione</option>
+                            </select>
+
+                            <button type="button" class="btn btn-outline-light" id="btnNuevoInsumoABM" title="Crear insumo">
+                                <i class="fa fa-plus"></i>
+                            </button>
+                        </div>
+
+
                         <div class="invalid-feedback">Campo obligatorio</div>
                     </div>
                     <div class="col-md-4">
@@ -390,15 +398,15 @@
                     </div>
 
                     <div class="col-md-2">
-                        <label class="form-label">A prod.</label>
+                        <label class="form-label">Enviadas</label>
                         <input type="text" id="txtEtAP" class="form-control Inputmiles editable-field" value="0" />
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">Prod.</label>
+                        <label class="form-label">Entregadas</label>
                         <input type="text" id="txtEtP" class="form-control Inputmiles editable-field" value="0" />
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label">Δ</label>
+                        <label class="form-label">Perdidas</label>
                         <!-- AUTO: A prod. - Prod. -->
                         <input type="text" id="txtEtDif" class="form-control auto-field" value="0" readonly />
                     </div>
@@ -431,6 +439,76 @@
     </div>
 </div>
 
+<!-- MODAL: ABM Insumo (Crear/Editar) - dentro de Orden de Corte -->
+<div class="modal fade modal-dark" id="modalInsumoABM" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg" style="max-width: 980px;">
+        <div class="modal-content card-glass">
+            <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold" id="modalInsumoABMLabel">
+                    <i class="fa fa-wrench me-2 text-success"></i> Nuevo Insumo
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+
+            <div class="modal-body">
+                <form id="formInsumoABM" class="row g-3">
+                    <input type="hidden" id="insABM_Id" />
+
+                    <div class="col-md-3">
+                        <label class="form-label">Código</label>
+                        <input type="text" class="form-control editable-field" id="insABM_Codigo" />
+                        <div class="invalid-feedback">Campo obligatorio</div>
+                    </div>
+
+                    <div class="col-md-5">
+                        <label class="form-label">Descripción</label>
+                        <input type="text" class="form-control editable-field" id="insABM_Descripcion" />
+                        <div class="invalid-feedback">Campo obligatorio</div>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label">Categoría</label>
+                        <select id="insABM_Categoria" class="form-select editable-field">
+                            <option value="">Seleccione</option>
+                        </select>
+                        <div class="invalid-feedback">Campo obligatorio</div>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label">Proveedor</label>
+                        <select id="insABM_Proveedor" class="form-select editable-field">
+                            <option value="">Seleccione</option>
+                        </select>
+                        <div class="invalid-feedback">Campo obligatorio</div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Costo Unitario</label>
+                        <input type="number" step="0.01" min="0" class="form-control editable-field" id="insABM_Costo" />
+                        <div class="invalid-feedback">Campo obligatorio</div>
+                    </div>
+
+                    <div id="insABM_Error" class="alert alert-danger d-none col-12">
+                        Debes completar los campos obligatorios.
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fa fa-times me-1"></i> Cancelar
+                </button>
+
+                <button type="button" id="btnGuardarInsumoABM" class="btn btn-success" onclick="guardarInsumoABM()">
+                    <i class="fa fa-check me-1"></i> Registrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
 <partial name="~/Views/Utils/Modals.cshtml" />
 
 @section Scripts {
@@ -441,5 +519,5 @@
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
     <script src="~/js/utils/moment.js"></script>
-    <script src="~/js/OrdenesCorteNuevoModif.js?v=3.1"></script>
+    <script src="~/js/OrdenesCorteNuevoModif.js?v=3.2"></script>
 }

@@ -1008,47 +1008,461 @@ async function eliminarOC() {
 }
 window.volverIndexOC = function () { window.location.href = "/OrdenesCorte/Index"; };
 
-/* ---------------- Exportación PDF ---------------- */
 async function exportarOCPdf() {
     if (!(State.items || []).length) return errorModal?.("Agregá al menos un producto para exportar.");
-    const { jsPDF } = window.jspdf || {}; if (!jsPDF || !window.jspdf?.jsPDF?.API?.autoTable) { return errorModal?.("Falta jsPDF/autoTable."); }
+
+    const { jsPDF } = window.jspdf || {};
+    if (!jsPDF || !window.jspdf?.jsPDF?.API?.autoTable) {
+        return errorModal?.("Falta jsPDF/autoTable.");
+    }
+
+    // ✅ Elegir si incluir etapas
+    let incluirEtapas = true;
+    if (typeof confirmarModal === "function") {
+        incluirEtapas = await confirmarModal("¿Querés incluir las ETAPAS en el PDF?");
+    } else {
+        incluirEtapas = confirm("¿Querés incluir las ETAPAS en el PDF?");
+    }
 
     recomputeAll();
 
-    const doc = new jsPDF({ unit: "pt", format: "a4" }); const pad = 40;
+    const doc = new jsPDF({ unit: "pt", format: "a4" });
+    const pad = 40;
 
-    doc.setFont("helvetica", "bold"); doc.setFontSize(18);
+    // Header
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
     doc.text("Orden de Corte", pad, 50);
-    doc.setFontSize(11); doc.setFont("helvetica", "normal");
-    doc.text(`Fecha inicio: ${fView(document.getElementById("dtpFechaInicio").value)}`, pad, 70);
-    doc.text(`Estado: ${document.getElementById("cmbEstado").selectedOptions[0]?.text || "—"}`, pad, 86);
-    doc.text(`Responsable: ${document.getElementById("cmbPersonal").selectedOptions[0]?.text || "—"}`, pad, 102);
 
-    doc.text(`A producir: ${_fmtNumber(State.aProducir)}`, pad, 120);
-    doc.text(`Producidas (corte): ${_fmtNumber(State.producidas)} — Δ Corte: ${_fmtNumber(State.difCorte)}`, pad, 136);
-    doc.text(`Final real (última etapa): ${_fmtNumber(State.finalReal)} — Δ Final: ${_fmtNumber(State.difFinal)}`, pad, 152);
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
 
-    doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.text("Productos", pad, 180);
-    const body = (State.items || []).map(it => {
+    // ✅ N° de OC (si no hay, mostrar “Sin número”)
+    const nroOC = (State.idOC && State.idOC > 0) ? String(State.idOC) : "Sin número (no registrada)";
+    doc.text(`N° OC: ${nroOC}`, pad, 68);
+
+    doc.text(`Fecha inicio: ${fView(document.getElementById("dtpFechaInicio").value)}`, pad, 84);
+    doc.text(`Estado: ${document.getElementById("cmbEstado").selectedOptions[0]?.text || "—"}`, pad, 100);
+    doc.text(`Responsable: ${document.getElementById("cmbPersonal").selectedOptions[0]?.text || "—"}`, pad, 116);
+
+    doc.text(`A producir: ${_fmtNumber(State.aProducir)}`, pad, 134);
+    doc.text(`Producidas (corte): ${_fmtNumber(State.producidas)} — Δ Corte: ${_fmtNumber(State.difCorte)}`, pad, 150);
+    doc.text(`Final real (última etapa): ${_fmtNumber(State.finalReal)} — Δ Final: ${_fmtNumber(State.difFinal)}`, pad, 166);
+
+    // Productos
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("Productos", pad, 194);
+
+    const bodyProd = (State.items || []).map(it => {
         const vars = (it.variantes || []).map(v => `- ${v.nombre} × ${_fmtNumber(v.cantidad)}`).join("\n");
         const prod = it.productoNombre || `Producto ${it.idProducto}`;
         return [vars ? `${prod}\n${vars}` : prod, _fmtNumber(it.cantidad)];
     });
-    doc.autoTable({ startY: 188, head: [["Producto / Variantes", "Cantidad"]], body, margin: { left: pad, right: pad }, styles: { fontSize: 10, cellPadding: 6, overflow: "linebreak" }, headStyles: { fillColor: [28, 39, 54], textColor: [255, 255, 255] }, columnStyles: { 1: { halign: "right", cellWidth: 100 } } });
+
+    doc.autoTable({
+        startY: 202,
+        head: [["Producto / Variantes", "Cantidad"]],
+        body: bodyProd,
+        margin: { left: pad, right: pad },
+        styles: { fontSize: 10, cellPadding: 6, overflow: "linebreak" },
+        headStyles: { fillColor: [28, 39, 54], textColor: [255, 255, 255] },
+        columnStyles: { 1: { halign: "right", cellWidth: 110 } }
+    });
 
     let y = doc.lastAutoTable.finalY + 18;
-    doc.setFont("helvetica", "bold"); doc.text("Insumos", pad, y); y += 8;
+
+    // Insumos (siempre)
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text("Insumos", pad, y);
+    y += 8;
+
     const bodyIns = (State.insumos || []).map(i => [i.nombre, _fmtNumber(i.cantidad)]);
-    doc.autoTable({ startY: y, head: [["Insumo", "Cantidad"]], body: bodyIns, margin: { left: pad, right: pad }, styles: { fontSize: 10, cellPadding: 6 }, headStyles: { fillColor: [46, 125, 50], textColor: [255, 255, 255] }, columnStyles: { 1: { halign: "right", cellWidth: 100 } } });
+    doc.autoTable({
+        startY: y,
+        head: [["Insumo", "Cantidad"]],
+        body: bodyIns,
+        margin: { left: pad, right: pad },
+        styles: { fontSize: 10, cellPadding: 6 },
+        headStyles: { fillColor: [46, 125, 50], textColor: [255, 255, 255] },
+        columnStyles: { 1: { halign: "right", cellWidth: 110 } }
+    });
 
     y = doc.lastAutoTable.finalY + 18;
-    doc.setFont("helvetica", "bold"); doc.text("Etapas", pad, y); y += 8;
-    const bodyEt = (State.etapas || []).map(e => {
-        const dias = (e.diasReales ?? null);
-        const salidaRealTxt = `${fView(e.fechaSalidaReal)}${dias == null ? "" : ` (${dias} días)`}`;
-        return [e.tallerNombre || "—", fView(e.fechaEntrada), fView(e.fechaSalidaAprox), salidaRealTxt, _fmtNumber(e.aProducir), _fmtNumber(e.producidas), _fmtNumber(e.diferencias), e.estadoNombre || "—", e.nota || ""];
-    });
-    doc.autoTable({ startY: y, head: [["Taller", "Entrada", "Salida aprox.", "Salida real", "A prod.", "Prod.", "Δ", "Estado", "Nota"]], body: bodyEt, margin: { left: pad, right: pad }, styles: { fontSize: 9, cellPadding: 5 }, headStyles: { fillColor: [255, 179, 0], textColor: [0, 0, 0] }, columnStyles: { 4: { halign: "right" }, 5: { halign: "right" }, 6: { halign: "right" } } });
 
-    doc.save(`OrdenCorte_${document.getElementById("dtpFechaInicio").value}.pdf`);
+    // ✅ Etapas (opcional)
+    if (incluirEtapas) {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        doc.text("Etapas", pad, y);
+        y += 8;
+
+        const bodyEt = (State.etapas || []).map(e => {
+            const dias = (e.diasReales ?? null);
+            const salidaRealTxt = `${fView(e.fechaSalidaReal)}${dias == null ? "" : ` (${dias} días)`}`;
+            return [
+                e.tallerNombre || "—",
+                fView(e.fechaEntrada),
+                fView(e.fechaSalidaAprox),
+                salidaRealTxt,
+                _fmtNumber(e.aProducir),
+                _fmtNumber(e.producidas),
+                _fmtNumber(e.diferencias),
+                e.estadoNombre || "—",
+                e.nota || ""
+            ];
+        });
+
+        doc.autoTable({
+            startY: y,
+            head: [["Taller", "Entrada", "Salida aprox.", "Salida real", "A prod.", "Prod.", "Δ", "Estado", "Nota"]],
+            body: bodyEt,
+            margin: { left: pad, right: pad },
+            styles: { fontSize: 9, cellPadding: 5 },
+            headStyles: { fillColor: [255, 179, 0], textColor: [0, 0, 0] },
+            columnStyles: { 4: { halign: "right" }, 5: { halign: "right" }, 6: { halign: "right" } }
+        });
+    }
+
+    const fechaNombre = document.getElementById("dtpFechaInicio").value || moment().format("YYYY-MM-DD");
+    doc.save(`OrdenCorte_${nroOC}_${fechaNombre}.pdf`);
 }
+
+
+// ----------------- FLAGS -----------------
+let isSavingInsumoABM = false;
+let wasSubmitInsumoABM = false;
+
+// ----------------- ENDPOINTS FIJOS -----------------
+const URL_INS_CATEGORIAS = "/InsumosCategoria/Lista";
+const URL_PROVEEDORES = "/Proveedores/Lista";
+
+// ----------------- DOM HELPERS -----------------
+function _insABM_el(id) { return document.getElementById(id); }
+function _insABM_val(id) { return (_insABM_el(id)?.value ?? ""); }
+function _insABM_set(id, v) { const el = _insABM_el(id); if (el) el.value = (v ?? ""); }
+
+// ----------------- AUTH HEADERS -----------------
+function _authHeadersJson() {
+    return {
+        Authorization: "Bearer " + (window.token || ""),
+        "Content-Type": "application/json;charset=utf-8"
+    };
+}
+
+// ----------------- SELECT2 (dentro de modal) -----------------
+function _insABM_initSelect2(sel) {
+    if (!window.jQuery || !$.fn.select2) return;
+    const $el = $(sel); if (!$el.length) return;
+
+    const $parentModal = $el.closest(".modal");
+    const dropdownParent = $parentModal.length ? $parentModal : $(document.body);
+
+    if ($el.hasClass("select2-hidden-accessible")) $el.select2("destroy");
+
+    $el.select2({
+        theme: "bootstrap-5",
+        width: "100%",
+        placeholder: "Seleccione",
+        dropdownParent,
+        language: { noResults: () => "No hay resultados", searching: () => "Buscando..." }
+    });
+}
+
+// Si tenés initSelect2Base del proyecto, lo usa; si no, usa el de arriba
+function _initSelect2PreferProject(sel) {
+    if (typeof initSelect2Base === "function") initSelect2Base(sel);
+    else _insABM_initSelect2(sel);
+}
+
+// ----------------- VALIDACIÓN (usa tus helpers si existen) -----------------
+function _setInvalid(selectorOrEl, msg = "Campo obligatorio") {
+    if (typeof setInvalid === "function") return setInvalid(selectorOrEl, msg);
+
+    const el = typeof selectorOrEl === "string" ? document.querySelector(selectorOrEl) : selectorOrEl;
+    if (!el) return false;
+    el.classList.add("is-invalid");
+    el.classList.remove("is-valid");
+    return false;
+}
+function _setValid(selectorOrEl) {
+    if (typeof setValid === "function") return setValid(selectorOrEl);
+
+    const el = typeof selectorOrEl === "string" ? document.querySelector(selectorOrEl) : selectorOrEl;
+    if (!el) return true;
+    el.classList.add("is-valid");
+    el.classList.remove("is-invalid");
+    return true;
+}
+function _clearValidation(selectorOrEl) {
+    if (typeof clearValidation === "function") return clearValidation(selectorOrEl);
+
+    const el = typeof selectorOrEl === "string" ? document.querySelector(selectorOrEl) : selectorOrEl;
+    if (!el) return;
+    el.classList.remove("is-invalid", "is-valid");
+}
+
+// ----------------- CARGA DE COMBOS (Categorías / Proveedores) -----------------
+let INS_CATS_CACHE = [];
+let INS_PROV_CACHE = [];
+
+function _txtCat(x) { return (x.Nombre || x.Descripcion || x.Denominacion || `Categoría ${x.Id}`); }
+function _txtProv(x) { return (x.Nombre || x.RazonSocial || x.Descripcion || `Proveedor ${x.Id}`); }
+
+async function _loadCatsAndProvsForABM() {
+    // ambos en paralelo
+    const [cats, provs] = await Promise.all([
+        fetch(URL_INS_CATEGORIAS, { headers: { Authorization: "Bearer " + (window.token || "") } })
+            .then(r => (r.ok ? r.json() : []))
+            .catch(() => []),
+        fetch(URL_PROVEEDORES, { headers: { Authorization: "Bearer " + (window.token || "") } })
+            .then(r => (r.ok ? r.json() : []))
+            .catch(() => [])
+    ]);
+
+    INS_CATS_CACHE = Array.isArray(cats) ? cats : [];
+    INS_PROV_CACHE = Array.isArray(provs) ? provs : [];
+
+    // Render combos
+    const cmbCat = _insABM_el("insABM_Categoria");
+    const cmbProv = _insABM_el("insABM_Proveedor");
+
+    if (cmbCat) {
+        cmbCat.innerHTML =
+            `<option value="">Seleccione</option>` +
+            INS_CATS_CACHE.map(x => `<option value="${x.Id}">${_txtCat(x)}</option>`).join("");
+        _initSelect2PreferProject("#insABM_Categoria");
+        if (window.jQuery && $.fn.select2) $("#insABM_Categoria").val("").trigger("change.select2");
+    }
+
+    if (cmbProv) {
+        cmbProv.innerHTML =
+            `<option value="">Seleccione</option>` +
+            INS_PROV_CACHE.map(x => `<option value="${x.Id}">${_txtProv(x)}</option>`).join("");
+        _initSelect2PreferProject("#insABM_Proveedor");
+        if (window.jQuery && $.fn.select2) $("#insABM_Proveedor").val("").trigger("change.select2");
+    }
+}
+
+// ----------------- ABRIR MODAL ABM (SIEMPRE NUEVO) -----------------
+function abrirModalInsumoABM() {
+    wasSubmitInsumoABM = false;
+
+    // Título y botón
+    const ttl = _insABM_el("modalInsumoABMLabel");
+    if (ttl) ttl.innerHTML = `<i class="fa fa-wrench me-2 text-success"></i> Nuevo Insumo`;
+
+    const btn = _insABM_el("btnGuardarInsumoABM");
+    if (btn) btn.innerHTML = `<i class="fa fa-check me-1"></i> Registrar`;
+
+    // Limpiar campos (SIEMPRE INSERTA)
+    _insABM_set("insABM_Id", "0");
+    _insABM_set("insABM_Codigo", "");
+    _insABM_set("insABM_Descripcion", "");
+    _insABM_set("insABM_Costo", "");
+
+    // Limpiar validaciones + banner
+    ["#insABM_Codigo", "#insABM_Descripcion", "#insABM_Categoria", "#insABM_Proveedor", "#insABM_Costo"]
+        .forEach(_clearValidation);
+    _insABM_el("insABM_Error")?.classList.add("d-none");
+
+    // Mostrar modal
+    const modalEl = document.getElementById("modalInsumoABM");
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+
+    // Cargar combos al abrir (y reinit select2 dentro del modal)
+    _loadCatsAndProvsForABM().then(() => {
+        // deja selects en blanco
+        if (window.jQuery && $.fn.select2) {
+            $("#insABM_Categoria").val("").trigger("change.select2");
+            $("#insABM_Proveedor").val("").trigger("change.select2");
+        } else {
+            _insABM_set("insABM_Categoria", "");
+            _insABM_set("insABM_Proveedor", "");
+        }
+    });
+
+    // Live validation
+    _attachInsumoABMLiveValidation();
+}
+
+// ----------------- VALIDAR ABM -----------------
+function validarInsumoABM() {
+    const codigo = (_insABM_val("insABM_Codigo") || "").trim();
+    const desc = (_insABM_val("insABM_Descripcion") || "").trim();
+    const idCat = parseInt(_insABM_val("insABM_Categoria") || "0", 10) || 0;
+    const idProv = parseInt(_insABM_val("insABM_Proveedor") || "0", 10) || 0;
+    const costo = parseFloat(_insABM_val("insABM_Costo") || "0") || 0;
+
+    let ok = true;
+    ok = (codigo ? _setValid("#insABM_Codigo") : _setInvalid("#insABM_Codigo")) && ok;
+    ok = (desc ? _setValid("#insABM_Descripcion") : _setInvalid("#insABM_Descripcion")) && ok;
+    ok = (idCat ? _setValid("#insABM_Categoria") : _setInvalid("#insABM_Categoria")) && ok;
+    ok = (idProv ? _setValid("#insABM_Proveedor") : _setInvalid("#insABM_Proveedor")) && ok;
+    ok = (costo >= 0 ? _setValid("#insABM_Costo") : _setInvalid("#insABM_Costo")) && ok; // costo puede ser 0 si querés
+
+    _insABM_el("insABM_Error")?.classList.toggle("d-none", ok);
+    return ok;
+}
+
+let __insAbmLiveBound = false;
+function _attachInsumoABMLiveValidation() {
+    if (__insAbmLiveBound) return;
+    __insAbmLiveBound = true;
+
+    const ids = ["insABM_Codigo", "insABM_Descripcion", "insABM_Costo"];
+    ids.forEach(id => {
+        const el = _insABM_el(id);
+        if (!el) return;
+        ["input", "change", "blur"].forEach(ev => el.addEventListener(ev, () => {
+            if (!wasSubmitInsumoABM) return;
+            validarInsumoABM();
+        }));
+    });
+
+    ["insABM_Categoria", "insABM_Proveedor"].forEach(id => {
+        const el = _insABM_el(id);
+        if (!el) return;
+        ["change", "input"].forEach(ev => el.addEventListener(ev, () => {
+            if (!wasSubmitInsumoABM) return;
+            validarInsumoABM();
+        }));
+        if (window.jQuery && $.fn.select2) {
+            $("#" + id).on("select2:select select2:clear", () => {
+                if (!wasSubmitInsumoABM) return;
+                validarInsumoABM();
+            });
+        }
+    });
+}
+
+// ----------------- REFRESCAR COMBO INSUMOS OC (modal normal) -----------------
+function _refreshComboInsumosOC() {
+    const cmb = document.getElementById("cmbInsumo");
+    if (!cmb) return;
+
+    cmb.innerHTML =
+        `<option value="">Seleccione</option>` +
+        (State.insumosCat || []).map(i => {
+            const txt = (i.Descripcion || i.Nombre || `Insumo ${i.Id}`);
+            return `<option value="${i.Id}">${txt}</option>`;
+        }).join("");
+
+    if (window.jQuery && $.fn.select2) {
+        // reinit preferentemente con tu helper
+        if (typeof initSelect2Base === "function") initSelect2Base("#cmbInsumo");
+        else _insABM_initSelect2("#cmbInsumo");
+        $("#cmbInsumo").trigger("change.select2");
+    }
+}
+
+function _selectInsumoEnModal(idInsumo) {
+    // Selecciona en el modal normal de insumo (#modalInsumo)
+    const sel = document.getElementById("cmbInsumo");
+    if (!sel) return;
+    if (window.jQuery && $.fn.select2) {
+        $("#cmbInsumo").val(String(idInsumo)).trigger("change.select2");
+    } else {
+        sel.value = String(idInsumo);
+        sel.dispatchEvent(new Event("change", { bubbles: true }));
+    }
+}
+
+// ----------------- GUARDAR ABM (SIEMPRE INSERTA + selecciona nuevo) -----------------
+// IMPORTANTE: Para que esto seleccione el nuevo insumo, tu backend debe devolver el Id.
+// Te dejo la lógica lista para ambos casos:
+//  - Si devuelve { valor:true, id:123 } => usa id.
+//  - Si devuelve solo { valor:true } => fallback buscando por Codigo+Descripcion.
+async function guardarInsumoABM() {
+    if (isSavingInsumoABM) return;
+
+    wasSubmitInsumoABM = true;
+    if (!validarInsumoABM()) return;
+
+    // SIEMPRE INSERTAR
+    const payload = {
+        Id: 0,
+        Codigo: (_insABM_val("insABM_Codigo") || "").trim(),
+        Descripcion: (_insABM_val("insABM_Descripcion") || "").trim(),
+        IdCategoria: parseInt(_insABM_val("insABM_Categoria") || "0", 10) || 0,
+        IdProveedor: parseInt(_insABM_val("insABM_Proveedor") || "0", 10) || 0,
+        CostoUnitario: parseFloat(_insABM_val("insABM_Costo") || "0") || 0
+    };
+
+    try {
+        isSavingInsumoABM = true;
+
+        const r = await fetch("/Insumos/Insertar", {
+            method: "POST",
+            headers: _authHeadersJson(),
+            body: JSON.stringify(payload)
+        });
+
+        if (!r.ok) throw new Error(r.statusText);
+        const j = await r.json();
+
+        const ok = (j === true || j?.valor === true);
+        if (!ok) return (window.errorModal ? errorModal("No se pudo guardar el insumo.") : alert("No se pudo guardar el insumo."));
+
+        // ✅ refrescar catálogo OC
+        if (typeof loadInsumos === "function") {
+            await loadInsumos(); // actualiza State.insumosCat
+        }
+
+        // ✅ refrescar combo modal normal
+        _refreshComboInsumosOC();
+
+        // ✅ determinar ID creado
+        let newId = parseInt(j?.id || j?.Id || j?.nuevoId || "0", 10) || 0;
+
+        if (!newId) {
+            // fallback: buscar por Codigo+Descripcion (por si aún no devolvés Id)
+            const cod = payload.Codigo.toUpperCase();
+            const desc = payload.Descripcion.toUpperCase();
+            const found = (State.insumosCat || []).slice().reverse().find(x =>
+                String(x.Codigo || "").toUpperCase() === cod &&
+                String(x.Descripcion || x.Nombre || "").toUpperCase() === desc
+            );
+            newId = found?.Id || 0;
+        }
+
+        if (newId) {
+            _selectInsumoEnModal(newId);
+            if (typeof showToast === "function") showToast("Insumo creado y seleccionado.", "success");
+        } else {
+            if (typeof showToast === "function") showToast("Insumo creado. Seleccionalo en la lista.", "info");
+        }
+
+        bootstrap.Modal.getInstance(document.getElementById("modalInsumoABM"))?.hide();
+
+    } catch (e) {
+        console.error(e);
+        if (window.errorModal) errorModal("Error guardando el insumo.");
+        else alert("Error guardando el insumo.");
+    } finally {
+        isSavingInsumoABM = false;
+    }
+}
+
+// ----------------- WIRING: botón + abre ABM -----------------
+document.addEventListener("DOMContentLoaded", () => {
+    const btn = document.getElementById("btnNuevoInsumoABM");
+    if (btn) {
+        btn.addEventListener("click", (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            abrirModalInsumoABM();
+        });
+    }
+
+    // Inicializar select2 dentro del ABM cuando el modal se muestre (por si bootstrap re-render)
+    const modalEl = document.getElementById("modalInsumoABM");
+    if (modalEl) {
+        modalEl.addEventListener("shown.bs.modal", () => {
+            _initSelect2PreferProject("#insABM_Categoria");
+            _initSelect2PreferProject("#insABM_Proveedor");
+        });
+    }
+});
