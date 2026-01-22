@@ -755,3 +755,18 @@ thead, tr, tbody, th, td {
 .variante-card {
     min-width: 80px;
 }
+
+.tr-items-wrap {
+    max-height: 260px;
+    overflow: auto;
+    padding-right: 6px;
+}
+
+    .tr-items-wrap::-webkit-scrollbar {
+        width: 10px;
+    }
+
+    .tr-items-wrap::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,.15);
+        border-radius: 8px;
+    }
