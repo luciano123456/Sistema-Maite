@@ -15,6 +15,7 @@ namespace SistemaMaite.Application.Models.ViewModels
         // Persistidos
         public decimal Ingreso { get; set; }
         public decimal Egreso { get; set; }
+        public decimal Saldo { get; set; }
 
         // 👇 Nuevo: lo usa el front. No se persiste directo.
         public decimal? Importe { get; set; }

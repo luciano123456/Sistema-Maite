@@ -131,7 +131,6 @@ namespace SistemaMaite.DAL.Repository
         {
             var q = _db.Ventas
                 .Include(v => v.IdClienteNavigation)
-                .Include(v => v.IdVendedorNavigation)
                 .Include(v => v.IdSucursalNavigation)
                 .AsNoTracking()
                 .AsQueryable();
@@ -143,7 +142,7 @@ namespace SistemaMaite.DAL.Repository
                 q = q.Where(v => v.Fecha <= h);
             }
             if (idCliente.HasValue && idCliente > 0) q = q.Where(v => v.IdCliente == idCliente.Value);
-            if (idVendedor.HasValue && idVendedor > 0) q = q.Where(v => v.IdVendedor == idVendedor.Value);
+
 
             if (!string.IsNullOrWhiteSpace(texto))
             {
@@ -190,7 +189,6 @@ namespace SistemaMaite.DAL.Repository
         {
             return _db.Ventas
                 .Include(v => v.IdClienteNavigation)
-                .Include(v => v.IdVendedorNavigation)
                 .Include(v => v.VentasProductos).ThenInclude(p => p.VentasProductosVariantes)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(v => v.Id == id);
@@ -278,6 +276,8 @@ namespace SistemaMaite.DAL.Repository
                         PrecioUnitFinal = inIt.PrecioUnitFinal,
                         Cantidad = inIt.Cantidad,
                         Subtotal = inIt.Subtotal
+                      
+                        
                     };
                     _db.VentasProductos.Add(it);
                     await _db.SaveChangesAsync();
@@ -398,7 +398,6 @@ namespace SistemaMaite.DAL.Repository
 
                 // Cabecera
                 ent.IdSucursal = venta.IdSucursal;
-                ent.IdVendedor = venta.IdVendedor;
                 ent.IdListaPrecio = venta.IdListaPrecio;
                 ent.IdCliente = venta.IdCliente;
                 ent.Fecha = venta.Fecha;
@@ -408,6 +407,9 @@ namespace SistemaMaite.DAL.Repository
                 ent.ImporteTotal = venta.ImporteTotal;
                 ent.NotaInterna = venta.NotaInterna;
                 ent.NotaCliente = venta.NotaCliente;
+                ent.Estado = venta.Estado;
+                ent.IdUsuarioModifica = venta.IdUsuarioModifica;
+                ent.FechaModifica = venta.FechaModifica;
                 await _db.SaveChangesAsync();
 
                 // Items / variantes (ADD/UPD/DEL)

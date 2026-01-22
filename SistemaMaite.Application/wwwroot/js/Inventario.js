@@ -5,15 +5,227 @@
 let gridMovs = null;
 
 const State = {
-    productos: [],           // ← reutilizado pero guardamos VARIANTES aquí (agregado de existencias)
+    productos: [],           // AHORA: productos agrupados (1 por producto)
     productoSel: null,       // { idProd, idVariante, nombre }
     stockAnterior: 0,
-    existencias: [],         // existencias crudas (todas las sucursales)
-    stockVarOrigen: {},      // { idVariante: cantidadDisponibleEnOrigen } para transfer
-    productNames: {}         // { idProducto: "Descripción" } para etiquetar en OC si el back no lo trae
+    existencias: [],         // existencias crudas
+    stockVarOrigen: {},      // transfer
+    productNames: {}         // nombres fallback
 };
 
 /* =============== Select2 helpers seguros =============== */
+
+/* =========================================================
+   PANEL IZQ: Productos > Variantes (cards scrolleables)
+========================================================= */
+
+function esc(s) {
+    return String(s ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+}
+
+function splitVariante(nombreVar) {
+    // Tu back a veces viene "Color / Talle" (ej: "NEGRO / S")
+    // Devolvemos { color, talle } con heurística.
+    const raw = String(nombreVar || "").trim();
+    if (!raw) return { color: "", talle: "" };
+
+    if (raw.includes("/")) {
+        const parts = raw.split("/").map(x => x.trim()).filter(Boolean);
+        // si tiene 2: Color / Talle
+        if (parts.length >= 2) return { color: parts[0], talle: parts[1] };
+    }
+    // fallback: si viene "S - NEGRO" o "NEGRO - S"
+    if (raw.includes("-")) {
+        const parts = raw.split("-").map(x => x.trim()).filter(Boolean);
+        if (parts.length >= 2) {
+            // si el primero es talle típico, lo tratamos como talle
+            const a = parts[0], b = parts[1];
+            const esTalleA = /^[0-9]+$/.test(a) || ["XS", "S", "M", "L", "XL", "XXL", "XXXL", "28", "29", "30", "31", "32", "33", "34", "35", "36"].includes(a.toUpperCase());
+            if (esTalleA) return { talle: a, color: b };
+            return { color: a, talle: b };
+        }
+    }
+    // si viene solo, lo mostramos como "color"
+    return { color: raw, talle: "" };
+}
+
+function stockProductoParaSucursal(idProd, idSucursal) {
+    let total = 0;
+    (State.existencias || []).forEach(x => {
+        if (Number(x.IdProducto) !== Number(idProd)) return;
+        if (idSucursal && Number(x.IdSucursal) !== Number(idSucursal)) return;
+        total += Number(x.Cantidad) || 0;
+    });
+    return Math.trunc(total);
+}
+
+/**
+ * Construye State.productos = [
+ *  { IdProducto, Nombre, Variantes:[{IdProductoVariante, Nombre, Color, Talle}] }
+ * ]
+ * (Stock se calcula en render según sucursal)
+ */
+function construirProductosAgrupados() {
+    const map = new Map(); // idProducto -> { IdProducto, Nombre, VariantesMap }
+    (State.existencias || []).forEach(x => {
+        const idProd = Number(x.IdProducto || 0);
+        if (!idProd) return;
+
+        const idVar = x.IdProductoVariante != null ? Number(x.IdProductoVariante) : 0;
+        const prodName = (x.Producto && String(x.Producto).trim()) || State.productNames[idProd] || `Producto ${idProd}`;
+
+        let prod = map.get(idProd);
+        if (!prod) {
+            prod = { IdProducto: idProd, Nombre: prodName, _vars: new Map() };
+            map.set(idProd, prod);
+        } else if (!prod.Nombre && prodName) {
+            prod.Nombre = prodName;
+        }
+
+        if (idVar && idVar > 0) {
+            const vNameRaw = (x.Variante || "").trim();
+            // Traemos también Color/Talle “bonito”
+            const st = splitVariante(vNameRaw || "");
+            const vv = prod._vars.get(idVar) || {
+                IdProductoVariante: idVar,
+                Nombre: vNameRaw || `Variante ${idVar}`,
+                Color: st.color,
+                Talle: st.talle
+            };
+            prod._vars.set(idVar, vv);
+        }
+    });
+
+    // Convertimos a array + sort
+    const arr = Array.from(map.values()).map(p => ({
+        IdProducto: p.IdProducto,
+        Nombre: p.Nombre,
+        Variantes: Array.from(p._vars.values())
+            .sort((a, b) => (String(a.Color).localeCompare(String(b.Color), "es")) || (String(a.Talle).localeCompare(String(b.Talle), "es", { numeric: true })))
+    }))
+        .sort((a, b) => a.Nombre.localeCompare(b.Nombre, "es"));
+
+    State.productos = arr;
+}
+
+function renderPanelProductos() {
+    const txt = ($("#txtBuscarProd").val() || "").toLowerCase();
+    const solo = $("#chkSoloStock").is(":checked");
+    const idSuc = $("#fltSucursal").val(); // puede ser "" (todas)
+
+    const cont = $("#lstProductos").empty();
+
+    // Filtrado por texto: matchea producto o cualquiera de sus variantes (color/talle/nombre)
+    const filtraProducto = (p) => {
+        if (!txt) return true;
+        const pHit = (p.Nombre || "").toLowerCase().includes(txt);
+        if (pHit) return true;
+        return (p.Variantes || []).some(v =>
+            ((v.Nombre || "").toLowerCase().includes(txt)) ||
+            ((v.Color || "").toLowerCase().includes(txt)) ||
+            ((v.Talle || "").toLowerCase().includes(txt))
+        );
+    };
+
+    const productos = (State.productos || []).filter(filtraProducto);
+
+    productos.forEach(p => {
+        // Construimos las cards visibles según sucursal/solo stock
+        const cards = [];
+        (p.Variantes || []).forEach(v => {
+            const stock = stockVarianteParaSucursal(p.IdProducto, v.IdProductoVariante, idSuc || null);
+            if (solo && stock <= 0) return;
+
+            const color = esc((v.Color || "").trim() || (splitVariante(v.Nombre).color || v.Nombre || ""));
+            const talle = esc((v.Talle || "").trim() || (splitVariante(v.Nombre).talle || ""));
+            const nombreFull = esc(`${p.Nombre} - ${v.Nombre || (color + (talle ? " / " + talle : ""))}`);
+
+            const cls = stock > 0 ? "pos" : "neg";
+            const isActive = (State.productoSel?.idProd === p.IdProducto && Number(State.productoSel?.idVariante) === Number(v.IdProductoVariante));
+
+            cards.push(`
+              <div class="variante-card ${cls} ${isActive ? "active" : ""}"
+                   data-idprod="${p.IdProducto}"
+                   data-idvar="${v.IdProductoVariante}"
+                   data-nombre="${nombreFull}">
+                <div class="variante-nombre">${color || "-"}</div>
+                <div class="variante-talle">${talle || "—"}</div>
+                <div class="variante-stock">Stock: <b>${fmtQty(stock)}</b></div>
+              </div>
+            `);
+        });
+
+        // Si no quedan cards por solo-stock, ocultamos el producto
+        if (!cards.length) return;
+
+        const stockProd = stockProductoParaSucursal(p.IdProducto, idSuc || null);
+
+        const acc = $(`
+          <div class="producto-accordion" data-idprod="${p.IdProducto}">
+            <div class="producto-header">
+              <div class="me-2" style="flex:1">
+                <div style="font-weight:700">${esc(p.Nombre)}</div>
+                <small class="text-muted">Stock total: <b>${fmtQty(stockProd)}</b></small>
+              </div>
+              <div class="producto-arrow"><i class="fa fa-chevron-down"></i></div>
+            </div>
+            <div class="producto-body">
+              <div class="variantes-scroll">
+                ${cards.join("")}
+              </div>
+            </div>
+          </div>
+        `);
+
+        // Toggle accordion
+        acc.find(".producto-header").on("click", function () {
+            const $h = $(this);
+            const $body = $h.next(".producto-body");
+            const open = $h.hasClass("open");
+            $(".producto-header").removeClass("open");
+            $(".producto-body").slideUp(120);
+
+            if (!open) {
+                $h.addClass("open");
+                $body.slideDown(120);
+            }
+        });
+
+        // Click card variante
+        acc.find(".variante-card").on("click", async function (e) {
+            e.stopPropagation();
+
+            const idProd = Number($(this).data("idprod") || 0);
+            const idVar = Number($(this).data("idvar") || 0);
+            const nombre = String($(this).data("nombre") || "").trim();
+
+            // Toggle selección (si clickeas la misma, deselecciona)
+            const ya = (State.productoSel?.idProd === idProd && Number(State.productoSel?.idVariante) === idVar);
+            if (ya) {
+                State.productoSel = null;
+                $("#lstProductos .variante-card").removeClass("active");
+            } else {
+                State.productoSel = { idProd, idVariante: idVar, nombre };
+                $("#lstProductos .variante-card").removeClass("active");
+                $(this).addClass("active");
+
+                // Abrir el acordeón donde está esa card (por UX)
+                const $head = $(this).closest(".producto-accordion").find(".producto-header");
+                if (!$head.hasClass("open")) $head.trigger("click");
+            }
+
+            await cargarMovimientos();
+        });
+
+        cont.append(acc);
+    });
+}
+
 function hasSelect2($el) {
     return !!($.fn.select2 && ($el.hasClass("select2-hidden-accessible") || $el.data("select2")));
 }
@@ -173,20 +385,7 @@ async function cargarProductos() {
     (prods || []).forEach(p => { State.productNames[p.Id] = p.Descripcion; });
 
     // Armamos VARIANTES (no productos) para el panel izquierdo
-    const mapVar = new Map(); // key: `${idProd}-${idVar}` -> { IdProducto, IdProductoVariante, Nombre, StockTotal }
-    (State.existencias || []).forEach(x => {
-        const idProd = Number(x.IdProducto);
-        const idVar = x.IdProductoVariante != null ? Number(x.IdProductoVariante) : 0;
-        const key = `${idProd}-${idVar}`;
-        const prodName = x.Producto || State.productNames[idProd] || `Producto ${idProd}`;
-        const varName = (x.Variante || "").trim();
-        const nombre = (idVar ? `${prodName} - ${varName}` : prodName);
-        const obj = mapVar.get(key) || { IdProducto: idProd, IdProductoVariante: idVar || null, Nombre: nombre, Stock: 0 };
-        obj.Stock += Math.trunc(Number(x.Cantidad || 0));
-        mapVar.set(key, obj);
-    });
-
-    State.productos = Array.from(mapVar.values()).sort((a, b) => a.Nombre.localeCompare(b.Nombre));
+    construirProductosAgrupados();
 
     // combos modales de productos (ajuste / transfer)
     const $selAj = $("#ajProducto").empty().append(`<option value="">Seleccione</option>`);
@@ -213,35 +412,7 @@ function stockVarianteParaSucursal(idProd, idVar, idSucursal) {
 }
 
 function renderProductos() {
-    const txt = ($("#txtBuscarProd").val() || "").toLowerCase();
-    const solo = $("#chkSoloStock").is(":checked");
-    const idSuc = $("#fltSucursal").val();
-    const cont = $("#lstProductos").empty();
-
-    State.productos
-        .map(v => ({
-            ...v,
-            _stockVista: stockVarianteParaSucursal(v.IdProducto, (v.IdProductoVariante || 0), idSuc || null)
-        }))
-        .filter(v => (!solo || v._stockVista > 0) && v.Nombre.toLowerCase().includes(txt))
-        .forEach(v => {
-            const el = $(` 
-            <div class="product-item" data-idprod="${v.IdProducto}" data-idvar="${v.IdProductoVariante || 0}">
-              <div class="product-name">${v.Nombre}</div>
-              <div class="product-stock">${fmtQty(v._stockVista)}</div>
-            </div>`);
-            el.on("click", async () => {
-                const ya = el.hasClass("active");
-                $("#lstProductos .product-item").removeClass("active");
-                if (ya) State.productoSel = null;
-                else {
-                    el.addClass("active");
-                    State.productoSel = { idProd: v.IdProducto, idVariante: (v.IdProductoVariante || 0), nombre: v.Nombre };
-                }
-                await cargarMovimientos();
-            });
-            cont.append(el);
-        });
+    renderPanelProductos();
 }
 
 /* ================= Filtros externos ================= */
@@ -490,7 +661,7 @@ async function configurarTablaMov(data) {
 /* ============================ KPIs ============================ */
 
 function actualizarKpiStockTotal() {
-    const tot = (State.productos || []).reduce((a, p) => a + (Number(p.Stock) || 0), 0);
+    const tot = (State.existencias || []).reduce((a, x) => a + Math.trunc(Number(x.Cantidad || 0)), 0);
     $("#kpiStockTotal").text(fmtQty(tot));
 }
 

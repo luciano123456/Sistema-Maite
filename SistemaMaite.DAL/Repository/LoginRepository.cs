@@ -1,5 +1,4 @@
-﻿using SistemaMaite.Models;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
@@ -7,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 using SistemaMaite.DAL.DataContext;
+using SistemaMaite.Models;
 
 namespace SistemaMaite.DAL.Repository
 {
