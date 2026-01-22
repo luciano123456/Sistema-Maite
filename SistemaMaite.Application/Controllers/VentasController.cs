@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using SistemaMaite.Application.Extensions;
 using SistemaMaite.Application.Models.ViewModels;
 using SistemaMaite.BLL.Service;
 using SistemaMaite.Models;
@@ -31,7 +32,6 @@ namespace SistemaMaite.Application.Controllers
                 Id = v.Id,
                 IdSucursal = v.IdSucursal,
                 IdCliente = v.IdCliente,
-                IdVendedor = v.IdVendedor,
                 IdListaPrecio = v.IdListaPrecio,
                 IdCuentaCorriente = v.IdCuentaCorriente,
                 Fecha = v.Fecha,
@@ -40,7 +40,6 @@ namespace SistemaMaite.Application.Controllers
                 TotalIva = v.TotalIva,
                 ImporteTotal = v.ImporteTotal,
                 Cliente = v.IdClienteNavigation?.Nombre ?? "",
-                Vendedor = v.IdVendedorNavigation?.Nombre ?? "",
                 Sucursal = v.IdSucursalNavigation?.Nombre ?? ""
             }).ToList();
             return Ok(vm);
@@ -59,7 +58,6 @@ namespace SistemaMaite.Application.Controllers
             {
                 Id = v.Id,
                 IdSucursal = v.IdSucursal,
-                IdVendedor = v.IdVendedor,
                 IdListaPrecio = v.IdListaPrecio,
                 IdCliente = v.IdCliente,
                 IdCuentaCorriente = v.IdCuentaCorriente,
@@ -70,8 +68,8 @@ namespace SistemaMaite.Application.Controllers
                 ImporteTotal = v.ImporteTotal,
                 NotaInterna = v.NotaInterna,
                 NotaCliente = v.NotaCliente,
+                Estado = v.Estado,
                 Cliente = v.IdClienteNavigation?.Nombre ?? "",
-                Vendedor = v.IdVendedorNavigation?.Nombre ?? "",
                 Productos = items.Select(i => new VMVentaProducto
                 {
                     Id = i.Id,
@@ -117,6 +115,12 @@ namespace SistemaMaite.Application.Controllers
         {
           
             var venta = MapVenta(vm);
+
+            var userId = User.GetUserId();
+
+            venta.FechaRegistra = DateTime.Now;
+            venta.IdUsuarioRegistra = userId;
+
             var (items, variantes) = MapItems(vm);
             var pagos = MapPagos(vm, venta);
             var ok = await _srv.InsertarConDetallesYPagos(venta, items, variantes, pagos);
@@ -128,6 +132,11 @@ namespace SistemaMaite.Application.Controllers
         {
          
             var venta = MapVenta(vm);
+
+            var userId = User.GetUserId();
+
+            venta.FechaModifica = DateTime.Now;
+            venta.IdUsuarioModifica = userId;
             var (items, variantes) = MapItems(vm);
             var pagos = MapPagos(vm, venta, keepIds: true);
             var ok = await _srv.ActualizarConDetallesYPagos(venta, items, variantes, pagos);
@@ -234,7 +243,6 @@ namespace SistemaMaite.Application.Controllers
         {
             Id = vm.Id,
             IdSucursal = vm.IdSucursal,
-            IdVendedor = vm.IdVendedor,
             IdListaPrecio = vm.IdListaPrecio,
             IdCliente = vm.IdCliente,
             IdCuentaCorriente = vm.IdCuentaCorriente,
@@ -244,7 +252,8 @@ namespace SistemaMaite.Application.Controllers
             TotalIva = vm.TotalIva,
             ImporteTotal = vm.ImporteTotal,
             NotaInterna = vm.NotaInterna,
-            NotaCliente = vm.NotaCliente
+            NotaCliente = vm.NotaCliente,
+            Estado = vm.Estado,
         };
 
         private static (List<VentasProducto> items, List<VentasProductosVariante> vars) MapItems(VMVenta vm)

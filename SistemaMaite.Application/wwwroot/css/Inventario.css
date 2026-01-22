@@ -671,3 +671,87 @@ thead, tr, tbody, th, td {
 }
 
 
+
+
+.producto-accordion {
+    border-radius: 10px;
+    margin-bottom: 8px;
+    background: #1b2230;
+    overflow: hidden;
+}
+
+.producto-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 14px;
+    cursor: pointer;
+    background: #202a3c;
+    font-weight: 600;
+}
+
+    .producto-header.open {
+        background: #25314a;
+    }
+
+.producto-arrow {
+    transition: transform .2s;
+}
+
+.producto-header.open .producto-arrow {
+    transform: rotate(180deg);
+}
+
+.producto-body {
+    display: none;
+    padding: 10px;
+}
+
+.variantes-scroll {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+}
+
+.variante-card {
+    min-width: 70px;
+    padding: 8px;
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    background: #111827;
+}
+
+    .variante-card.pos {
+        color: #22c55e;
+    }
+
+    .variante-card.neg {
+        color: #ef4444;
+    }
+
+    .variante-card.active {
+        outline: 2px solid #3b82f6;
+    }
+
+
+.variante-nombre {
+    font-size: 11px;
+    opacity: .8;
+    text-transform: uppercase;
+}
+
+.variante-talle {
+    font-size: 16px;
+    font-weight: 700;
+    margin-top: 2px;
+}
+
+.variante-stock {
+    font-size: 12px;
+    margin-top: 2px;
+}
+
+
+.variante-card {
+    min-width: 80px;
+}

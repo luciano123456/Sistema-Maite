@@ -3,25 +3,23 @@ using System.Collections.Generic;
 
 namespace SistemaMaite.Models;
 
-public partial class TalleresPago
+public partial class InsumosInventarioMovimiento
 {
     public int Id { get; set; }
 
-    public int IdTaller { get; set; }
-
-    public int? IdCuentaCorriente { get; set; }
-
-    public int? IdCaja { get; set; }
+    public int IdInventario { get; set; }
 
     public DateTime Fecha { get; set; }
 
-    public int IdCuenta { get; set; }
+    public string TipoMov { get; set; } = null!;
+
+    public int? IdMov { get; set; }
 
     public string Concepto { get; set; } = null!;
 
-    public decimal Importe { get; set; }
+    public int Entrada { get; set; }
 
-    public string NotaInterna { get; set; } = null!;
+    public int Salida { get; set; }
 
     public int? IdUsuarioRegistra { get; set; }
 
@@ -31,9 +29,7 @@ public partial class TalleresPago
 
     public DateTime? FechaModifica { get; set; }
 
-    public virtual Cuenta IdCuentaNavigation { get; set; } = null!;
-
-    public virtual Taller IdTallerNavigation { get; set; } = null!;
+    public virtual InsumosInventario IdInventarioNavigation { get; set; } = null!;
 
     public virtual User? IdUsuarioModificaNavigation { get; set; }
 

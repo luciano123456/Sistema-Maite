@@ -10,12 +10,12 @@ let isSaving = false;
 let wasSubmitVenta = false; // feedback sólo después de intentar guardar
 let wasSubmitPago = false;  // feedback en modal pago después de intentar registrar
 let __wasSubmitClienteRapido = false;
+const CLIENTE_DEFAULT_ID = 15;
 
 const State = {
     idVenta: parseInt((document.getElementById("txtId")?.value || "0"), 10) || 0,
     clienteId: 0,
     listaPrecioId: 0,
-    vendedorId: 0,
     sucursalId: 0,
     productos: [],
     cuentas: [],
@@ -26,7 +26,9 @@ const State = {
     items: [],
     pagos: [],
     editItemIndex: -1,
-    editPagoIndex: -1
+    editPagoIndex: -1,
+    estado: "PENDIENTE",
+
 };
 
 // ---------------- Helpers numéricos / fechas ----------------
@@ -119,7 +121,7 @@ function addComboSync(selector, stateKey, { extra = null } = {}) {
 function syncStateFromUI() {
     const dtp = document.getElementById("dtpFecha");
     if (dtp) { if (wasSubmitVenta) (dtp.value ? setValid(dtp) : setInvalid(dtp)); else clearValidation(dtp); }
-    [["#cmbCliente", "clienteId"], ["#cmbVendedor", "vendedorId"], ["#cmbListaPrecio", "listaPrecioId"], ["#cmbSucursal", "sucursalId"]].forEach(([sel, key]) => {
+    [["#cmbCliente", "clienteId"], ["#cmbListaPrecio", "listaPrecioId"], ["#cmbSucursal", "sucursalId"], ["#cmbEstado", "estado"]].forEach(([sel, key]) => {
         const el = document.querySelector(sel); if (!el) return;
         State[key] = el.value ? (isFinite(+el.value) ? +el.value : el.value) : 0;
         if (wasSubmitVenta) (State[key] ? setValid(el) : setInvalid(el)); else clearValidation(el);
@@ -131,7 +133,7 @@ function syncStateFromUI() {
 // Apaga TODA la validación visible (para la 1ra apertura o un reset manual)
 async function hideInitialRequiredHints(root = document) {
     wasSubmitVenta = false;
-    ["#dtpFecha", "#cmbCliente", "#cmbVendedor", "#cmbListaPrecio", "#cmbSucursal"].forEach(clearValidation);
+    ["#dtpFecha", "#cmbCliente", "#cmbListaPrecio", "#cmbSucursal", "#cmbEstado"].forEach(clearValidation);
     root.querySelectorAll(".invalid-feedback").forEach(fb => fb.style.display = "none");
     document.getElementById("errorCamposVenta")?.classList.add("d-none");
     updateGates();
@@ -140,7 +142,7 @@ async function hideInitialRequiredHints(root = document) {
 // ---------------- Gates de botones ----------------
 // Habilitar si hay Cliente + Vendedor + Lista Precio
 function updateGates() {
-    const ok = !!State.clienteId && !!State.vendedorId && !!State.listaPrecioId;
+    const ok = !!State.clienteId && !!State.listaPrecioId;
     const btnItem = document.querySelector('button[onclick="abrirModalItem()"]');
     const btnPago = document.querySelector('button[onclick="abrirModalPago()"]');
     [btnItem, btnPago].forEach(b => { if (!b) return; b.disabled = !ok; b.classList.toggle("disabled", !ok); b.style.opacity = ok ? 1 : .6; b.style.pointerEvents = ok ? "auto" : "none"; });
@@ -154,13 +156,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         // Select2
         initSelect2Base("#cmbCliente");
-        initSelect2Base("#cmbVendedor");
         initSelect2Base("#cmbListaPrecio");
         initSelect2Base("#cmbSucursal");
         removeEmptyOptionOnSelect("#cmbCliente");
-        removeEmptyOptionOnSelect("#cmbVendedor");
         removeEmptyOptionOnSelect("#cmbListaPrecio");
         removeEmptyOptionOnSelect("#cmbSucursal");
+        initSelect2Base("#cmbEstado");
+        removeEmptyOptionOnSelect("#cmbEstado");
 
         // listeners de revalidación (fecha)
         document.getElementById("dtpFecha")?.addEventListener("change", () => {
@@ -176,15 +178,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         addComboSync("#cmbListaPrecio", "listaPrecioId", {
             extra: () => { if (State.items.length) { State.items = []; refrescarItems(); recalcularTotales(); } }
         });
-        addComboSync("#cmbVendedor", "vendedorId");
         addComboSync("#cmbSucursal", "sucursalId");
+        addComboSync("#cmbEstado", "estado");
 
         // Cargar datos de combos/maestros
         await Promise.all([
-            cargarClientes(), cargarVendedores(), cargarListasPrecios(),
+            cargarClientes(), cargarListasPrecios(),
             cargarProductos(), cargarCuentas(), cargarSucursalesUsuario()
         ]);
 
+
+        $('#cmbCliente').val(String(CLIENTE_DEFAULT_ID)).trigger('change.select2');
         // Grillas
         configurarTablaItems();
         configurarTablaPagos();
@@ -201,6 +205,15 @@ document.addEventListener("DOMContentLoaded", async () => {
             setGuardarButtonMode("editar");
         } else {
             setGuardarButtonMode("crear");
+
+            State.estado = "PENDIENTE";
+            const cmbEstado = document.getElementById("cmbEstado");
+            if (cmbEstado) {
+                cmbEstado.value = "PENDIENTE";
+                if ($.fn.select2) $("#cmbEstado").val("PENDIENTE").trigger("change.select2");
+            }
+
+
             clearAllValidationVenta();
         }
 
@@ -220,14 +233,7 @@ async function cargarClientes() {
     if ($.fn.select2) $("#cmbCliente").trigger("change.select2");
     syncStateFromUI();
 }
-async function cargarVendedores() {
-    const r = await fetch("/Personal/Lista", { headers: { Authorization: "Bearer " + (token || "") } });
-    const d = r.ok ? await r.json() : []; State.vendedores = d || [];
-    const cmb = document.getElementById("cmbVendedor"); if (!cmb) return;
-    cmb.innerHTML = `<option value="">Seleccione</option>` + State.vendedores.map(x => `<option value="${x.Id}">${x.Nombre}</option>`).join("");
-    if ($.fn.select2) $("#cmbVendedor").trigger("change.select2");
-    syncStateFromUI();
-}
+
 async function cargarListasPrecios() {
     const r = await fetch("/ListasPrecios/Lista", { headers: { Authorization: "Bearer " + (token || "") } });
     const d = r.ok ? await r.json() : []; State.listas = d || [];
@@ -380,7 +386,6 @@ async function cargarVentaExistente(id) {
     const f = dateToInputValue(v.Fecha);
     const dtp = document.getElementById("dtpFecha"); if (dtp) dtp.value = f || hoyISO();
     document.getElementById("cmbCliente").value = v.IdCliente || "";
-    document.getElementById("cmbVendedor").value = v.IdVendedor || "";
     document.getElementById("cmbListaPrecio").value = v.IdListaPrecio || "";
 
     if (document.getElementById("cmbSucursal")) {
@@ -390,9 +395,22 @@ async function cargarVentaExistente(id) {
         State.sucursalId = v.IdSucursal || 0;
         if (State.Sucursales.length === 1) document.getElementById("cmbSucursal").setAttribute("disabled", "disabled");
     }
-    if ($.fn.select2) $("#cmbCliente, #cmbVendedor, #cmbListaPrecio").trigger("change.select2");
+
+    // Estado
+    const est = (v.Estado || v.estado || "PENDIENTE").toString().toUpperCase();
+    State.estado = (est === "FINALIZADA") ? "FINALIZADA" : "PENDIENTE";
+    const cmbEstado = document.getElementById("cmbEstado");
+    if (cmbEstado) {
+        cmbEstado.value = State.estado;
+        if ($.fn.select2) $("#cmbEstado").val(State.estado).trigger("change.select2");
+    }
+
+
+    if ($.fn.select2) $("#cmbCliente, #cmbListaPrecio").trigger("change.select2");
 
     syncStateFromUI();
+
+
 
     document.getElementById("txtNota").value = v.NotaInterna || "";
     document.getElementById("txtNotaCliente").value = v.NotaCliente || "";
@@ -493,13 +511,14 @@ function refrescarPagos() { if (!gridPagos) return; gridPagos.clear().rows.add(S
 
 // ---------------- Modal Producto ----------------
 window.abrirModalItem = async function () {
-    if (!(State.clienteId && State.vendedorId && State.listaPrecioId)) {
+    if (!(State.clienteId && State.listaPrecioId)) {
         advertenciaModal?.("Completá Cliente, Vendedor y Lista de Precios antes de agregar ítems.");
         return;
     }
     State.editItemIndex = -1;
 
     // Botón verde → Registrar
+
     const btn = document.querySelector("#modalItem .modal-footer .btn.btn-success");
     if (btn) btn.innerHTML = `<i class="fa fa-check me-1"></i> Registrar`;
 
@@ -511,7 +530,7 @@ window.abrirModalItem = async function () {
     document.getElementById("txtItemCant").value = "1";
     document.getElementById("txtItemPrecio").value = "";
     document.getElementById("txtItemDesc").value = "0";
-    document.getElementById("txtItemIva").value = "21";
+    document.getElementById("txtItemIva").value = "0";
     document.getElementById("txtItemSubtotal").value = "$ 0,00";
     setItemInputsEnabled(false);
 
@@ -655,8 +674,8 @@ function attachPagoLiveValidation() {
 }
 
 window.abrirModalPago = function () {
-    if (!(State.clienteId && State.vendedorId && State.listaPrecioId)) {
-        advertenciaModal?.("Completá Cliente, Vendedor y Lista de Precios antes de registrar pagos.");
+    if (!(State.clienteId && State.listaPrecioId)) {
+        advertenciaModal?.("Completá Cliente y Lista de Precios antes de registrar pagos.");
         return;
     }
     State.editPagoIndex = -1;
@@ -671,7 +690,14 @@ window.abrirModalPago = function () {
     const cmb = document.getElementById("cmbCuenta");
     cmb.innerHTML = `<option value="">Seleccione</option>` + State.cuentas.map(c => `<option value="${c.Id}">${c.Nombre || c.Descripcion || ("Cuenta " + c.Id)}</option>`).join("");
 
-    document.getElementById("txtPagoImporte").value = "";
+    // precargar importe con el restante de la venta
+    const tot = calcularTotalesInterno();
+    const abonado = (State.pagos || []).reduce((a, p) => a + (parseFloat(p.importe) || 0), 0);
+    const restante = Math.max(tot.total - abonado, 0);
+
+    document.getElementById("txtPagoImporte").value =
+        restante > 0 ? _toMiles(restante) : _toMiles(0);
+
     document.getElementById("txtPagoNota").value = "";
 
     attachPagoLiveValidation();
@@ -743,6 +769,20 @@ function recalcularTotales() {
     const elRs = document.getElementById("statRestante");
     if (elAb) elAb.textContent = `$ ${_fmtNumber(abonado)}`;
     if (elRs) { elRs.textContent = `$ ${_fmtNumber(restante)}`; elRs.classList.toggle("text-success", restante <= 0.000001); elRs.classList.toggle("text-warning", restante > 0.000001); }
+
+    // AUTO estado SOLO para ventas nuevas
+    if (!State.idVenta) {
+        const nuevoEstado = (restante <= 0.000001) ? "FINALIZADA" : "PENDIENTE";
+        State.estado = nuevoEstado;
+
+        const cmbEstado = document.getElementById("cmbEstado");
+        if (cmbEstado && cmbEstado.value !== nuevoEstado) {
+            cmbEstado.value = nuevoEstado;
+            if ($.fn.select2) $("#cmbEstado").val(nuevoEstado).trigger("change.select2");
+        }
+    }
+
+
 }
 
 function setGuardarButtonMode(mode) {
@@ -755,9 +795,10 @@ function camposVentaValidos() {
     let ok = true;
     ok = (document.getElementById("dtpFecha").value ? setValid("#dtpFecha") : setInvalid("#dtpFecha")) && ok;
     ok = (State.clienteId ? setValid("#cmbCliente") : setInvalid("#cmbCliente")) && ok;
-    ok = (State.vendedorId ? setValid("#cmbVendedor") : setInvalid("#cmbVendedor")) && ok;
     ok = (State.listaPrecioId ? setValid("#cmbListaPrecio") : setInvalid("#cmbListaPrecio")) && ok;
     ok = (State.sucursalId ? setValid("#cmbSucursal") : setInvalid("#cmbSucursal")) && ok;
+    ok = (State.estado ? setValid("#cmbEstado") : setInvalid("#cmbEstado")) && ok;
+
     return ok;
 }
 
@@ -770,7 +811,7 @@ function updateFormErrorBanner() {
 
 function clearAllValidationVenta() {
     wasSubmitVenta = false;
-    ["#dtpFecha", "#cmbCliente", "#cmbVendedor", "#cmbListaPrecio", "#cmbSucursal"].forEach(clearValidation);
+    ["#dtpFecha", "#cmbCliente", "#cmbListaPrecio", "#cmbSucursal", "#cmbEstado"].forEach(clearValidation);
     document.getElementById("errorCamposVenta")?.classList.add("d-none");
 }
 
@@ -788,9 +829,10 @@ window.guardarVenta = async function () {
     const tot = calcularTotalesInterno();
     const payload = {
         Id: State.idVenta || 0, Fecha: fecha,
-        IdCliente: State.clienteId, IdVendedor: State.vendedorId, IdListaPrecio: State.listaPrecioId, IdSucursal: State.sucursalId,
+        IdCliente: State.clienteId, IdListaPrecio: State.listaPrecioId, IdSucursal: State.sucursalId,
         Subtotal: tot.sub, Descuentos: tot.desc, TotalIva: tot.iva, ImporteTotal: tot.total,
         NotaInterna: notaInterna, NotaCliente: notaCliente,
+        Estado: State.estado,
         Productos: State.items.map(i => ({
             Id: i.id || 0, IdProducto: i.idProducto,
             PrecioUnitario: i.precioUnitario,
@@ -886,11 +928,34 @@ async function exportarVentaPdf() {
 
     let y = 135;
     doc.setTextColor(...TXT); doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.text("Datos de la operación", padX, y); y += 16;
-    const clienteTxt = _textSel("cmbCliente") || "—"; const vendedorTxt = _textSel("cmbVendedor") || "—";
+    const clienteTxt = _textSel("cmbCliente") || "—";
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold"); doc.text("Cliente:", padX, y); doc.setFont("helvetica", "normal"); doc.text(clienteTxt, padX + 55, y);
-    doc.setFont("helvetica", "bold"); doc.text("Vendedor:", padX + 300, y); doc.setFont("helvetica", "normal"); doc.text(vendedorTxt, padX + 370, y);
+
     y += 14; _hr(doc, y); y += 18;
+
+    // ---------------- Nota Cliente ----------------
+    const notaCliente = document.getElementById("txtNotaCliente")?.value?.trim();
+
+    if (notaCliente) {
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(11);
+        doc.text("Nota cliente:", padX, y);
+
+        y += 14;
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10);
+
+        const maxWidth = W - padX * 2;
+        const notaLines = doc.splitTextToSize(notaCliente, maxWidth);
+
+        doc.text(notaLines, padX, y);
+
+        y += (notaLines.length * 14) + 6;
+        _hr(doc, y);
+        y += 18;
+    }
+
 
     const fixedCols = [{ header: "Cant", width: 60 }, { header: "P.Unit", width: 90 }, { header: "Subtotal", width: 110 }];
     const fixedWidth = fixedCols.reduce((a, c) => a + c.width, 0);

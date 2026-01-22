@@ -4,11 +4,10 @@ let gridVentas;
 const columnConfigVentas = [
     { index: 1, filterType: 'text' },                                  // Fecha
     { index: 2, filterType: 'select', fetchDataFunc: listaClientesFilter }, // Cliente
-    { index: 3, filterType: 'select', fetchDataFunc: listaVendedoresFilter }, // Vendedor
-    { index: 4, filterType: 'text' },                                  // Subtotal
-    { index: 5, filterType: 'text' },                                  // Descuentos
-    { index: 6, filterType: 'text' },                                  // IVA
-    { index: 7, filterType: 'text' },                                  // Total
+    { index: 3, filterType: 'text' },                                  // Subtotal
+    { index: 4, filterType: 'text' },                                  // Descuentos
+    { index: 5, filterType: 'text' },                                  // IVA
+    { index: 6, filterType: 'text' },                                  // Total
 ];
 
 $(document).ready(() => {
@@ -98,7 +97,6 @@ async function configurarDataTableVentas(data) {
                 },
                 { data: "Fecha", title: "Fecha", render: f => formatearFechaParaVista(f) },
                 { data: "Cliente", title: "Cliente" },
-                { data: "Vendedor", title: "Vendedor" },
                 { data: "Subtotal", title: "Subtotal", className: "text-end", render: n => formatNumber(n) },
                 { data: "Descuentos", title: "Descuentos", className: "text-end", render: n => formatNumber(n) },
                 { data: "TotalIva", title: "IVA", className: "text-end", render: n => formatNumber(n) },

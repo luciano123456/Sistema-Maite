@@ -21,6 +21,7 @@ namespace SistemaMaite.Application.Models.ViewModels
 
         public string? NotaInterna { get; set; }
         public string? NotaCliente { get; set; }
+        public string? Estado { get; set; }
 
         public string Cliente { get; set; } = "";
         public string Vendedor { get; set; } = "";

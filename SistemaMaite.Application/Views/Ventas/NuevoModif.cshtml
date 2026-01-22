@@ -44,7 +44,7 @@
                             </select>
 
                             <button type="button"
-                                    class="btn btn-success btn-plus"
+                                    class="btn btn-success btn-pl   us"
                                     title="Nuevo cliente"
                                     onclick="abrirModalNuevoClienteVenta()">
                                 <i class="fa fa-plus"></i>
@@ -55,26 +55,31 @@
                     </div>
 
                     <div class="col-md-6">
-                        <label class="form-label">Vendedor</label>
-                        <select id="cmbVendedor" class="form-select" required>
-                            <option value="">Seleccione</option>
-                        </select>
-                        <div class="invalid-feedback">Campo obligatorio</div>
-                    </div>
-                    <div class="col-md-6">
                         <label class="form-label">Lista de Precios</label>
                         <select id="cmbListaPrecio" class="form-select" required>
                             <option value="">Seleccione</option>
                         </select>
                         <div class="invalid-feedback">Campo obligatorio</div>
                     </div>
-                    <div class="col-md-12">
+                    <div class="col-md-6">
                         <label class="form-label">Sucursal</label>
                         <select id="cmbSucursal" class="form-select" required>
                             <option value="">Seleccione</option>
                         </select>
                         <div class="invalid-feedback">Campo obligatorio</div>
                     </div>
+
+
+                    <div class="col-md-12">
+                        <label class="form-label">Estado</label>
+                        <select id="cmbEstado" class="form-select" required>
+                            <option value="PENDIENTE">PENDIENTE</option>
+                            <option value="FINALIZADA">FINALIZADA</option>
+                        </select>
+                        <div class="invalid-feedback">Campo obligatorio</div>
+                    </div>
+
+
                     <div class="col-12">
                         <label class="form-label">Nota interna</label>
                         <textarea id="txtNota" class="form-control" rows="2"></textarea>
@@ -126,7 +131,6 @@
                         </div>
                     </div>
                 </div>
-
 
                 <div class="d-grid mt-3">
                     <button id="btnGuardarVenta" class="btn btn-primary btn-lg" type="button" onclick="guardarVenta()">
@@ -229,7 +233,7 @@
                     </div>
                     <div class="col-6 col-xl-3">
                         <label class="form-label">% IVA</label>
-                        <input type="text" id="txtItemIva" class="form-control Inputmiles" value="21" />
+                        <input type="text" id="txtItemIva" class="form-control Inputmiles" value="0" />
                     </div>
                     <div class="col-12">
                         <label class="form-label">Subtotal calculado</label>

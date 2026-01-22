@@ -21,8 +21,9 @@ const columnConfig = [
     { index: 3, filterType: "text" },
     { index: 4, filterType: "text" },
     { index: 5, filterType: "text" },
-    { index: 6, filterType: "select", fetchDataFunc: listaSucursalesFilter },
-    { index: 7, filterType: "select", fetchDataFunc: listaCuentasFilter },
+    { index: 6, filterType: "text" },
+    { index: 7, filterType: "select", fetchDataFunc: listaSucursalesFilter },
+    { index: 8, filterType: "select", fetchDataFunc: listaCuentasFilter },
 ];
 
 /* ============================
@@ -36,6 +37,11 @@ $(document).ready(() => {
     ["#numImporte", "#cmbTipoMov"].forEach((sel) => {
         $(sel).on("input change", () => validarReglaMontos());
     });
+
+    const hoy = moment().format('YYYY-MM-DD');
+
+    $('#fltDesde').val(hoy);
+    $('#fltHasta').val(hoy);
 });
 
 /* ========== Validación movimiento manual ========== */
@@ -288,6 +294,14 @@ async function configurarDataTableCaja(data) {
                         const v = parseFloat(data);
                         return v > 0 ? `<span style="color:red;font-weight:bold;">${formatNumber(v)}</span>` : "";
                     },
+                },
+                {
+                    data: "Saldo",
+                    className: "text-end fw-bold",
+                    render: function (data) {
+                        let clase = data < 0 ? "text-danger" : "text-success";
+                        return `<span class="${clase}">${formatNumber(data)}</span>`;
+                    }
                 },
                 { data: "Sucursal", title: "Sucursal" },
                 { data: "Cuenta", title: "Cuenta" },
