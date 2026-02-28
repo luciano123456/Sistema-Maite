@@ -8,6 +8,7 @@ const Modelo_base = {
     Telefono: "",
     TelefonoAlternativo: "",
     Dni: "",
+
     Cuit: "",
     IdCondicionIva: null,
     Domicilio: "",
