@@ -16,6 +16,9 @@ const Modelo_base = {
     Email: "",
     CodigoPostal: "",
     IdListaPrecio: null
+
+
+
 };
 
 // --- Config de filtros por columna (thead) ---
