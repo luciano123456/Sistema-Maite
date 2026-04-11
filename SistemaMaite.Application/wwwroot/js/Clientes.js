@@ -8,6 +8,7 @@ const Modelo_base = {
     Telefono: "",
     TelefonoAlternativo: "",
     Dni: "",
+
     Cuit: "",
     IdCondicionIva: null,
     Domicilio: "",
@@ -16,9 +17,6 @@ const Modelo_base = {
     Email: "",
     CodigoPostal: "",
     IdListaPrecio: null
-
-
-
 };
 
 // --- Config de filtros por columna (thead) ---

@@ -10,6 +10,9 @@ const Catalogos = {
     categoriasMap: new Map(),
     proveedores: [],
     proveedoresMap: new Map()
+
+
+
 };
 
 /* ---------- Filtros DataTable ---------- */

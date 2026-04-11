@@ -40,8 +40,8 @@
                 return response.json(); // Parsear la respuesta JSON
             })
             .then(data => {
-                
-                
+
+
                 if (data.success) {
                     localStorage.setItem("JwtToken", data.token)
                     // Si "Recordar credenciales" está seleccionado, guarda las credenciales
@@ -60,7 +60,7 @@
 
                     // Redirigir a la página principal
                     localStorage.setItem('userSession', JSON.stringify(data.user)); // Guardar el usuario
-                    window.location.href = 'Home';
+                    window.location.href = 'Ventas';
                 } else {
                     // Mostrar el mensaje de error
                     $(document).ready(function () {
