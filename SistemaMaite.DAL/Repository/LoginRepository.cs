@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 using SistemaMaite.DAL.DataContext;
 using SistemaMaite.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace SistemaMaite.DAL.Repository
 {
@@ -21,16 +22,12 @@ namespace SistemaMaite.DAL.Repository
         }
 
         public async Task<User> Login(string username, string password)
-        { 
-            User user = _dbcontext.Usuarios.Where(x => x.Usuario == username).FirstOrDefault();
+        {
+            var user = await _dbcontext.Usuarios
+                .Include(x => x.IdRolNavigation) // 🔥 TRAE EL ROL
+                .FirstOrDefaultAsync(x => x.Usuario == username);
 
-            if (user != null)
-            {
-                return user;
-            } else
-            {
-                return null;
-            }
+            return user;
         }
 
         public async Task<bool> Logout()

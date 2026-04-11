@@ -183,6 +183,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     syncSaveButton();
     await hideInitial();
     recomputeAll(); // coherencia inicial
+
+    registrarEventosEstadoOC();
+    registrarListenerConfiguracionesGlobales();
+
 });
 
 /* ---- Binding robusto para #txtCantProducidas ---- */
@@ -1466,3 +1470,90 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 });
+
+
+
+function registrarEventosEstadoOC() {
+    const btnCrearEstado = document.getElementById("btnCrearEstadoOC");
+
+    if (!btnCrearEstado) return;
+
+    btnCrearEstado.addEventListener("click", async function () {
+        try {
+            await abrirConfiguracion(
+                "Estados Ordenes de Corte",   // nombre visible
+                "OrdenesCorteEstados",      // controller configuracion
+                null,                 // comboNombre
+                null,                 // comboController
+                null,                  // lblComboNombre
+                true
+            );
+        } catch (e) {
+            console.error("Error al abrir configuraciones de estados", e);
+            errorModal("No se pudo abrir la configuración de estados.");
+        }
+    });
+}
+
+
+function registrarListenerConfiguracionesGlobales() {
+    document.addEventListener("configuracionActualizada", async function (e) {
+        try {
+            const detail = e.detail || {};
+            const tipo = detail.tipo || "";
+            const nuevoId = detail.nuevoId || null;
+
+            if (tipo === "OrdenesCorteEstados") {
+                await recargarEstadosOC(true, nuevoId);
+            }
+        } catch (err) {
+            console.error("Error procesando configuracionActualizada", err);
+        }
+    });
+}
+
+async function recargarEstadosOC(mantenerSeleccion = true, idSeleccionar = null) {
+    try {
+        const select = document.getElementById("cmbEstado"); // 👈 IMPORTANTE (no IdEstado)
+        if (!select) return;
+
+        const valorActual = mantenerSeleccion ? select.value : "";
+
+        // 🔥 traemos estados igual que tu sistema
+        const estados = await fetchFirstOk(
+            ["/OrdenesCorte/Estados", "/OrdenesCorteEstados/Lista"],
+            authHeaders()
+        );
+
+        State.estadosOC = Array.isArray(estados) ? estados : [];
+
+        // 🔥 llenar select
+        select.innerHTML =
+            `<option value="">Seleccione</option>` +
+            State.estadosOC.map(x =>
+                `<option value="${x.Id}">${x.Nombre}</option>`
+            ).join("");
+
+        // 🔥 restaurar selección
+        if (idSeleccionar) {
+            select.value = String(idSeleccionar);
+        } else if (valorActual) {
+            const existe = State.estadosOC.some(x => String(x.Id) === String(valorActual));
+            if (existe) {
+                select.value = String(valorActual);
+            }
+        }
+
+        // 🔥 refrescar UI (select2 o normal)
+        if (window.jQuery && $(select)?.hasClass("select2-hidden-accessible")) {
+            $(select).trigger("change.select2");
+        } else if (window.jQuery) {
+            $(select).trigger("change");
+        } else {
+            select.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+
+    } catch (e) {
+        console.error("Error recargando estados OC", e);
+    }
+}

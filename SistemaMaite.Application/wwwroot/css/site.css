@@ -1496,3 +1496,82 @@ select.is-invalid + .select2 .select2-selection .form-field-icon::before {
 .form-select.is-invalid {
     padding-right: 2.6rem;
 }
+
+
+
+.vn-select-plus {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+    /* SELECT2 FULL WIDTH */
+    .vn-select-plus .select2-container {
+        width: 100% !important;
+    }
+
+    /* SELECT2 ESTILO */
+    .vn-select-plus .select2-selection {
+        height: 42px !important;
+        border-radius: 10px !important;
+        padding-right: 42px !important; /* espacio para el + */
+        background: #0f172a !important; /* dark */
+        border: 1px solid #1e293b !important;
+        color: #fff !important;
+    }
+
+    /* TEXTO */
+    .vn-select-plus .select2-selection__rendered {
+        line-height: 42px !important;
+        color: #e2e8f0 !important;
+    }
+
+    /* FLECHA */
+    .vn-select-plus .select2-selection__arrow {
+        right: 38px !important; /* mover flecha */
+    }
+
+/* BOTÓN + */
+.vn-btn-plus {
+    position: absolute;
+    right: 4px;
+    top: 4px;
+    width: 34px;
+    height: 34px;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+    /* HOVER */
+    .vn-btn-plus:hover {
+        transform: scale(1.05);
+        background: linear-gradient(135deg, #4ade80, #22c55e);
+    }
+
+    /* ACTIVE */
+    .vn-btn-plus:active {
+        transform: scale(0.95);
+    }
+
+    /* ICON */
+    .vn-btn-plus i {
+        font-size: 13px;
+    }
+
+/* FOCUS SELECT */
+.vn-select-plus .select2-container--focus .select2-selection {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
+}
+
+.vn-cards-wrap {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+}

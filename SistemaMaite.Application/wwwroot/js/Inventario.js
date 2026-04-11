@@ -691,14 +691,14 @@ async function cargarMovimientos() {
 
         rows = rows.map(r => ({ ...r, Saldo: saldoPorId.get(r.Id) ?? r.Saldo }));
 
-        if (State.productoSel?.idProd || State.productoSel?.idVariante) rows = [_filaStockAnterior(stockAnterior, desde), ...rows];
+        if (State.productoSel?.idProd || State.productoSel?.idVariante) renderStockAnterior(stockAnterior, desde);
 
         rows.sort((a, b) => {
             const d = new Date(b.Fecha) - new Date(a.Fecha);
             return d !== 0 ? d : (b.Id || 0) - (a.Id || 0);
         });
 
-        await configurarTablaMov(rows);
+        renderTimelineMovimientos(rows);
         actualizarKPIsDesdeTabla();
         setTimeout(() => gridMovs?.columns.adjust(), 10);
     } catch (e) {
@@ -708,117 +708,114 @@ async function cargarMovimientos() {
 }
 
 /* ============================ DataTable ============================ */
+function renderStockAnterior(valor, fecha) {
+    const cont = $("#stockAnteriorBox");
 
-async function configurarTablaMov(data) {
-    const sel = "#grd_Movs";
-
-    if (!$(sel + " thead tr.filters").length) {
-        $(sel + " thead tr").clone(true).addClass("filters").appendTo(sel + " thead");
+    if (valor === null || valor === undefined) {
+        cont.hide();
+        return;
     }
 
-    if (!gridMovs) {
-        gridMovs = $(sel).DataTable({
-            data,
-            language: { url: "//cdn.datatables.net/plug-ins/2.0.7/i18n/es-MX.json" },
-            scrollX: true,
-            scrollCollapse: true,
-            columnDefs: [
-                { targets: [0, 2, 3, 4, 5, 6, 7, 8, 9, 10], orderable: false }
-            ],
-            order: [[1, "desc"]], // fecha
-            columns: [
-                { data: "Id", title: "", width: "1%", orderable: false, searchable: false, render: () => "" },
-                {
-                    data: "Fecha", title: "Fecha", className: "text-center",
-                    render: function (data, type, row) {
-                        if (row.__isStock) {
-                            if (type === "display" || type === "filter") {
-                                const v = Number(row.__stockAnterior || 0);
-                                const badge = v < 0 ? "bg-danger" : "bg-success";
-                                return `<div class="saldo-anterior-chip text-center"><span class="badge ${badge}">Stock anterior</span></div>`;
-                            }
-                            return data;
-                        }
-                        if (type === "display" || type === "filter") return formatearFechaParaVista(data);
-                        return data;
-                    }
-                },
-                { data: "Tipo", title: "Tipo", className: "text-center" },
-                { data: "Producto", title: "Producto", className: "text-center" },
-                { data: "Talle", title: "Talle", className: "text-center" },
-                { data: "Color", title: "Color", className: "text-center" },
-                {
-                    data: "Concepto", title: "Concepto", className: "text-center",
-                    render: function (data, type, row) {
-                        if (!row.__isStock) return data || "";
-                        const m = Number(row.__stockAnterior || 0);
-                        const cls = m < 0 ? "text-danger" : "text-success";
-                        return `<div class="saldo-anterior-chip text-center">
-                          <span class="fw-bold ${cls}">${row.Concepto}</span>
-                          <span class="fw-bold ${cls}">${fmtQty(m)}</span>
-                        </div>`;
-                    }
-                },
-                { data: "Entrada", title: "Entrada", className: "text-center", render: v => { const n = Number(v) || 0; return n > 0 ? `<span style="font-weight:700;color:#28a745;">${fmtQty(n)}</span>` : ""; } },
-                { data: "Salida", title: "Salida", className: "text-center", render: v => { const n = Number(v) || 0; return n > 0 ? `<span style="font-weight:700;color:#E32709;">${fmtQty(n)}</span>` : ""; } },
-                { data: "Saldo", title: "Stock", className: "text-center", render: v => `<span style="font-weight:700;">${fmtQty(v)}</span>` },
-                { data: "Sucursal", title: "Sucursal", className: "text-center" }
-            ],
-            dom: "Bfrtip",
-            buttons: ["pageLength"],
-            orderCellsTop: true,
-            fixedHeader: true,
-            initComplete: async function () {
-                const api = this.api();
+    cont.show().html(`
+        <div class="stock-anterior-card">
+            <div class="titulo">
+                Stock inicial
+            </div>
+            <div class="detalle">
+                Desde ${fecha}
+            </div>
+            <div class="valor ${valor >= 0 ? 'pos' : 'neg'}">
+                ${fmtQty(valor)}
+            </div>
+        </div>
+    `);
+}
 
-                for (const config of columnConfig) {
-                    const cell = $(".filters th").eq(config.index);
+function renderTimelineMovimientos(data) {
+    const cont = $("#timelineMovs");
+    cont.empty();
 
-                    if (config.filterType === "select") {
-                        const $sel = $(`<select><option value="">Seleccionar</option></select>`)
-                            .appendTo(cell.empty())
-                            .on("change", function () {
-                                const val = this.value;
-                                if (val === "") { api.column(config.index).search("").draw(); return; }
-                                const text = $(this).find("option:selected").text();
-                                api.column(config.index).search("^" + escapeRegex(text) + "$", true, false).draw();
-                            });
+    let lastFecha = null;
 
-                        let items = config.items || [];
-                        if (!items.length && typeof config.fetchDataFunc === "function") {
-                            try { items = await config.fetchDataFunc(); } catch { }
-                        }
-                        (items || []).forEach(it => $sel.append(`<option value="${it.Id}">${it.Nombre || ""}</option>`));
-                    } else {
-                        $('<input type="text" placeholder="Buscar..." />')
-                            .appendTo(cell.empty())
-                            .off("keyup change")
-                            .on("keyup change", function (e) {
-                                e.stopPropagation();
-                                const regexr = "({search})";
-                                const cursorPosition = this.selectionStart ?? 0;
-                                api
-                                    .column(config.index)
-                                    .search(this.value !== "" ? regexr.replace("{search}", "(((" + escapeRegex(this.value) + ")))") : "", this.value !== "", this.value === "")
-                                    .draw();
-                                $(this).focus()[0].setSelectionRange(cursorPosition, cursorPosition);
-                            });
-                    }
-                }
-                $(".filters th").eq(0).html("");
+    data.forEach(m => {
 
-                configurarOpcionesColumnas("#grd_Movs", "#configColumnasMenu", "Inventario_Columnas");
+        const fecha = formatearFechaParaVista(m.Fecha);
 
-                api.on("draw", actualizarKPIsDesdeTabla);
+        // 🔥 Agrupar por fecha
+        if (fecha !== lastFecha) {
+            cont.append(`
+                <div class="timeline-date">
+                    ${fecha}
+                </div>
+            `);
+            lastFecha = fecha;
+        }
 
-                setTimeout(() => gridMovs.columns.adjust(), 10);
-                setTimeout(() => gridMovs.columns.adjust(), 100);
-            }
-        });
-    } else {
-        gridMovs.clear().rows.add(data).draw();
-        setTimeout(() => gridMovs.columns.adjust(), 10);
-    }
+        // 🔥 COLOR PRINCIPAL (para borde)
+        const tipoColor =
+            m.Entrada > 0 ? "green" :
+                m.Salida > 0 ? "red" :
+                    "blue";
+
+        // 🔥 CHIP TIPO
+        const tipoClass =
+            (m.Tipo || "").toUpperCase().includes("ENTRADA") ? "tipo-entrada" :
+                (m.Tipo || "").toUpperCase().includes("SALIDA") || (m.Tipo || "").toUpperCase().includes("VENTA") ? "tipo-salida" :
+                    (m.Tipo || "").toUpperCase().includes("TRANSFER") ? "tipo-transfer" :
+                        "tipo-default";
+
+        // 🔥 SIGNO Y VALOR
+        const esEntrada = (Number(m.Entrada) || 0) > 0;
+        const cantidad = esEntrada ? m.Entrada : m.Salida;
+        const signo = esEntrada ? "+" : "-";
+
+        // 🔥 STOCK COLOR
+        const stockClass = (Number(m.Saldo) || 0) >= 0 ? "stock-pos" : "stock-neg";
+
+        cont.append(`
+            <div class="mov-card ${tipoColor}">
+                
+                <!-- IZQUIERDA -->
+                <div class="mov-left">
+                    
+                    <div class="producto">
+                        ${m.Producto || ""}
+                    </div>
+
+                    <div class="variante">
+                        ${m.Talle || "-"} • ${m.Color || "-"}
+                    </div>
+
+                    <div class="concepto">
+                        ${m.Concepto || ""}
+                    </div>
+
+                    <div class="sucursal">
+                        ${m.Sucursal || ""}
+                    </div>
+
+                </div>
+
+                <!-- DERECHA -->
+                <div class="mov-right">
+
+                    <div class="tipo-chip ${tipoClass}">
+                        ${m.Tipo || ""}
+                    </div>
+
+                    <div class="cantidad ${tipoColor}">
+                        ${signo}${fmtQty(cantidad || 0)}
+                    </div>
+
+                    <div class="stock ${stockClass}">
+                        ${fmtQty(m.Saldo || 0)}
+                    </div>
+
+                </div>
+
+            </div>
+        `);
+    });
 }
 
 /* ============================ KPIs ============================ */

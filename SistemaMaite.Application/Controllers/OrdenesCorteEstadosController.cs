@@ -44,7 +44,7 @@ namespace SistemaMaite.Application.Controllers
 
             bool respuesta = await _OrdenesCorteEstadosService.Insertar(result);
 
-            return Ok(new { valor = respuesta });
+            return Ok(new { valor = respuesta, id = result.Id });
         }
 
         [HttpPut]

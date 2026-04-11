@@ -16,6 +16,7 @@ const columnConfigOC = [
 
 $(document).ready(() => {
     initFiltrosOC();
+  
 });
 
 /* ---------------- Navegación / Acciones ---------------- */

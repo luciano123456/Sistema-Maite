@@ -87,13 +87,20 @@
                         <input type="date" id="dtpFechaInicio" class="form-control editable-field" required />
                         <div class="invalid-feedback">Campo obligatorio</div>
                     </div>
-                    <div class="col-md-6">
+                   
+
+                      <div class="col-md-6">
                         <label class="form-label">Estado</label>
-                        <select id="cmbEstado" class="form-select editable-field" required>
-                            <option value="">Seleccione</option>
-                        </select>
-                        <div class="invalid-feedback">Campo obligatorio</div>
-                    </div>
+                            <div class="vn-select-plus">
+                                <select id="cmbEstado" class="form-select vn-input"></select>
+
+                            <button type="button" id="btnCrearEstadoOC" class="vn-btn-plus">
+                                    <i class="fa fa-plus"></i>
+                                </button>
+                            </div>
+
+                            <div class="invalid-feedback">Campo obligatorio</div>
+                        </div>
 
                     <div class="col-md-8">
                         <label class="form-label">Personal responsable</label>

@@ -5,28 +5,166 @@
 
 <link href="~/css/navbarlogin.css" rel="stylesheet" />
 
+<nav class="navbar navbar-expand-lg navbar-dark nav-user fixed-top" id="navbarLogin">
 
-<nav class="navbar navbar-expand navbar-light nav-user" id="navbarLogin">
-    <div class="container-fluid d-flex justify-content-between align-items-center">
+    <div class="container-fluid">
 
-        <!-- Nombre de usuario y menú desplegable -->
-        <ul class="navbar-nav">
-            <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle text-white" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" onclick="event.stopPropagation();">
-                    <span id="userName">Usuario</span>
-                </a>
-                <div class="dropdown-menu" id="userMenu" aria-labelledby="navbarDropdown">
-                    <a class="dropdown-item" href="#" onclick="abrirConfiguracionUser()">Configuración</a>
-                    <div class="dropdown-divider"></div>
-                    <a class="dropdown-item" href="#" onclick="window.location.href='/Login/Logout';">Cerrar sesión</a>
-                </div>
-            </li>
+        <!-- LOGO -->
+        <a class="navbar-brand fw-bold" href="#">
+            <i class="fa fa-cubes"></i> Sistema
+        </a>
 
-        </ul>
- 
+        <!-- MOBILE TOGGLE -->
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <!-- MENU DINÁMICO -->
+        <div class="collapse navbar-collapse" id="mainMenu">
+
+            <ul class="navbar-nav me-auto" id="menuDinamico">
+                <!-- SE GENERA POR JS -->
+            </ul>
+
+            <!-- USER -->
+            <ul class="navbar-nav">
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle text-white" href="#" id="navbarDropdown" data-bs-toggle="dropdown">
+                        <span id="userName">Usuario</span>
+                    </a>
+
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="#" onclick="abrirConfiguracionUser()">Configuración</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="/Login/Logout">Cerrar sesión</a></li>
+                    </ul>
+                </li>
+            </ul>
+
+        </div>
     </div>
 </nav>
 
 
+<!-- Modal Configuraciones -->
+<div class="modal fade rp-modal" id="modalConfiguracion" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-md">
+        <div class="modal-content rp-modal-content">
 
-<script src="~/js/NavBarLogin.js?v=1.0" asp-append-version="true"></script>
+            <!-- HEADER -->
+            <div class="modal-header rp-modal-header">
+                <div>
+                    <div class="rp-modal-title" id="modalConfiguracionLabel">
+                        <i class="fa fa-cogs"></i>
+                        Configuración
+                    </div>
+                    <div class="rp-modal-subtitle">
+                        Editá los valores disponibles
+                    </div>
+                </div>
+
+                <button type="button"
+                        class="btn-close rp-btn-close"
+                        data-bs-dismiss="modal">
+                </button>
+            </div>
+
+            <!-- BODY -->
+            <div class="modal-body">
+
+                <!-- MENSAJE LISTA VACIA -->
+                <label id="lblListaVacia"
+                       class="rp-empty-label"
+                       hidden>
+                </label>
+
+                <!-- BUSCADOR -->
+                <div class="rp-search-box" id="contenedorBuscadorConfiguracion">
+                    <i class="fa fa-search rp-search-icon"></i>
+                    <input type="text"
+                           id="txtBuscarConfiguracion"
+                           class="rp-input rp-search-input"
+                           placeholder="Buscar configuración...">
+                </div>
+
+                <!-- LISTA -->
+                <div class="rp-list-container" id="configuracion-list">
+                    <!-- Se llena dinámicamente -->
+                </div>
+
+                <!-- PANEL EDICION -->
+                <div id="contenedorNombreConfiguracion"
+                     class="rp-edit-panel"
+                     hidden>
+
+                    <label id="lblNombreConfiguracion"
+                           class="rp-label"
+                           for="txtNombreConfiguracion">
+                        Nombre
+                    </label>
+
+                    <input type="text"
+                           class="rp-input"
+                           id="txtNombreConfiguracion">
+
+                    <input type="hidden"
+                           id="txtIdConfiguracion">
+
+                    <!-- COMBO OPCIONAL -->
+                    <div id="divConfiguracionCombo" style="margin-top:12px;" hidden>
+                        <label id="lblConfiguracionCombo"
+                               class="rp-label">
+                        </label>
+
+                        <select id="cmbConfiguracion"
+                                class="rp-input">
+                        </select>
+                    </div>
+
+                    <!-- BOTONES -->
+                    <div class="rp-edit-actions">
+                        <button id="btnRegistrarModificarConfiguracion"
+                                class="rp-btn rp-btn-primary"
+                                onclick="guardarCambiosConfiguracion()">
+                            <i class="fa fa-check"></i>
+                            Guardar
+                        </button>
+
+                        <button class="rp-btn rp-btn-soft"
+                                onclick="cancelarModificarConfiguracion()">
+                            <i class="fa fa-times"></i>
+                            Cancelar
+                        </button>
+                    </div>
+
+                </div>
+
+                <!-- BOTON AÑADIR -->
+                <div class="rp-add-container">
+                    <button id="agregarConfiguracion"
+                            class="rp-btn rp-btn-primary"
+                            onclick="agregarConfiguracion()">
+                        <i class="fa fa-plus"></i>
+                        Añadir nuevo
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- FOOTER -->
+            <div class="modal-footer rp-modal-footer">
+                <button class="rp-btn rp-btn-soft"
+                        data-bs-dismiss="modal"
+                        >
+                    <i class="fa fa-arrow-left"></i>
+                    Volver
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+<script src="~/js/NavBarLogin.js?v=1.2" asp-append-version="true"></script>

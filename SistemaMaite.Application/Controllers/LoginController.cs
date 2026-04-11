@@ -62,27 +62,31 @@ namespace SistemaBronx.Application.Controllers
                     // Guardar token en cookie HttpOnly para que el navegador lo envíe en cada request
                     Response.Cookies.Append("JwtToken", token, new CookieOptions
                     {
-                        HttpOnly = true,   // Evita acceso desde JS
-                        Secure = true,     // Solo HTTPS
-                        SameSite = SameSiteMode.Lax,
+                        HttpOnly = true,
+                        Secure = true,
+                        SameSite = SameSiteMode.None, // 🔥 CLAVE EN PRODUCCIÓN
                         Expires = DateTimeOffset.UtcNow.AddHours(2)
                     });
+
+                    var vmUser = new VMUser
+                    {
+                        Id = user.Id,
+                        Usuario = user.Usuario,
+                        Nombre = user.Nombre,
+                        Apellido = user.Apellido,
+                        Direccion = user.Direccion,
+                        Dni = user.Dni,
+                        Telefono = user.Telefono,
+                        IdRol = user.IdRol,
+                        IdEstado = user.IdEstado,
+                        Rol = user.IdRolNavigation?.Nombre
+                    };
 
                     return Ok(new
                     {
                         success = true,
                         token,
-                        user = new
-                        {
-                            user.Id,
-                            user.Usuario,
-                            user.IdRol,
-                            user.Nombre,
-                            user.Apellido,
-                            user.Direccion,
-                            user.Dni,
-                            user.Telefono
-                        }
+                        user = vmUser
                     });
                 }
 
