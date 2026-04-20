@@ -1575,3 +1575,123 @@ select.is-invalid + .select2 .select2-selection .form-field-icon::before {
     grid-template-columns: 1fr;
     gap: 14px;
 }
+
+
+
+
+/* =========================
+   NO ACCESS (GLOBAL)
+========================= */
+
+.no-access-wrapper {
+    height: 100vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #0f172a, #020617);
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.no-access-card {
+    background: rgba(255,255,255,0.05);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 18px;
+    padding: 50px 40px;
+    text-align: center;
+    color: #fff;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+    animation: noAccessFadeIn 0.3s ease;
+}
+
+.no-access-icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+    color: #60a5fa;
+}
+
+.no-access-title {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.no-access-text {
+    font-size: 14px;
+    opacity: 0.75;
+    margin-bottom: 30px;
+}
+
+.no-access-btn {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    border: none;
+    color: white;
+    padding: 12px 22px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+    .no-access-btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 8px 25px rgba(59,130,246,0.4);
+    }
+
+@keyframes noAccessFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+
+
+/* =========================
+   BADGE PERMISOS
+========================= */
+
+.rp-mod-item-count {
+    background: rgba(255,255,255,0.08);
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+    /* 🔥 SI TIENE PERMISOS */
+    .rp-mod-item-count.activo {
+        background: linear-gradient(135deg, #16a34a, #22c55e);
+        color: #fff;
+        box-shadow: 0 0 10px rgba(34,197,94,0.4);
+    }
+
+    /* 🔥 SI ES 0 */
+    .rp-mod-item-count.inactivo {
+        background: rgba(255,255,255,0.05);
+        color: rgba(255,255,255,0.5);
+    }
+
+/* =========================
+   SELECCIÓN (IMPORTANTE)
+========================= */
+
+.rp-mod-item.active {
+    background: linear-gradient(135deg, #1d4ed8, #2563eb);
+    color: #fff;
+    box-shadow: 0 8px 25px rgba(37,99,235,0.4);
+}
+
+/* HOVER */
+.rp-mod-item:hover {
+    background: rgba(255,255,255,0.05);
+}

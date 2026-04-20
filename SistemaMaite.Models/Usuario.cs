@@ -69,7 +69,7 @@ public partial class User
 
     public virtual EstadosUsuario IdEstadoNavigation { get; set; } = null!;
 
-    public virtual Rol IdRolNavigation { get; set; } = null!;
+    public virtual UsuariosRol IdRolNavigation { get; set; } = null!;
 
     public virtual ICollection<Insumo> InsumoIdUsuarioModificaNavigations { get; set; } = new List<Insumo>();
 
@@ -138,6 +138,12 @@ public partial class User
     public virtual ICollection<TalleresPago> TalleresPagoIdUsuarioModificaNavigations { get; set; } = new List<TalleresPago>();
 
     public virtual ICollection<TalleresPago> TalleresPagoIdUsuarioRegistraNavigations { get; set; } = new List<TalleresPago>();
+
+    public virtual ICollection<UsuariosPermisosUsuario> UsuariosPermisosUsuarioIdUsuarioModificaNavigations { get; set; } = new List<UsuariosPermisosUsuario>();
+
+    public virtual ICollection<UsuariosPermisosUsuario> UsuariosPermisosUsuarioIdUsuarioNavigations { get; set; } = new List<UsuariosPermisosUsuario>();
+
+    public virtual ICollection<UsuariosPermisosUsuario> UsuariosPermisosUsuarioIdUsuarioRegistraNavigations { get; set; } = new List<UsuariosPermisosUsuario>();
 
     public virtual ICollection<UsuariosSucursal> UsuariosSucursales { get; set; } = new List<UsuariosSucursal>();
 

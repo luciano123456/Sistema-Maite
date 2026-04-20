@@ -41,7 +41,6 @@ namespace SistemaMaite.Application.Controllers
 
             return Ok(vms);
         }
-
         // ---- Movimientos (devuelve saldo anterior + lista)
         [HttpGet]
         public async Task<IActionResult> Lista(int idCliente, DateTime? desde, DateTime? hasta, int? idSucursal, string? texto)

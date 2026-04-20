@@ -60,7 +60,7 @@
 
                     // Redirigir a la página principal
                     localStorage.setItem('userSession', JSON.stringify(data.user)); // Guardar el usuario
-                    window.location.href = 'Ventas';
+                    window.location.href = 'Dashboard';
                 } else {
                     // Mostrar el mensaje de error
                     $(document).ready(function () {
