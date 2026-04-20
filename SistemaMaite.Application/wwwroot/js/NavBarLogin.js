@@ -1,6 +1,6 @@
 ﻿/* =========================================================
    NAVBAR LOGIN - COMPLETO
-   - Menú dinámico por rol
+   - Menú dinámico por UsuariosRol
    - Respeta secciones reales de Home
    - Incluye Configuraciones completas
    - Reutiliza abrirConfiguracion / editar / eliminar / guardar
@@ -32,21 +32,75 @@
     });
 
     function inicializarNavbarLogin() {
-        const userSession = JSON.parse(localStorage.getItem("userSession"));
-        if (!userSession) return;
 
-        const rol = normalizarRol(userSession.Rol || "");
-        const nombreCompleto = `${userSession.Nombre || ""} ${userSession.Apellido || ""}`.trim();
+    const userSession = JSON.parse(localStorage.getItem("userSession"));
+    if (!userSession) return;
 
-        const userNameEl = document.getElementById("userName");
-        if (userNameEl) {
-            userNameEl.innerHTML = `<i class="fa fa-user"></i> ${nombreCompleto || "Usuario"}`;
-        }
+    const nombreCompleto = `${userSession.Nombre || ""} ${userSession.Apellido || ""}`.trim();
 
-        const seccionesVisibles = buildMenuByRol(rol);
-        renderMenu(seccionesVisibles);
-        marcarActivoSegunRuta();
+    const userNameEl = document.getElementById("userName");
+    if (userNameEl) {
+        userNameEl.innerHTML = `<i class="fa fa-user"></i> ${nombreCompleto || "Usuario"}`;
     }
+
+    // 🔥 SIN ROL
+    const menuFiltrado = buildMenuPorPermisos();
+
+    renderMenu(menuFiltrado);
+    marcarActivoSegunRuta();
+}
+
+function buildMenuPorPermisos() {
+
+    const user = JSON.parse(localStorage.getItem("userSession"));
+    const permisos = user?.Permisos || [];
+
+    function normalizar(txt) {
+        return (txt || "")
+            .toLowerCase()
+            .replace(/\s+/g, "")
+            .replace(/[^\w]/g, "");
+    }
+
+    function tienePermisoPorUrl(url) {
+
+        if (!url) return true;
+
+        const urlNorm = normalizar(url);
+
+        return permisos.some(mod => {
+
+            const codigo = normalizar(mod.CodigoModulo);
+
+            if (!codigo) return false;
+
+            // 🔥 match URL con código
+            const coincide = urlNorm.includes(codigo);
+            if (!coincide) return false;
+
+            // 🔥 permiso VER
+            return (mod.Permisos || []).some(p =>
+                p.Codigo === "VER" && p.Activo === true
+            );
+        });
+    }
+
+    return MENU_CATALOG.map(section => {
+
+        const itemsFiltrados = section.items.filter(item => {
+
+            if (item.type !== "link") return true;
+
+            return tienePermisoPorUrl(item.url);
+        });
+
+        return {
+            ...section,
+            items: itemsFiltrados
+        };
+
+    }).filter(section => section.items.length > 0);
+}
 
     /* =========================================================
        HELPERS
@@ -59,8 +113,8 @@
             .toLowerCase();
     }
 
-    function esAdministracion(rol) {
-        return rol === "Administracion";
+    function esAdministracion(UsuariosRol) {
+        return UsuariosRol === "Administracion";
     }
 
     function makeLinkItem(text, url) {
@@ -208,7 +262,7 @@
             roles: ["Administracion"],
             items: [
                 makeActionItem("Listas de Precios", () => abrirConfiguracion("Lista de Precios", "ListasPrecios")),
-                makeActionItem("Roles", () => abrirConfiguracion("Rol", "Roles")),
+                makeActionItem("Roles", () => abrirConfiguracion("UsuariosRol", "Roles")),
                 makeActionItem("Sucursales", () => abrirConfiguracion("Sucursal", "Sucursales")),
                 makeActionItem("Cuentas", () => abrirConfiguracion("Cuenta", "Cuentas")),
                 makeActionItem("Bancos", () => abrirConfiguracion("Banco", "Bancos")),
@@ -241,18 +295,9 @@
     ];
 
     /* =========================================================
-       FILTRO POR ROL
+       FILTRO POR UsuariosRol
     ========================================================= */
-    function buildMenuByRol(rol) {
-        if (esAdministracion(rol)) {
-            return MENU_CATALOG;
-        }
-
-        return MENU_CATALOG.filter(section =>
-            section.roles.some(r => normalizarRol(r) === rol)
-        );
-    }
-
+   
     /* =========================================================
        RENDER MENU
     ========================================================= */

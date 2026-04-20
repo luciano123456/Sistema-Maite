@@ -24,7 +24,7 @@ namespace SistemaMaite.DAL.Repository
         public async Task<User> Login(string username, string password)
         {
             var user = await _dbcontext.Usuarios
-                .Include(x => x.IdRolNavigation) // 🔥 TRAE EL ROL
+                .Include(x => x.IdRolNavigation) // 🔥 TRAE EL UsuariosRol
                 .FirstOrDefaultAsync(x => x.Usuario == username);
 
             return user;

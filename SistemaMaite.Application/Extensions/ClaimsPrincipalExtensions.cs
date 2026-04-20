@@ -14,7 +14,7 @@ namespace SistemaMaite.Application.Extensions
 
         public static int? GetRolId(this ClaimsPrincipal user)
         {
-            var rid = user?.FindFirst("Rol")?.Value;
+            var rid = user?.FindFirst("UsuariosRol")?.Value;
             if (int.TryParse(rid, out var val)) return val;
             return null;
         }
