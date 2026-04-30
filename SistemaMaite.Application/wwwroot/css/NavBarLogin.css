@@ -79,17 +79,17 @@
 
 .btnModificarConfiguracion-container {
     display: flex;
-    justify-content: center; /* Centra el bot髇 horizontalmente */
-    align-items: center; /* Centra el bot髇 verticalmente (si es necesario) */
-    width: 100%; /* Aseg鷕ate de que el contenedor tome el ancho completo del modal */
+    justify-content: center; /* Centra el bot贸n horizontalmente */
+    align-items: center; /* Centra el bot贸n verticalmente (si es necesario) */
+    width: 100%; /* Aseg煤rate de que el contenedor tome el ancho completo del modal */
     margin-bottom: 10px;
 }
 
 .btnAgregarConfiguracion-container {
     display: flex;
-    justify-content: right; /* Centra el bot髇 horizontalmente */
-    align-items: center; /* Centra el bot髇 verticalmente (si es necesario) */
-    width: 100%; /* Aseg鷕ate de que el contenedor tome el ancho completo del modal */
+    justify-content: right; /* Centra el bot贸n horizontalmente */
+    align-items: center; /* Centra el bot贸n verticalmente (si es necesario) */
+    width: 100%; /* Aseg煤rate de que el contenedor tome el ancho completo del modal */
     margin-bottom: 10px;
     margin-top: 30px;
 }
@@ -406,7 +406,7 @@
 
 
 
-/* Si us醩 clase personalizada */
+/* Si us谩s clase personalizada */
 .rp-input select,
 .rp-input option {
     color: #000 !important;
@@ -558,7 +558,7 @@
     border-radius: 8px;
 }
 
-/* ANIMACI覰 */
+/* ANIMACI脫N */
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -619,6 +619,11 @@
     border: 2px dashed #374151;
     border-radius: 10px;
     margin: 8px 0;
+}
+
+/* 脕rea combo configuraci贸n (antes inline en NavBarLogin.cshtml) */
+.mt-nav-config-combo {
+    margin-top: 12px;
 }
 
 

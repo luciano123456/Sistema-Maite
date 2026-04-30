@@ -1,4 +1,4 @@
-﻿/* =========================================================
+/* =========================================================
    Pedidos.css — Skin oscuro + UI (mismo estilo que Ventas)
    Cargar DESPUÉS de usuarios.css
    ========================================================= */
@@ -82,6 +82,23 @@ body {
 
 .page-99 {
     max-width: 99% !important;
+}
+
+/* Espacio bajo navbar fija (sacado de style="margin-top: …" en vistas) */
+.mt-layout-100 {
+    margin-top: 100px;
+}
+
+.mt-layout-40 {
+    margin-top: 40px;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.mt-nav-config-combo {
+    margin-top: 12px;
 }
 
 .fw-800 {
@@ -569,16 +586,7 @@ select.is-valid + .select2 .select2-selection {
     margin-top: 10px !important;
 }
 
-/* Hover/selección de filas (si marcás .seleccionada en JS) */
-#grd_Pedidos tbody tr.seleccionada,
-#grd_Pedidos tbody tr.seleccionada td {
-    background: var(--dt-row-hover) !important;
-}
-
-#grd_Productos tbody tr.seleccionada,
-#grd_Productos tbody tr.seleccionada td {
-    background: var(--dt-row-hover) !important;
-}
+/* Selección de filas DataTables: table.dataTable.dt-selectable + .seleccionada (site.css + site.js) */
 
 /* Botón “Nuevo Pedido” coherente */
 .acciones-externas .btn {
@@ -1028,6 +1036,8 @@ select.is-valid + .select2 .select2-selection {
 
 .select2-results__options {
     max-height: 260px; /* scroll amigable */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .select2-results__option {
@@ -1408,6 +1418,13 @@ table.dataTable tbody tr.selected {
             min-width: 0;
             border-radius: 12px;
             overflow: hidden;
+        }
+
+        /* Config. columnas: scroll interno + buscador (no recortar con overflow:hidden del contenedor) */
+        .page-99 .tabla-controls-top .dropdown-menu.column-config-dropdown {
+            overflow-x: hidden;
+            overflow-y: auto;
+            max-height: min(60vh, 380px);
         }
 
     /* 3) DataTables: length, buscador, info y paginación en vertical */
@@ -2041,3 +2058,8 @@ table.dataTable.display tbody tr.selected td {
         transform: translateY(-1px);
         box-shadow: 0 4px 12px rgba(0,0,0,.35);
     }
+
+/* Modal insumos (Views/Shared/Partials/M_Insumos.cshtml) */
+.modal-dialog.modal-insumos-xl-wide {
+    max-width: 1080px;
+}

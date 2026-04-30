@@ -1,8 +1,7 @@
 ﻿/* =========================================================
    NAVBAR LOGIN - COMPLETO
-   - Menú dinámico por UsuariosRol
-   - Respeta secciones reales de Home
-   - Incluye Configuraciones completas
+   - Menú dinámico por permisos
+   - Catálogos de configuración en menú Extras (cada ítem según VER)
    - Reutiliza abrirConfiguracion / editar / eliminar / guardar
 ========================================================= */
 
@@ -57,42 +56,167 @@ function buildMenuPorPermisos() {
 
     function normalizar(txt) {
         return (txt || "")
+            .toString()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim()
             .toLowerCase()
             .replace(/\s+/g, "")
             .replace(/[^\w]/g, "");
     }
 
-    function tienePermisoPorUrl(url) {
+    /** Clave de menú/código canónico → variantes reales en Usuarios_Modulos.Codigo (normalizadas). */
+    const SINONIMOS_MENU_CODIGO_BD = {
+        cuentascorrientes: ["ccclientes"],
+        cuentascorrientesproveedores: ["ccproveedores"],
+        cuentascorrientestalleres: ["cctalleres"],
+        personal: ["empleados"],
+        personalsueldos: ["sueldos"],
+        /** BD a veces guarda nombre con espacios: "Ordenes de Corte" → ordenesdecorte */
+        ordenescorte: ["ordenesdecorte", "ordenesdecortes"],
+        /** Maestro /Talleres: solo código canónico + singular. CC va por cuentascorrientestalleres / cctalleres (otra entrada del menú). */
+        talleres: ["taller"]
+    };
 
-        if (!url) return true;
+    function clavesCompatibles(norm) {
+        const set = new Set([norm]);
+        for (const [k, alts] of Object.entries(SINONIMOS_MENU_CODIGO_BD)) {
+            const altsN = alts.map(normalizar);
+            if (norm === k || altsN.some(a => a === norm)) {
+                set.add(k);
+                altsN.forEach(a => set.add(a));
+            }
+        }
+        return set;
+    }
 
-        const urlNorm = normalizar(url);
+    function contarFilasConNombreNorm(nNorm) {
+        if (!nNorm) return 0;
+        return permisos.filter(m => normalizar(m.Modulo) === nNorm).length;
+    }
 
+    /**
+     * CC Talleres (CuentasCorrientesTalleres). Se discrimina por CodigoModulo en sesión
+     * (p. ej. "CC Talleres", "CuentasCorrientesTalleres") — no confundir con maestro "Talleres".
+     */
+    function esModuloCcTalleres(mod) {
+        const c = normalizar(mod.CodigoModulo || "");
+        if (!c) return false;
+        if (c === "cctalleres" || c === "cuentascorrientestalleres") return true;
+        return false;
+    }
+
+    /**
+     * usuarios_modulos: maestro Talleres (IdGrupo Producción) con Codigo = "Ordenes de Corte" (duplicado del módulo OC).
+     * CC Talleres usa Codigo "CC Talleres".
+     */
+    function esMaestroTalleresCodigoDuplicadoOrdenesCorte(mod) {
+        if (esModuloCcTalleres(mod)) return false;
+        const n = normalizar(mod.Modulo || "");
+        const c = normalizar(mod.CodigoModulo || "");
+        return n === "talleres" && (c === "ordenesdecorte" || c === "ordenescorte");
+    }
+
+    /** Permisos de OC no deben tomarse de la fila Talleres que reutiliza el mismo CodigoModulo. */
+    function esSolicitudSoloOrdenesCorte(codigoModuloNorm) {
+        const x = codigoModuloNorm || "";
+        return x === "ordenescorte" || x === "ordenesdecorte" || x === "ordenescortes";
+    }
+
+    /** Maestro /Talleres: Codigo "Talleres"/"Taller" o fila BD con Codigo duplicado OC. */
+    function moduloTieneMaestroTalleresPorSesion(codigoPerm) {
+        const permNorm = (codigoPerm || "VER").toString().trim().toUpperCase();
         return permisos.some(mod => {
-
-            const codigo = normalizar(mod.CodigoModulo);
-
-            if (!codigo) return false;
-
-            // 🔥 match URL con código
-            const coincide = urlNorm.includes(codigo);
-            if (!coincide) return false;
-
-            // 🔥 permiso VER
+            if (esModuloCcTalleres(mod)) return false;
+            const c = normalizar(mod.CodigoModulo || "");
+            const n = normalizar(mod.Modulo || "");
+            const okCod = c === "talleres" || c === "taller";
+            const okBdDuplicado = esMaestroTalleresCodigoDuplicadoOrdenesCorte(mod);
+            if (!okCod && !okBdDuplicado) return false;
             return (mod.Permisos || []).some(p =>
-                p.Codigo === "VER" && p.Activo === true
+                (p.Codigo || "").toString().trim().toUpperCase() === permNorm && p.Activo === true
+            );
+        });
+    }
+
+    function moduloTiene(codigoModuloNorm, codigoPerm) {
+        if (!codigoModuloNorm) return false;
+        const keys = clavesCompatibles(codigoModuloNorm);
+        const permNorm = (codigoPerm || "VER").toString().trim().toUpperCase();
+        return permisos.some(mod => {
+            if (esMaestroTalleresCodigoDuplicadoOrdenesCorte(mod) && esSolicitudSoloOrdenesCorte(codigoModuloNorm)) {
+                return false;
+            }
+            const c = normalizar(mod.CodigoModulo);
+            const n = normalizar(mod.Modulo);
+            const matchCod = c && keys.has(c);
+            const matchNom = n && keys.has(n);
+            if (!matchCod && !matchNom) return false;
+            if (matchNom && !matchCod && contarFilasConNombreNorm(n) > 1) {
+                const excepcionTalleresMaestro =
+                    codigoModuloNorm === "talleres" && esMaestroTalleresCodigoDuplicadoOrdenesCorte(mod);
+                if (!excepcionTalleresMaestro) return false;
+            }
+            return (mod.Permisos || []).some(p =>
+                (p.Codigo || "").toString().trim().toUpperCase() === permNorm && p.Activo === true
+            );
+        });
+    }
+
+    /** Primer segmento de ruta (ej. /Personal/Sueldos → personal), sin ambigüedad tipo personal ⊂ personalsueldos */
+    function primerSegmentoPath(url) {
+        const path = String(url || "").split("?")[0].split("#")[0];
+        const seg = path.split("/").filter(p => p.length > 0)[0] || "";
+        return normalizar(seg);
+    }
+
+    function itemPermitido(item) {
+        if (item.type === "action") {
+            const lista = listaCodigosMenuItem(item.moduloCodigo);
+            if (lista == null) return true;
+            const reqA = item.requiredPerm || "VER";
+            return lista.some(code => moduloTiene(normalizar(code), reqA));
+        }
+        if (item.type !== "link") return true;
+
+        const req = item.requiredPerm || "VER";
+
+        const listaMc = listaCodigosMenuItem(item.moduloCodigo);
+        if (listaMc && listaMc.some(code => moduloTiene(normalizar(code), req))) {
+            return true;
+        }
+
+        const pathOnly = String(item.url || "").split("?")[0].split("#")[0];
+        if (listaMc && /^\/Talleres(\/|$)/i.test(pathOnly) && moduloTieneMaestroTalleresPorSesion(req)) {
+            return true;
+        }
+
+        const pathKey = primerSegmentoPath(item.url);
+        const keysPath = clavesCompatibles(pathKey);
+
+        const reqNorm = (req || "VER").toString().trim().toUpperCase();
+        return permisos.some(mod => {
+            if (esMaestroTalleresCodigoDuplicadoOrdenesCorte(mod) && (pathKey === "ordenescorte" || pathKey === "ordenesdecorte" || pathKey === "ordenescortes")) {
+                return false;
+            }
+            const codigo = normalizar(mod.CodigoModulo);
+            const nombre = normalizar(mod.Modulo);
+            const hitCod = codigo && keysPath.has(codigo);
+            const hitNom = nombre && keysPath.has(nombre);
+            if (!hitCod && !hitNom) return false;
+            if (hitNom && !hitCod && contarFilasConNombreNorm(nombre) > 1) {
+                const exTall = pathKey === "talleres" && esMaestroTalleresCodigoDuplicadoOrdenesCorte(mod);
+                if (!exTall) return false;
+            }
+            return (mod.Permisos || []).some(p =>
+                (p.Codigo || "").toString().trim().toUpperCase() === reqNorm && p.Activo === true
             );
         });
     }
 
     return MENU_CATALOG.map(section => {
 
-        const itemsFiltrados = section.items.filter(item => {
-
-            if (item.type !== "link") return true;
-
-            return tienePermisoPorUrl(item.url);
-        });
+        const itemsFiltrados = section.items.filter(item => itemPermitido(item));
 
         return {
             ...section,
@@ -101,6 +225,13 @@ function buildMenuPorPermisos() {
 
     }).filter(section => section.items.length > 0);
 }
+
+    function listaCodigosMenuItem(raw) {
+        if (raw == null || raw === "") return null;
+        const arr = Array.isArray(raw) ? raw : [raw];
+        const filtrados = arr.map(x => String(x).trim()).filter(Boolean);
+        return filtrados.length ? filtrados : null;
+    }
 
     /* =========================================================
        HELPERS
@@ -117,19 +248,26 @@ function buildMenuPorPermisos() {
         return UsuariosRol === "Administracion";
     }
 
-    function makeLinkItem(text, url) {
+    /** requiredPerm: VER = listado; CREAR = altas NuevoModif. moduloCodigo: string | string[] (Codigo y/o sinónimos en UsuariosModulos). */
+    function makeLinkItem(text, url, requiredPerm, moduloCodigo) {
+        const lista = listaCodigosMenuItem(moduloCodigo);
         return {
             type: "link",
             text,
-            url
+            url,
+            requiredPerm: requiredPerm || "VER",
+            moduloCodigo: lista
         };
     }
 
-    function makeActionItem(text, action) {
+    /** moduloCodigo: mismo Codigo que en UsuariosModulos (ej. ListasPrecios). null = siempre visible. */
+    function makeActionItem(text, action, moduloCodigo) {
         return {
             type: "action",
             text,
-            action
+            action,
+            moduloCodigo: moduloCodigo != null ? moduloCodigo : null,
+            requiredPerm: "VER"
         };
     }
 
@@ -145,6 +283,8 @@ function buildMenuPorPermisos() {
 
     /* =========================================================
        CATÁLOGO REAL DEL SISTEMA
+       Cada item.url es la misma ruta que @Url.Action("Index","<Controller>") en Views/Home/Index.cshtml
+       (un segmento: /Talleres, /CuentasCorrientesTalleres, …).
     ========================================================= */
     const MENU_CATALOG = [
 
@@ -157,9 +297,9 @@ function buildMenuPorPermisos() {
             icon: "fa-industry",
             roles: ["Administracion", "produccion"],
             items: [
-                makeLinkItem("Órdenes de Corte", "/OrdenesCorte"),
-                makeLinkItem("➕ Nueva Orden de Corte", "/OrdenesCorte/NuevoModif"), // 🔥 clave
-                makeLinkItem("Talleres", "/Talleres")
+                makeLinkItem("Órdenes de Corte", "/OrdenesCorte", "VER", ["OrdenesCorte", "Ordenes de Corte"]),
+                makeLinkItem("➕ Nueva Orden de Corte", "/OrdenesCorte/NuevoModif", "CREAR", ["OrdenesCorte", "Ordenes de Corte"]),
+                makeLinkItem("Talleres", "/Talleres", "VER", ["Talleres", "Taller"])
             ]
         },
 
@@ -172,8 +312,9 @@ function buildMenuPorPermisos() {
             icon: "fa-boxes",
             roles: ["Administracion"],
             items: [
-                makeLinkItem("Historial", "/Inventario"),
-                makeLinkItem("Compras", "/Compras")
+                makeLinkItem("Historial", "/Inventario", "VER", "Inventario"),
+                makeLinkItem("Compras", "/Compras", "VER", "Compras"),
+                makeLinkItem("➕ Nueva compra", "/Compras/NuevoModif", "CREAR", "Compras")
             ]
         },
 
@@ -186,11 +327,11 @@ function buildMenuPorPermisos() {
             icon: "fa-list",
             roles: ["Administracion"],
             items: [
-                makeLinkItem("Productos", "/Productos"),
-                makeLinkItem("Insumos", "/Insumos"),
-                makeLinkItem("Clientes", "/Clientes"),
-                makeLinkItem("Proveedores", "/Proveedores"),
-                makeLinkItem("Personal", "/Personal")
+                makeLinkItem("Productos", "/Productos", "VER", "Productos"),
+                makeLinkItem("Insumos", "/Insumos", "VER", "Insumos"),
+                makeLinkItem("Clientes", "/Clientes", "VER", "Clientes"),
+                makeLinkItem("Proveedores", "/Proveedores", "VER", "Proveedores"),
+                
             ]
         },
 
@@ -203,8 +344,8 @@ function buildMenuPorPermisos() {
             icon: "fa-shopping-cart",
             roles: ["Administracion", "ventas"],
             items: [
-                makeLinkItem("Historial", "/Ventas"),
-                makeLinkItem("➕ Nueva Venta", "/Ventas/NuevoModif"), // 🔥 clave
+                makeLinkItem("Historial", "/Ventas", "VER", "Ventas"),
+                makeLinkItem("➕ Nueva Venta", "/Ventas/NuevoModif", "CREAR", "Ventas"),
             ]
         },
 
@@ -217,9 +358,9 @@ function buildMenuPorPermisos() {
             icon: "fa-wallet",
             roles: ["Administracion"],
             items: [
-                makeLinkItem("Clientes", "/CuentasCorrientes"),
-                makeLinkItem("Proveedores", "/CuentasCorrientesProveedores"),
-                makeLinkItem("Talleres", "/CuentasCorrientesTalleres")
+                makeLinkItem("Clientes", "/CuentasCorrientes", "VER", ["CuentasCorrientes", "CC Clientes"]),
+                makeLinkItem("Proveedores", "/CuentasCorrientesProveedores", "VER", ["CuentasCorrientesProveedores", "CC Proveedores"]),
+                makeLinkItem("Talleres", "/CuentasCorrientesTalleres", "VER", ["CuentasCorrientesTalleres", "CC Talleres"])
             ]
         },
 
@@ -232,8 +373,8 @@ function buildMenuPorPermisos() {
             icon: "fa-credit-card",
             roles: ["Administracion", "finanzas"],
             items: [
-                makeLinkItem("Cajas", "/Cajas"),
-                makeLinkItem("Gastos", "/Gastos")
+                makeLinkItem("Cajas", "/Cajas", "VER", "Cajas"),
+                makeLinkItem("Gastos", "/Gastos", "VER", "Gastos")
             ]
         },
 
@@ -246,38 +387,14 @@ function buildMenuPorPermisos() {
             icon: "fa-users",
             roles: ["Administracion"],
             items: [
-                makeLinkItem("Empleados", "/Personal"),
-                makeLinkItem("Sueldos", "/PersonalSueldos"),
-                makeLinkItem("➕ Nuevo Pago", "/PersonalSueldos/NuevoModif"), // 🔥 clave
+                makeLinkItem("Empleados", "/Personal", "VER", ["Personal", "Empleados"]),
+                makeLinkItem("Sueldos", "/PersonalSueldos", "VER", ["PersonalSueldos", "Sueldos"]),
+                makeLinkItem("➕ Nuevo Pago", "/PersonalSueldos/NuevoModif", "CREAR", ["PersonalSueldos", "Sueldos"]),
             ]
         },
 
         // =========================================
-        // ⚙️ CONFIGURACIONES
-        // =========================================
-        {
-            id: "configuraciones",
-            title: "Configuraciones",
-            icon: "fa-cogs",
-            roles: ["Administracion"],
-            items: [
-                makeActionItem("Listas de Precios", () => abrirConfiguracion("Lista de Precios", "ListasPrecios")),
-                makeActionItem("Roles", () => abrirConfiguracion("UsuariosRol", "Roles")),
-                makeActionItem("Sucursales", () => abrirConfiguracion("Sucursal", "Sucursales")),
-                makeActionItem("Cuentas", () => abrirConfiguracion("Cuenta", "Cuentas")),
-                makeActionItem("Bancos", () => abrirConfiguracion("Banco", "Bancos")),
-                makeActionItem("Colores", () => abrirConfiguracion("Color", "Colores")),
-                makeActionItem("Personal Puestos", () => abrirConfiguracion("Personal Puesto", "PersonalPuestos")),
-                makeActionItem("Gastos Categorías", () => abrirConfiguracion("Gastos Categorias", "GastosCategorias")),
-                makeActionItem("Productos Categorías", () => abrirConfiguracion("Productos Categorias", "ProductosCategoria")),
-                makeActionItem("Insumos Categorías", () => abrirConfiguracion("Insumos Categorias", "InsumosCategoria")),
-                makeActionItem("Estados Órdenes de Corte", () => abrirConfiguracion("Estados Ordenes de Corte", "OrdenesCorteEstados")),
-                makeActionItem("Etapas Estados Órdenes de Corte", () => abrirConfiguracion("Etapas Estados Ordenes de Corte", "OrdenesCorteEtapasEstados"))
-            ]
-        },
-
-        // =========================================
-        // 🧩 EXTRAS
+        // 🧩 EXTRAS (incluye catálogos de configuración; cada ítem se filtra por permiso VER)
         // =========================================
         {
             id: "extras",
@@ -285,7 +402,20 @@ function buildMenuPorPermisos() {
             icon: "fa-puzzle-piece",
             roles: ["Administracion"],
             items: [
-                makeLinkItem("Usuarios", "/Usuarios"),
+                makeActionItem("Listas de Precios", () => abrirConfiguracion("Lista de Precios", "ListasPrecios"), "ListasPrecios"),
+                makeActionItem("Roles", () => abrirConfiguracion("UsuariosRol", "Roles"), "Roles"),
+                makeActionItem("Sucursales", () => abrirConfiguracion("Sucursal", "Sucursales"), "Sucursales"),
+                makeActionItem("Cuentas", () => abrirConfiguracion("Cuenta", "Cuentas"), "Cuentas"),
+                makeActionItem("Bancos", () => abrirConfiguracion("Banco", "Bancos"), "Bancos"),
+                makeActionItem("Colores", () => abrirConfiguracion("Color", "Colores"), "Colores"),
+                makeActionItem("Personal Puestos", () => abrirConfiguracion("Personal Puesto", "PersonalPuestos"), "PersonalPuestos"),
+                makeActionItem("Gastos Categorías", () => abrirConfiguracion("Gastos Categorias", "GastosCategorias"), "GastosCategorias"),
+                makeActionItem("Productos Categorías", () => abrirConfiguracion("Productos Categorias", "ProductosCategoria"), "ProductosCategoria"),
+                makeActionItem("Insumos Categorías", () => abrirConfiguracion("Insumos Categorias", "InsumosCategoria"), "InsumosCategoria"),
+                makeActionItem("Productos Categorías Talles", () => abrirConfiguracion("Productos Categorias Talles", "ProductosCategoriasTalle", "Productos Categoria", "ProductosCategoria", "Categoria"), "ProductosCategoriasTalle"),
+                makeActionItem("Estados Órdenes de Corte", () => abrirConfiguracion("Estados Ordenes de Corte", "OrdenesCorteEstados"), "OrdenesCorteEstados"),
+                makeActionItem("Etapas Estados Órdenes de Corte", () => abrirConfiguracion("Etapas Estados Ordenes de Corte", "OrdenesCorteEtapasEstados"), "OrdenesCorteEtapasEstados"),
+                makeLinkItem("Usuarios", "/Usuarios", "VER", "Usuarios"),
                 makeActionItem("Análisis de datos", () => {
                     if (window.errorModal) errorModal("Análisis de datos aún no disponible");
                     else alert("Análisis de datos aún no disponible");
@@ -426,7 +556,8 @@ function buildMenuPorPermisos() {
         _comboNombre = null,
         _comboController = null,
         _lblComboNombre,
-        esAtajo = false
+        esAtajo = false,
+        presetComboValue = null
     ) {
         try {
 
@@ -446,9 +577,20 @@ function buildMenuPorPermisos() {
             }
 
             //$('#ModalEdicionConfiguraciones').modal('hide');
-            const modal = new bootstrap.Modal(document.getElementById('modalConfiguracion'));
+            const modalCfgEl = document.getElementById("modalConfiguracion");
+            if (typeof window.ponerModalConfiguracionAlFrente === "function") {
+                window.ponerModalConfiguracionAlFrente();
+            }
+            const modal = new bootstrap.Modal(modalCfgEl);
             modal.show();
+            if (typeof window.ponerModalConfiguracionAlFrente === "function") {
+                requestAnimationFrame(() => window.ponerModalConfiguracionAlFrente());
+            }
             cancelarModificarConfiguracion();
+
+            $('#txtNombreConfiguracion').off('input').on('input', validarCamposConfiguracion);
+            $('#cmbConfiguracion').off('change').on('change', validarCamposConfiguracion);
+            $('#txtBuscarConfiguracion').off('input').on('input', filtrarConfiguraciones);
 
             // 🔥 MODO ATAJO
             if (esAtajo) {
@@ -461,6 +603,38 @@ function buildMenuPorPermisos() {
                 // abrir directamente en "nuevo"
                 agregarConfiguracion();
 
+                if (presetComboValue != null && String(presetComboValue) !== "" && comboNombre != null) {
+                    const cmb = document.getElementById("cmbConfiguracion");
+                    if (cmb) {
+                        const raw = String(presetComboValue).trim();
+                        let valorOpt = null;
+                        if (cmb.querySelector(`option[value="${CSS.escape(raw)}"]`)) {
+                            valorOpt = raw;
+                        } else {
+                            const n = Number(raw);
+                            if (Number.isFinite(n)) {
+                                for (let i = 0; i < cmb.options.length; i++) {
+                                    const ov = cmb.options[i].value;
+                                    if (ov === "") continue;
+                                    if (Number(ov) === n) {
+                                        valorOpt = ov;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        if (valorOpt != null) {
+                            cmb.value = valorOpt;
+                            if (typeof window.jQuery !== "undefined") {
+                                window.jQuery(cmb).trigger("change");
+                            } else {
+                                cmb.dispatchEvent(new Event("change", { bubbles: true }));
+                            }
+                            validarCamposConfiguracion();
+                        }
+                    }
+                }
+
             } else {
 
                 // mostrar eliminar normal
@@ -468,10 +642,6 @@ function buildMenuPorPermisos() {
                     btn.style.display = "";
                 });
             }
-
-            $('#txtNombreConfiguracion').off('input').on('input', validarCamposConfiguracion);
-            $('#cmbConfiguracion').off('change').on('change', validarCamposConfiguracion);
-            $('#txtBuscarConfiguracion').off('input').on('input', filtrarConfiguraciones);
 
             document.getElementById("modalConfiguracionLabel").innerText =
                 "Configuracion de " + nombreConfiguracion;
@@ -533,8 +703,8 @@ function buildMenuPorPermisos() {
             let configuraciones = await listaConfiguracion();
 
             if (comboNombre != null) {
-                llenarComboConfiguracion();
-                document.getElementById("divConfiguracionCombo").removeAttribute("hidden", "");
+                await llenarComboConfiguracion();
+                document.getElementById("divConfiguracionCombo").removeAttribute("hidden");
             } else {
                 document.getElementById("divConfiguracionCombo").setAttribute("hidden", "hidden");
             }
@@ -718,13 +888,17 @@ function buildMenuPorPermisos() {
 
                     exitoModal(mensaje);
 
-                    const nuevoId = dataJson?.id ?? null;
+                    const rawNuevoId = dataJson?.id ?? dataJson?.Id ?? dataJson?.ID;
+                    const nuevoId = rawNuevoId != null && rawNuevoId !== ""
+                        ? (Number.isFinite(Number(rawNuevoId)) && Number(rawNuevoId) > 0 ? Number(rawNuevoId) : null)
+                        : null;
 
                     document.dispatchEvent(new CustomEvent("configuracionActualizada", {
                         detail: {
                             tipo: controllerConfiguracion,
                             nuevoId: nuevoId,
-                            accion: esNuevo ? "insertar" : "actualizar"
+                            accion: esNuevo ? "insertar" : "actualizar",
+                            esAtajo: !!window.esModoAtajo
                         }
                     }));
 
@@ -783,11 +957,8 @@ function buildMenuPorPermisos() {
         }
     }
     function abrirConfiguraciones() {
-        vieneDeModalConfiguraciones = true;
-
-        $('#ModalEdicionConfiguraciones').modal('show');
-        $("#btnGuardarConfiguracion").text("Aceptar");
-        $("#modalEdicionLabel").text("Configuraciones");
+        // Compat.: antes abría un modal maestro inexistente. Los catálogos están en menú Extras.
+        vieneDeModalConfiguraciones = false;
     }
 
     function filtrarConfiguraciones() {
@@ -863,6 +1034,37 @@ function buildMenuPorPermisos() {
     function escapeJs(s) {
         return String(s ?? "").replaceAll("\\", "\\\\").replaceAll("'", "\\'");
     }
+
+    /* =========================================================
+       Modal configuración encima de otros modales (p. ej. Productos)
+    ========================================================= */
+    (function setupModalConfiguracionZIndex() {
+        const modalEl = document.getElementById("modalConfiguracion");
+        if (!modalEl) return;
+        const baseZ = 32000;
+        function alFrente() {
+            modalEl.style.zIndex = String(baseZ + 10);
+            const aplicarBackdrop = () => {
+                const backs = document.querySelectorAll(".modal-backdrop");
+                backs.forEach((b, i, arr) => {
+                    if (i === arr.length - 1) b.style.zIndex = String(baseZ);
+                });
+            };
+            aplicarBackdrop();
+            requestAnimationFrame(aplicarBackdrop);
+            requestAnimationFrame(() => requestAnimationFrame(aplicarBackdrop));
+        }
+        function limpiarZ() {
+            modalEl.style.zIndex = "";
+            document.querySelectorAll(".modal-backdrop").forEach((b) => {
+                b.style.zIndex = "";
+            });
+        }
+        window.ponerModalConfiguracionAlFrente = alFrente;
+        modalEl.addEventListener("show.bs.modal", alFrente);
+        modalEl.addEventListener("shown.bs.modal", alFrente);
+        modalEl.addEventListener("hidden.bs.modal", limpiarZ);
+    })();
 
     /* =========================================================
        EXPONER GLOBALES

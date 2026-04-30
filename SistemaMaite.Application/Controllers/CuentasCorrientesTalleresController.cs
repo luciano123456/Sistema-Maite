@@ -17,6 +17,7 @@ namespace SistemaMaite.Application.Controllers
             _service = service;
         }
 
+        [AllowAnonymous]
         public IActionResult Index() => View();
 
         // ---- Talleres (panel izquierdo)

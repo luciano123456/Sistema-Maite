@@ -1,4 +1,4 @@
-﻿/* ===== Layout generales ===== */
+/* ===== Layout generales ===== */
 .container {
     min-width: 99% !important;
 }
@@ -213,6 +213,10 @@ body {
     border-radius: 12px;
     padding: 8px;
     background: #1a2233;
+}
+
+#trVariantesWrap.variantes-wrap {
+    max-height: 280px;
 }
 
 .var-row {

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using SistemaMaite.DAL.DataContext;
 using SistemaMaite.Models;
 using System;
@@ -35,11 +35,11 @@ namespace SistemaMaite.DAL.Repository
             return true;
         }
 
-        public async Task<bool> Insertar(Personal model)
+        public async Task<int> Insertar(Personal model)
         {
             _dbcontext.Personals.Add(model);
             await _dbcontext.SaveChangesAsync();
-            return true;
+            return model.Id;
         }
 
         public async Task<Personal> Obtener(int id)

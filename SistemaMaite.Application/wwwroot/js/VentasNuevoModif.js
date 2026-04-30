@@ -1,4 +1,4 @@
-﻿// ===================== VentasNuevoModif.js (COMPLETO) =====================
+// ===================== VentasNuevoModif.js (COMPLETO) =====================
 // Requiere: jQuery, Bootstrap 5, DataTables, Select2, moment.js y *site.js*
 // Usa: token, confirmarModal, exitoModal, errorModal, advertenciaModal,
 // formatearMiles, formatearSinMiles, etc. (definidas en site.js)
@@ -13,6 +13,8 @@ let __wasSubmitClienteRapido = false;
 const CLIENTE_DEFAULT_ID = 15;
 
 const State = {
+    /** true si ?ver=1 (consulta explícita desde grilla; puede tener también Editar). */
+    soloVer: false,
     idVenta: parseInt((document.getElementById("txtId")?.value || "0"), 10) || 0,
     clienteId: 0,
     listaPrecioId: 0,
@@ -31,10 +33,172 @@ const State = {
 
 };
 
+function ventaEsSoloLectura() {
+    return State.soloVer === true || (typeof document !== "undefined" && document.documentElement.dataset.nmSoloConsulta === "1");
+}
+
+/** Igual que PersonalSueldos / OrdenesCorte: solo consulta (Ver sin Editar, o ?ver=1). */
+function aplicarModoSoloLecturaVenta() {
+    if (!ventaEsSoloLectura()) return;
+    document.body.classList.add("venta-solo-lectura");
+    const sub = document.querySelector(".page-header small.text-muted");
+    if (sub) {
+        const id = State.idVenta || parseInt(document.getElementById("txtId")?.value || "0", 10) || 0;
+        if (id > 0) sub.textContent = State.soloVer ? "Consulta" : "Solo lectura";
+    }
+    document.querySelectorAll("#formVenta input:not([type=hidden]), #formVenta select, #formVenta textarea").forEach((el) => { el.disabled = true; });
+    try {
+        if (window.jQuery && $.fn.select2) {
+            $("#formVenta select").prop("disabled", true).trigger("change.select2");
+        }
+    } catch (_) { /* noop */ }
+    ["btnGuardarVenta", "btnEliminarVenta"].forEach((id) => document.getElementById(id)?.classList.add("d-none"));
+    document.querySelectorAll("#btnPlusClienteVenta, #btnPlusListaPrecioVenta, .venta-container-lg .pr-atajo-catalogo").forEach((el) => el.classList.add("d-none"));
+    document.querySelectorAll('button[onclick="abrirModalItem()"], button[onclick="abrirModalPago()"]').forEach((b) => b.classList.add("d-none"));
+    document.querySelectorAll("#modalItem .pr-atajo-catalogo, #modalItem .modal-footer .btn-success").forEach((el) => el.classList.add("d-none"));
+    document.querySelectorAll("#modalPago .modal-footer .btn-success").forEach((el) => el.classList.add("d-none"));
+    refrescarItems();
+    refrescarPagos();
+}
+
 // ---------------- Helpers numéricos / fechas ----------------
 function _fmtNumber(n) { const v = parseFloat(n || 0); return new Intl.NumberFormat("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v); }
 function _toNumber(s) { if (typeof formatearSinMiles === "function") return parseFloat(formatearSinMiles(s || 0)); return parseFloat(String(s || "0").replace(/\./g, "").replace(",", ".")) || 0; }
 function _toMiles(n) { if (typeof formatearMiles === "function") return formatearMiles(n); return _fmtNumber(n); }
+
+/** Importe pago: mismo criterio que insumos/productos ($ + miles + decimales al salir del campo). */
+function parseImportePagoVenta(raw) {
+    if (raw == null) return NaN;
+    let s = String(raw).trim();
+    if (s === "") return NaN;
+    s = s.replace(/\$/g, "").replace(/\s/g, "");
+    s = s.replace(/\./g, "").replace(",", ".");
+    const n = parseFloat(s);
+    return isNaN(n) ? NaN : n;
+}
+function formatImportePagoVentaDisplay(n) {
+    if (typeof n !== "number" || isNaN(n)) return "";
+    if (typeof formatNumber === "function") return formatNumber(n);
+    return n.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function refrescarAtajosAbmEn(scope) {
+    if (typeof initAbmSelectShortcuts !== "function") return;
+    const root = scope && (scope.nodeType === 1 || scope === document) ? scope : document;
+    initAbmSelectShortcuts(root);
+}
+
+function refillCrListaPrecioDesdeState(preferId) {
+    const sel = document.getElementById("cr_ListaPrecio");
+    if (!sel) return;
+    const modalOpen = document.getElementById("modalClienteRapido")?.classList.contains("show");
+    if (modalOpen && $.fn.select2 && $("#cr_ListaPrecio").hasClass("select2-hidden-accessible")) {
+        try { $("#cr_ListaPrecio").select2("destroy"); } catch (_) { /* noop */ }
+    }
+    const prev = sel.value;
+    sel.innerHTML = `<option value="">Seleccione</option>` + (State.listas || []).map(x =>
+        `<option value="${x.Id}">${x.Nombre || x.Descripcion || ("Lista " + x.Id)}</option>`).join("");
+    const preferStr = (preferId != null && Number(preferId) > 0) ? String(preferId) : null;
+    const use = (preferStr && [...sel.options].some(o => String(o.value) === preferStr))
+        ? preferStr
+        : (prev && [...sel.options].some(o => String(o.value) === String(prev)) ? prev : "");
+    sel.value = use || "";
+    if (modalOpen && $.fn.select2) {
+        initSelect2Base("#cr_ListaPrecio", { dropdownParent: $("#modalClienteRapido") });
+        removeEmptyOptionOnSelect("#cr_ListaPrecio");
+        $("#cr_ListaPrecio").val(sel.value || "").trigger("change.select2");
+    }
+}
+
+function parseNuevoIdConfig(d) {
+    const raw = d?.nuevoId ?? d?.NuevoId ?? d?.nuevoID;
+    if (raw == null || raw === "") return NaN;
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? n : NaN;
+}
+
+async function recargarCrCondIvaEnModalCliente(preferId) {
+    const sel = document.getElementById("cr_CondIva");
+    if (!sel || !document.getElementById("modalClienteRapido")?.classList.contains("show")) return;
+    const prev = sel.value;
+    const r = await fetch("/CondicionesIva/Lista", { headers: { Authorization: "Bearer " + (token || "") } });
+    const condIva = r.ok ? await r.json() : [];
+    sel.innerHTML = `<option value="">Seleccione</option>` + condIva.map(x =>
+        `<option value="${x.Id}">${x.Nombre || x.Descripcion || ("Cond IVA " + x.Id)}</option>`).join("");
+    const preferStr = (preferId != null && Number(preferId) > 0) ? String(preferId) : null;
+    const use = (preferStr && [...sel.options].some(o => String(o.value) === preferStr))
+        ? preferStr
+        : (prev && [...sel.options].some(o => String(o.value) === String(prev)) ? prev : "");
+    sel.value = use || "";
+    if ($.fn.select2) {
+        try {
+            if ($("#cr_CondIva").hasClass("select2-hidden-accessible")) $("#cr_CondIva").select2("destroy");
+        } catch (_) { /* noop */ }
+        initSelect2Base("#cr_CondIva", { dropdownParent: $("#modalClienteRapido") });
+        removeEmptyOptionOnSelect("#cr_CondIva");
+        $("#cr_CondIva").val(sel.value || "").trigger("change.select2");
+    }
+}
+
+function bindVentasNuevoModifAtajosCatalogo() {
+    const abrir = async (titulo, ctrl) => {
+        if (typeof window.abrirConfiguracion !== "function") return;
+        try {
+            await window.abrirConfiguracion(titulo, ctrl, null, null, null, true);
+        } catch (_) { /* noop */ }
+    };
+    $("#btnPlusClienteVenta").off("click.vtaCat").on("click.vtaCat", (e) => { e.preventDefault(); abrirModalNuevoClienteVenta(); });
+    $("#btnPlusListaPrecioVenta").off("click.vtaCat").on("click.vtaCat", (e) => { e.preventDefault(); abrir("Lista de Precios", "ListasPrecios"); });
+    $("#btnPlusCrCondIva").off("click.vtaCat").on("click.vtaCat", (e) => { e.preventDefault(); abrir("Condiciones IVA", "CondicionesIVA"); });
+    $("#btnPlusCrListaPrecio").off("click.vtaCat").on("click.vtaCat", (e) => { e.preventDefault(); abrir("Lista de Precios", "ListasPrecios"); });
+}
+
+function installVentasNuevoModifConfigListener() {
+    if (document.documentElement.dataset.ventasNuevoModifCfg === "1") return;
+    document.documentElement.dataset.ventasNuevoModifCfg = "1";
+    document.addEventListener("configuracionActualizada", async (e) => {
+        if (!/\/Ventas\/NuevoModif/i.test(location.pathname || "")) return;
+        const d = e?.detail || {};
+        if (d.accion !== "insertar") return;
+        const tipo = (d.tipo || "").trim();
+        const nuevoId = parseNuevoIdConfig(d);
+        try {
+            if (tipo === "ListasPrecios") {
+                await cargarListasPrecios();
+                if (Number.isFinite(nuevoId)) {
+                    const cmbLp = document.getElementById("cmbListaPrecio");
+                    if (cmbLp && [...cmbLp.options].some(o => String(o.value) === String(nuevoId))) {
+                        State.listaPrecioId = nuevoId;
+                        cmbLp.value = String(nuevoId);
+                        if ($.fn.select2) $("#cmbListaPrecio").val(String(nuevoId)).trigger("change.select2");
+                    }
+                }
+                if (document.getElementById("modalClienteRapido")?.classList.contains("show")) {
+                    refillCrListaPrecioDesdeState(Number.isFinite(nuevoId) ? nuevoId : undefined);
+                }
+            }
+            if (tipo === "CondicionesIVA" && document.getElementById("modalClienteRapido")?.classList.contains("show")) {
+                await recargarCrCondIvaEnModalCliente(Number.isFinite(nuevoId) ? nuevoId : undefined);
+            }
+        } catch (err) { console.error(err); }
+    });
+}
+
+function bindPagoImporteVenta() {
+    const $m = $("#modalPago");
+    $m.off("input.vtaPagoImp", ".vta-pago-importe-input").on("input.vtaPagoImp", ".vta-pago-importe-input", function () {
+        const raw = this.value;
+        const num = raw.replace(/\D/g, "");
+        if (!num) { this.value = ""; return; }
+        this.value = "$ " + Number(num).toLocaleString("es-AR");
+    });
+    $m.off("focusout.vtaPagoImp", ".vta-pago-importe-input").on("focusout.vtaPagoImp", ".vta-pago-importe-input", function () {
+        const raw = this.value;
+        if (!String(raw).trim()) { this.value = ""; return; }
+        const n = parseImportePagoVenta(raw);
+        if (!isNaN(n) && n >= 0) this.value = formatImportePagoVentaDisplay(n);
+    });
+}
 function hoyISO() { return moment().format("YYYY-MM-DD"); }
 function dateToInputValue(f) { const m = moment(f, [moment.ISO_8601, "YYYY-MM-DD", "DD/MM/YYYY", "YYYY-MM-DDTHH:mm:ss", "YYYY-MM-DDTHH:mm:ssZ"]); return m.isValid() ? m.format("YYYY-MM-DD") : ""; }
 function formatearFechaParaVista(f) { const m = moment(f, [moment.ISO_8601, "YYYY-MM-DD", "YYYY-MM-DDTHH:mm:ss"]); return m.isValid() ? m.format("DD/MM/YYYY") : ""; }
@@ -150,6 +314,27 @@ function updateGates() {
 
 // ---------------- Carga inicial ----------------
 document.addEventListener("DOMContentLoaded", async () => {
+    Permisos.init();
+    const qs = new URLSearchParams(window.location.search || "");
+    State.soloVer = qs.get("ver") === "1";
+    const idFromQs = (qs.get("id") || "").trim();
+    const idNumEarly = parseInt((document.getElementById("txtId")?.value || idFromQs || "0"), 10) || 0;
+
+    if (State.soloVer) {
+        if (idNumEarly <= 0) {
+            if (typeof errorModal === "function") await errorModal("Consulta no válida.");
+            window.location.href = "/Ventas/Index";
+            return;
+        }
+        if (!Permisos.tiene("Ventas", "Ver")) {
+            if (typeof errorModal === "function") await errorModal("No tenés permisos.");
+            window.location.href = "/Ventas/Index";
+            return;
+        }
+    } else {
+        Permisos.aplicarUINuevoModif("Ventas", { permitirConsultaSinEditar: true });
+    }
+
     try {
         const dtp = document.getElementById("dtpFecha");
         if (dtp && !dtp.value) dtp.value = hoyISO();
@@ -163,6 +348,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         removeEmptyOptionOnSelect("#cmbSucursal");
         initSelect2Base("#cmbEstado");
         removeEmptyOptionOnSelect("#cmbEstado");
+
+        bindPagoImporteVenta();
+        bindVentasNuevoModifAtajosCatalogo();
+        installVentasNuevoModifConfigListener();
+        document.getElementById("modalPago")?.addEventListener("shown.bs.modal", () => {
+            requestAnimationFrame(() => refrescarAtajosAbmEn(document.getElementById("modalPago")));
+        });
 
         // listeners de revalidación (fecha)
         document.getElementById("dtpFecha")?.addEventListener("change", () => {
@@ -183,7 +375,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         // Cargar datos de combos/maestros
         await Promise.all([
-            cargarClientes(), cargarListasPrecios(),
+            cargarClientes(), cargarListasPrecios(), cargarEstadosVentaCombo(),
             cargarProductos(), cargarCuentas(), cargarSucursalesUsuario()
         ]);
 
@@ -221,6 +413,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         syncStateFromUI();
         await hideInitialRequiredHints();
 
+        if (ventaEsSoloLectura()) aplicarModoSoloLecturaVenta();
+
     } catch (e) { console.error(e); }
 });
 
@@ -240,6 +434,34 @@ async function cargarListasPrecios() {
     const cmb = document.getElementById("cmbListaPrecio"); if (!cmb) return;
     cmb.innerHTML = `<option value="">Seleccione</option>` + State.listas.map(x => `<option value="${x.Id}">${x.Nombre || x.Descripcion || ("Lista " + x.Id)}</option>`).join("");
     if ($.fn.select2) $("#cmbListaPrecio").trigger("change.select2");
+    refillCrListaPrecioDesdeState();
+    syncStateFromUI();
+}
+
+/** Opciones de estado: DISTINCT Ventas.Estado + PENDIENTE/FINALIZADA (sin tabla catálogo). */
+async function cargarEstadosVentaCombo() {
+    let rows = [];
+    try {
+        const r = await fetch("/Ventas/EstadosDesdeVentas", { headers: { Authorization: "Bearer " + (token || ""), "Content-Type": "application/json" } });
+        rows = r.ok ? await r.json() : [];
+    } catch (_) { rows = []; }
+    if (!Array.isArray(rows) || rows.length === 0) {
+        rows = [{ Nombre: "PENDIENTE" }, { Nombre: "FINALIZADA" }];
+    }
+    const cmb = document.getElementById("cmbEstado");
+    if (!cmb) return;
+    const prev = (State.estado || cmb.value || "PENDIENTE").toString().trim().toUpperCase();
+    cmb.innerHTML = rows.map(x => {
+        const nom = String(x.Nombre || "").trim();
+        const val = nom.toUpperCase();
+        return `<option value="${val}">${nom || val}</option>`;
+    }).join("");
+    const pick = prev && [...cmb.options].some(o => String(o.value).toUpperCase() === prev)
+        ? prev
+        : (String(rows[0]?.Nombre || "PENDIENTE").trim().toUpperCase() || "PENDIENTE");
+    State.estado = pick;
+    cmb.value = pick;
+    if ($.fn.select2) $("#cmbEstado").val(pick).trigger("change.select2");
     syncStateFromUI();
 }
 async function cargarProductos() {
@@ -251,20 +473,18 @@ async function cargarCuentas() {
     const d = r.ok ? await r.json() : []; State.cuentas = d || [];
 }
 
-// ================== Sucursales del usuario ==================
+// ================== Sucursales (rol admin: todas; resto: asignadas en servidor) ==================
 async function cargarSucursalesUsuario() {
     try {
         const raw = localStorage.getItem("userSession");
         const session = raw ? JSON.parse(raw) : null;
-        const idUsuario = Number(session?.Id ?? session?.id ?? 0);
         const idSucursalPreferida = Number(session?.IdSucursal ?? session?.SucursalId ?? session?.sucursalId ?? 0);
         const cmb = document.getElementById("cmbSucursal"); if (!cmb) return;
 
         cmb.innerHTML = `<option value="">Seleccione</option>`;
-        if (!idUsuario) { State.Sucursales = []; cmb.removeAttribute("disabled"); if ($.fn.select2) $("#cmbSucursal").trigger("change.select2"); return; }
 
-        const r = await fetch(`/Usuarios/ObtenerSucursales?id=${idUsuario}`, { headers: { Authorization: "Bearer " + (token || ""), "Content-Type": "application/json" } });
-        if (!r.ok) throw new Error("No se pudo obtener Sucursales del usuario");
+        const r = await fetch("/Ventas/SucursalesOpciones", { headers: { Authorization: "Bearer " + (token || ""), "Content-Type": "application/json" } });
+        if (!r.ok) throw new Error("No se pudo obtener sucursales");
         const data = await r.json();
         const Sucursales = (data || []).map(s => ({ Id: Number(s.Id || 0), Nombre: String(s.Nombre || "") })).filter(s => s.Id > 0 && s.Nombre);
         State.Sucursales = Sucursales;
@@ -317,7 +537,7 @@ function renderVariantesUI(variantes, existentes = []) {
     if (!wrap || !container) return;
 
     wrap.innerHTML = "";
-    container.style.display = "block";
+    container.classList.remove("d-none");
 
     if (!Array.isArray(variantes) || variantes.length === 0) {
         if (empty) { empty.hidden = false; empty.classList.add("alert-ghost"); empty.innerHTML = `<i class="fa fa-info-circle"></i> <span>Este producto no tiene variantes disponibles.</span>`; }
@@ -396,13 +616,23 @@ async function cargarVentaExistente(id) {
         if (State.Sucursales.length === 1) document.getElementById("cmbSucursal").setAttribute("disabled", "disabled");
     }
 
-    // Estado
-    const est = (v.Estado || v.estado || "PENDIENTE").toString().toUpperCase();
-    State.estado = (est === "FINALIZADA") ? "FINALIZADA" : "PENDIENTE";
+    // Estado (catálogo; si el string guardado no está en la lista, se agrega una opción para no perderlo)
+    const rawEst = (v.Estado || v.estado || "PENDIENTE").toString().trim();
+    const est = rawEst ? rawEst.toUpperCase() : "PENDIENTE";
     const cmbEstado = document.getElementById("cmbEstado");
     if (cmbEstado) {
-        cmbEstado.value = State.estado;
-        if ($.fn.select2) $("#cmbEstado").val(State.estado).trigger("change.select2");
+        const exists = [...cmbEstado.options].some(o => String(o.value).toUpperCase() === est);
+        if (!exists && est) {
+            const opt = document.createElement("option");
+            opt.value = est;
+            opt.textContent = rawEst || est;
+            cmbEstado.appendChild(opt);
+        }
+        State.estado = est;
+        cmbEstado.value = est;
+        if ($.fn.select2) $("#cmbEstado").val(est).trigger("change.select2");
+    } else {
+        State.estado = est;
     }
 
 
@@ -440,6 +670,12 @@ async function cargarVentaExistente(id) {
 // ---------------- DataTables: Items ----------------
 function renderChipsVariantes(variantes, rowIndex) {
     if (!Array.isArray(variantes) || variantes.length === 0) return '<span class="text-muted">—</span>';
+    if (ventaEsSoloLectura()) {
+        return variantes.map((v) => `
+    <span class="var-chip" title="${v.nombre}">
+      <span class="chip-label">${v.nombre} <span class="qty">×${_fmtNumber(v.cantidad)}</span></span>
+    </span>`).join("");
+    }
     return variantes.map((v, i) => `
     <span class="var-chip" title="${v.nombre}">
       <span class="chip-label">${v.nombre} <span class="qty">×${_fmtNumber(v.cantidad)}</span></span>
@@ -455,6 +691,7 @@ function recalcItemDerived(it) {
     it.base = base; it.descImporte = descImporte; it.ivaImporte = ivaImporte; it.subtotal = subtotal;
 }
 window.quitarVarDesdeGrid = function (rowIndex, varIndex) {
+    if (ventaEsSoloLectura()) return;
     const it = State.items[rowIndex]; if (!it || !Array.isArray(it.variantes)) return;
     it.variantes.splice(varIndex, 1);
     const sum = it.variantes.reduce((a, v) => a + (parseFloat(v.cantidad) || 0), 0);
@@ -469,9 +706,10 @@ function configurarTablaItems() {
         columns: [
             {
                 data: null, orderable: false, width: "60px", className: "text-center",
-                render: (_, __, ___, meta) => `
-          <button class="btn btn-link p-0 me-2 text-success" title="Editar" onclick="editarItem(${meta.row})"><i class="fa fa-pencil"></i></button>
-          <button class="btn btn-link p-0 text-danger" title="Eliminar" onclick="eliminarItem(${meta.row})"><i class="fa fa-trash"></i></button>`
+                render: (_, __, ___, meta) => (ventaEsSoloLectura()
+                    ? '<span class="text-muted">—</span>'
+                    : `<button class="btn btn-link p-0 me-2 text-success" title="Editar" onclick="editarItem(${meta.row})"><i class="fa fa-pencil"></i></button>
+          <button class="btn btn-link p-0 text-danger" title="Eliminar" onclick="eliminarItem(${meta.row})"><i class="fa fa-trash"></i></button>`)
             },
             { data: "productoNombre", title: "Producto" },
             { data: "variantes", title: "Variantes", className: "text-center", render: (v, _t, _r, meta) => renderChipsVariantes(v, meta.row) },
@@ -484,6 +722,9 @@ function configurarTablaItems() {
         order: [[1, "asc"]], dom: "t", pageLength: 1000,
         createdRow: function (row) { $("td", row).eq(2).css({ "white-space": "normal" }); }
     });
+    if (typeof bindDataTableSeleccionFila === "function") {
+        bindDataTableSeleccionFila("#grd_Items", "vtaItems");
+    }
 }
 function refrescarItems() { if (!gridItems) return; gridItems.clear().rows.add(State.items).draw(); }
 
@@ -495,9 +736,10 @@ function configurarTablaPagos() {
         columns: [
             {
                 data: null, orderable: false, width: "60px", className: "text-center",
-                render: (_, __, ___, meta) => `
-          <button class="btn btn-link p-0 me-2 text-success" title="Editar" onclick="editarPago(${meta.row})"><i class="fa fa-pencil"></i></button>
-          <button class="btn btn-link p-0 text-danger" title="Eliminar" onclick="eliminarPago(${meta.row})"><i class="fa fa-trash"></i></button>`
+                render: (_, __, ___, meta) => (ventaEsSoloLectura()
+                    ? '<span class="text-muted">—</span>'
+                    : `<button class="btn btn-link p-0 me-2 text-success" title="Editar" onclick="editarPago(${meta.row})"><i class="fa fa-pencil"></i></button>
+          <button class="btn btn-link p-0 text-danger" title="Eliminar" onclick="eliminarPago(${meta.row})"><i class="fa fa-trash"></i></button>`)
             },
             { data: "fecha", render: f => formatearFechaParaVista(f), title: "Fecha" },
             { data: "cuentaNombre", title: "Cuenta" },
@@ -506,11 +748,40 @@ function configurarTablaPagos() {
         ],
         order: [[1, "desc"]], dom: "t", pageLength: 1000
     });
+    if (typeof bindDataTableSeleccionFila === "function") {
+        bindDataTableSeleccionFila("#grd_Pagos", "vtaPagos");
+    }
 }
 function refrescarPagos() { if (!gridPagos) return; gridPagos.clear().rows.add(State.pagos).draw(); }
 
-// ---------------- Modal Producto ----------------
+// ---------------- Modal Producto (M_Producto embebido) ----------------
+window.abrirAltaProductoDesdeVenta = function () {
+    if (ventaEsSoloLectura()) return;
+    if (!window.MProductoMaite || typeof window.MProductoMaite.abrir !== "function") {
+        if (typeof errorModal === "function") errorModal("No se cargó el alta de producto.");
+        return;
+    }
+    window.MProductoMaite.abrir({
+        onSuccess: async (nuevoId) => {
+            await cargarProductos();
+            const id = Number(nuevoId) || 0;
+            const cmb = document.getElementById("cmbItemProducto");
+            if (!cmb || !id) return;
+            const $cmb = $(cmb);
+            if ($cmb.hasClass("select2-hidden-accessible")) {
+                try { $cmb.select2("destroy"); } catch (_) { /* noop */ }
+            }
+            cmb.innerHTML = `<option value="">Seleccione</option>` + State.productos.map(p => `<option value="${p.Id}">${p.Descripcion}</option>`).join("");
+            initSelect2Base("#cmbItemProducto", { dropdownParent: $("#modalItem") });
+            removeEmptyOptionOnSelect("#cmbItemProducto");
+            attachItemEvents();
+            $cmb.val(String(id)).trigger("change");
+        }
+    });
+};
+
 window.abrirModalItem = async function () {
+    if (ventaEsSoloLectura()) return;
     if (!(State.clienteId && State.listaPrecioId)) {
         advertenciaModal?.("Completá Cliente, Vendedor y Lista de Precios antes de agregar ítems.");
         return;
@@ -522,6 +793,10 @@ window.abrirModalItem = async function () {
     const btn = document.querySelector("#modalItem .modal-footer .btn.btn-success");
     if (btn) btn.innerHTML = `<i class="fa fa-check me-1"></i> Registrar`;
 
+    const $cmbP = $("#cmbItemProducto");
+    if ($cmbP.length && $cmbP.hasClass("select2-hidden-accessible")) {
+        try { $cmbP.select2("destroy"); } catch (_) { /* noop */ }
+    }
     const cmbHtml = `<option value="">Seleccione</option>` + State.productos.map(p => `<option value="${p.Id}">${p.Descripcion}</option>`).join("");
     const cmb = document.getElementById("cmbItemProducto"); cmb.innerHTML = cmbHtml;
     initSelect2Base("#cmbItemProducto", { dropdownParent: $("#modalItem") });
@@ -546,21 +821,40 @@ function setItemInputsEnabled(enabled) {
         el.disabled = !enabled; el.classList.toggle("disabled", !enabled); el.style.opacity = enabled ? 1 : .7;
     });
 }
-function attachItemEvents() {
+
+/**
+ * Tras elegir producto: trae precio lista + variantes.
+ * En edición usar conservarPrecio + variantesExistentes para no pisar P.Unit ni cantidades por variante.
+ */
+async function aplicarProductoEnModalItem(opts) {
+    opts = opts || {};
+    const conservarPrecio = opts.conservarPrecio === true;
+    const variantesExistentes = opts.variantesExistentes || null;
     const cmb = document.getElementById("cmbItemProducto");
     const container = document.getElementById("variantesContainer");
     const empty = document.getElementById("variantesEmpty");
-    const changeProducto = async () => {
-        const idProd = parseInt(cmb.value || 0, 10);
-        if (!idProd) { if (container) container.style.display = "none"; document.getElementById("txtItemPrecio").value = ""; document.getElementById("txtItemSubtotal").value = "$ 0,00"; setItemInputsEnabled(false); return; }
-        const { precio, variantes } = await obtenerProductoInfoVenta(idProd, State.listaPrecioId);
+    if (!cmb) return;
+    const idProd = parseInt(cmb.value || 0, 10);
+    if (!idProd) {
+        if (container) container.classList.add("d-none");
+        document.getElementById("txtItemPrecio").value = "";
+        document.getElementById("txtItemSubtotal").value = "$ 0,00";
+        setItemInputsEnabled(false);
+        return;
+    }
+    const { precio, variantes } = await obtenerProductoInfoVenta(idProd, State.listaPrecioId);
+    if (!conservarPrecio) {
         document.getElementById("txtItemPrecio").value = _toMiles(precio || 0);
-        setItemInputsEnabled(true);
-        recalcularSubtotalModal();
-        renderVariantesUI(variantes);
-        if (empty && (!variantes || variantes.length > 0)) empty.hidden = true;
-    };
-    cmb.onchange = changeProducto;
+    }
+    setItemInputsEnabled(true);
+    renderVariantesUI(variantes, variantesExistentes || []);
+    if (empty && (!variantes || variantes.length > 0)) empty.hidden = true;
+    recalcularSubtotalModal();
+}
+
+function attachItemEvents() {
+    const cmb = document.getElementById("cmbItemProducto");
+    cmb.onchange = function () { void aplicarProductoEnModalItem({}); };
     ["txtItemCant", "txtItemPrecio", "txtItemDesc", "txtItemIva"].forEach(id => { const el = document.getElementById(id); if (el) el.oninput = recalcularSubtotalModal; });
 }
 function recalcularSubtotalModal() {
@@ -578,6 +872,7 @@ function recalcularSubtotalModal() {
     document.getElementById("txtItemSubtotal").value = `$ ${_fmtNumber(subtotal)}`;
 }
 window.guardarItem = function () {
+    if (ventaEsSoloLectura()) return;
     const idProd = parseInt(document.getElementById("cmbItemProducto").value || 0, 10);
     const cantBase = _toNumber(document.getElementById("txtItemCant").value);
     const precio = _toNumber(document.getElementById("txtItemPrecio").value);
@@ -613,6 +908,7 @@ window.guardarItem = function () {
     bootstrap.Modal.getInstance(document.getElementById("modalItem"))?.hide();
 };
 window.editarItem = async function (idx) {
+    if (ventaEsSoloLectura()) return;
     const it = State.items[idx]; if (!it) return;
     State.editItemIndex = idx;
 
@@ -620,28 +916,35 @@ window.editarItem = async function (idx) {
     const btn = document.querySelector("#modalItem .modal-footer .btn.btn-success");
     if (btn) btn.innerHTML = `<i class="fa fa-check me-1"></i> Guardar`;
 
+    const $cmbE = $("#cmbItemProducto");
+    if ($cmbE.length && $cmbE.hasClass("select2-hidden-accessible")) {
+        try { $cmbE.select2("destroy"); } catch (_) { /* noop */ }
+    }
     const cmb = document.getElementById("cmbItemProducto");
     cmb.innerHTML = `<option value="">Seleccione</option>` + State.productos.map(p => `<option value="${p.Id}">${p.Descripcion}</option>`).join("");
     initSelect2Base("#cmbItemProducto", { dropdownParent: $("#modalItem") });
     removeEmptyOptionOnSelect("#cmbItemProducto");
 
-    document.getElementById("cmbItemProducto").value = it.idProducto;
-    if ($.fn.select2) $("#cmbItemProducto").trigger("change.select2");
+    cmb.value = String(it.idProducto);
+    if ($.fn.select2) $("#cmbItemProducto").val(String(it.idProducto));
+
+    const pu = it.precioUnitario != null ? it.precioUnitario : it.preciounitario;
     document.getElementById("txtItemCant").value = _toMiles(it.cantidad);
-    document.getElementById("txtItemPrecio").value = _toMiles(it.preciounitario || it.precioUnitario);
+    document.getElementById("txtItemPrecio").value = _toMiles(parseFloat(pu) || 0);
     document.getElementById("txtItemDesc").value = _toMiles(it.porcDesc);
     document.getElementById("txtItemIva").value = _toMiles(it.porcIva);
     setItemInputsEnabled(true);
-    attachItemEvents();
-    recalcularSubtotalModal();
 
-    const info = await obtenerProductoInfoVenta(it.idProducto, State.listaPrecioId);
-    renderVariantesUI(info.variantes || [], it.variantes || []);
+    // Sin trigger("change"): evita pisar precio/desc/iva con el de lista y rearmar variantes sin cantidades.
+    await aplicarProductoEnModalItem({ conservarPrecio: true, variantesExistentes: it.variantes || [] });
+
+    attachItemEvents();
 
     document.getElementById("errorCamposItem")?.classList.add("d-none");
     new bootstrap.Modal(document.getElementById("modalItem")).show();
 };
 window.eliminarItem = async function (idx) {
+    if (ventaEsSoloLectura()) return;
     const ok = await confirmarModal("¿Eliminar el producto?"); if (!ok) return;
     State.items.splice(idx, 1);
     refrescarItems(); recalcularTotales();
@@ -655,12 +958,13 @@ function resetPagoValidation() {
 function validarPagoCampos() {
     const f = document.getElementById("dtpPagoFecha")?.value;
     const c = parseInt(document.getElementById("cmbCuenta")?.value || 0, 10);
-    const imp = _toNumber(document.getElementById("txtPagoImporte")?.value);
+    const impRaw = document.getElementById("txtPagoImporte")?.value;
+    const imp = parseImportePagoVenta(impRaw);
 
     let ok = true;
     if (!f) ok = setInvalid("#dtpPagoFecha") && ok; else ok = setValid("#dtpPagoFecha") && ok;
     if (!c) ok = setInvalid("#cmbCuenta") && ok; else ok = setValid("#cmbCuenta") && ok;
-    if (!(imp > 0)) ok = setInvalid("#txtPagoImporte") && ok; else ok = setValid("#txtPagoImporte") && ok;
+    if (!(imp > 0) || isNaN(imp)) ok = setInvalid("#txtPagoImporte") && ok; else ok = setValid("#txtPagoImporte") && ok;
 
     document.getElementById("errorCamposPago")?.classList.toggle("d-none", ok);
     return ok;
@@ -674,6 +978,7 @@ function attachPagoLiveValidation() {
 }
 
 window.abrirModalPago = function () {
+    if (ventaEsSoloLectura()) return;
     if (!(State.clienteId && State.listaPrecioId)) {
         advertenciaModal?.("Completá Cliente y Lista de Precios antes de registrar pagos.");
         return;
@@ -696,21 +1001,24 @@ window.abrirModalPago = function () {
     const restante = Math.max(tot.total - abonado, 0);
 
     document.getElementById("txtPagoImporte").value =
-        restante > 0 ? _toMiles(restante) : _toMiles(0);
+        restante > 0 ? formatImportePagoVentaDisplay(restante) : formatImportePagoVentaDisplay(0);
 
     document.getElementById("txtPagoNota").value = "";
 
     attachPagoLiveValidation();
+    refrescarAtajosAbmEn(document.getElementById("modalPago"));
     new bootstrap.Modal(document.getElementById("modalPago")).show();
 };
 window.guardarPago = function () {
+    if (ventaEsSoloLectura()) return;
     wasSubmitPago = true;
     if (!validarPagoCampos()) return;
 
     const fecha = document.getElementById("dtpPagoFecha").value;
     const idCuenta = parseInt(document.getElementById("cmbCuenta").value || 0, 10);
     const cuentaNombre = document.getElementById("cmbCuenta").selectedOptions[0]?.textContent || "";
-    const importe = _toNumber(document.getElementById("txtPagoImporte").value);
+    const importe = parseImportePagoVenta(document.getElementById("txtPagoImporte").value);
+    if (isNaN(importe) || importe <= 0) return;
     const nota = (document.getElementById("txtPagoNota").value || "").trim();
 
     const tot = calcularTotalesInterno();
@@ -725,6 +1033,7 @@ window.guardarPago = function () {
     bootstrap.Modal.getInstance(document.getElementById("modalPago"))?.hide();
 };
 window.editarPago = function (idx) {
+    if (ventaEsSoloLectura()) return;
     const p = State.pagos[idx]; if (!p) return;
     State.editPagoIndex = idx;
     wasSubmitPago = false;
@@ -738,13 +1047,15 @@ window.editarPago = function (idx) {
     const cmb = document.getElementById("cmbCuenta");
     cmb.innerHTML = `<option value="">Seleccione</option>` + State.cuentas.map(c => `<option value="${c.Id}">${c.Nombre || c.Descripcion || ("Cuenta " + c.Id)}</option>`).join("");
     document.getElementById("cmbCuenta").value = p.idCuenta;
-    document.getElementById("txtPagoImporte").value = _toMiles(p.importe);
+    document.getElementById("txtPagoImporte").value = formatImportePagoVentaDisplay(parseFloat(p.importe) || 0);
     document.getElementById("txtPagoNota").value = p.nota || "";
 
     attachPagoLiveValidation();
+    refrescarAtajosAbmEn(document.getElementById("modalPago"));
     new bootstrap.Modal(document.getElementById("modalPago")).show();
 };
 window.eliminarPago = async function (idx) {
+    if (ventaEsSoloLectura()) return;
     const ok = await confirmarModal("¿Eliminar este pago?"); if (!ok) return;
     State.pagos.splice(idx, 1); refrescarPagos(); recalcularTotales();
 };
@@ -770,8 +1081,8 @@ function recalcularTotales() {
     if (elAb) elAb.textContent = `$ ${_fmtNumber(abonado)}`;
     if (elRs) { elRs.textContent = `$ ${_fmtNumber(restante)}`; elRs.classList.toggle("text-success", restante <= 0.000001); elRs.classList.toggle("text-warning", restante > 0.000001); }
 
-    // AUTO estado SOLO para ventas nuevas
-    if (!State.idVenta) {
+    // AUTO estado SOLO para ventas nuevas (no en solo lectura)
+    if (!State.idVenta && !ventaEsSoloLectura()) {
         const nuevoEstado = (restante <= 0.000001) ? "FINALIZADA" : "PENDIENTE";
         State.estado = nuevoEstado;
 
@@ -816,6 +1127,7 @@ function clearAllValidationVenta() {
 }
 
 window.guardarVenta = async function () {
+    if (ventaEsSoloLectura()) return;
     if (isSaving) return;
 
     wasSubmitVenta = true;
@@ -841,7 +1153,7 @@ window.guardarVenta = async function () {
             DescuentoTotal: i.descImporte,
             PrecioUnitCdesc: i.precioUnitario * (1 - i.porcDesc / 100),
             PorcIva: i.porcIva,
-            IvaUnit: (i.preciounitario ?? i.precioUnitario) * (1 - i.porcDesc / 100) * (i.porcIva / 100),
+            IvaUnit: (i.precioUnitario ?? 0) * (1 - i.porcDesc / 100) * (i.porcIva / 100),
             IvaTotal: i.ivaImporte,
             PrecioUnitFinal: i.precioUnitario * (1 - i.porcDesc / 100) * (1 + i.porcIva / 100),
             Cantidad: i.cantidad,
@@ -869,6 +1181,7 @@ window.guardarVenta = async function () {
 };
 
 window.eliminarVenta = async function () {
+    if (ventaEsSoloLectura()) return;
     if (!State.idVenta) return;
     const ok = await confirmarModal("¿Eliminar esta venta?"); if (!ok) return;
     try {
@@ -1014,6 +1327,7 @@ async function exportarVentaPdf() {
 
 
 async function abrirModalNuevoClienteVenta() {
+    if (ventaEsSoloLectura()) return;
     try {
         __wasSubmitClienteRapido = false;
 

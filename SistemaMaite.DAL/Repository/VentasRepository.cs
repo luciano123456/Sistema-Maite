@@ -1,4 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using Microsoft.EntityFrameworkCore;
 using SistemaMaite.DAL.DataContext;
 using SistemaMaite.Models;
 
@@ -127,13 +130,27 @@ namespace SistemaMaite.DAL.Repository
 
         // -------------------------------- LISTADO / OBTENER --------------------------------
 
-        public async Task<List<Venta>> Listar(DateTime? desde, DateTime? hasta, int? idCliente, int? idVendedor, string? estado, string? texto)
+        public async Task<List<Venta>> Listar(DateTime? desde, DateTime? hasta, int? idCliente, int? idVendedor, int? idSucursal, string? estado, string? texto,
+            int? restringirUsuarioRegistraId,
+            IReadOnlyList<int>? idsSucursalesPermitidas)
         {
             var q = _db.Ventas
                 .Include(v => v.IdClienteNavigation)
                 .Include(v => v.IdSucursalNavigation)
+                .Include(v => v.IdUsuarioRegistraNavigation)
                 .AsNoTracking()
                 .AsQueryable();
+
+            if (restringirUsuarioRegistraId.HasValue && restringirUsuarioRegistraId.Value > 0)
+                q = q.Where(v => v.IdUsuarioRegistra == restringirUsuarioRegistraId.Value);
+
+            if (idsSucursalesPermitidas != null)
+            {
+                if (idsSucursalesPermitidas.Count == 0)
+                    q = q.Where(v => false);
+                else
+                    q = q.Where(v => idsSucursalesPermitidas.Contains(v.IdSucursal));
+            }
 
             if (desde.HasValue) q = q.Where(v => v.Fecha >= desde.Value.Date);
             if (hasta.HasValue)
@@ -143,6 +160,9 @@ namespace SistemaMaite.DAL.Repository
             }
             if (idCliente.HasValue && idCliente > 0) q = q.Where(v => v.IdCliente == idCliente.Value);
 
+            if (idSucursal.HasValue && idSucursal > 0) q = q.Where(v => v.IdSucursal == idSucursal.Value);
+
+            if (idVendedor.HasValue && idVendedor > 0) q = q.Where(v => v.IdUsuarioRegistra == idVendedor.Value);
 
             if (!string.IsNullOrWhiteSpace(texto))
             {
@@ -189,6 +209,8 @@ namespace SistemaMaite.DAL.Repository
         {
             return _db.Ventas
                 .Include(v => v.IdClienteNavigation)
+                .Include(v => v.IdSucursalNavigation)
+                .Include(v => v.IdUsuarioRegistraNavigation)
                 .Include(v => v.VentasProductos).ThenInclude(p => p.VentasProductosVariantes)
                 .AsNoTracking()
                 .FirstOrDefaultAsync(v => v.Id == id);
@@ -238,6 +260,38 @@ namespace SistemaMaite.DAL.Repository
                 .Include(v => v.IdTalleNavigation).ThenInclude(pt => pt.IdTalleNavigation)
                 .AsNoTracking()
                 .ToListAsync();
+        }
+
+        public async Task<List<string>> ListarEstadosDistintos()
+        {
+            var fromDb = await _db.Ventas.AsNoTracking()
+                .Where(v => v.Estado != null && v.Estado.Trim() != "")
+                .Select(v => v.Estado!.Trim().ToUpper())
+                .Distinct()
+                .ToListAsync();
+
+            var all = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var e in fromDb)
+            {
+                if (!string.IsNullOrWhiteSpace(e))
+                    all.Add(e.Trim().ToUpperInvariant());
+            }
+            all.Add("PENDIENTE");
+            all.Add("FINALIZADA");
+
+            var rest = all
+                .Where(x => !string.Equals(x, "PENDIENTE", StringComparison.OrdinalIgnoreCase)
+                         && !string.Equals(x, "FINALIZADA", StringComparison.OrdinalIgnoreCase))
+                .OrderBy(x => x, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            var result = new List<string>();
+            if (all.Any(x => string.Equals(x, "PENDIENTE", StringComparison.OrdinalIgnoreCase)))
+                result.Add("PENDIENTE");
+            if (all.Any(x => string.Equals(x, "FINALIZADA", StringComparison.OrdinalIgnoreCase)))
+                result.Add("FINALIZADA");
+            result.AddRange(rest);
+            return result;
         }
 
         // -------------------------------- INSERTAR --------------------------------

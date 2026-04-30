@@ -1,4 +1,4 @@
-﻿@{
+@{
     ViewData["Title"] = "Usuarios";
 }
 
@@ -9,12 +9,12 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
-    <link href="~/css/usuarios.css?v=5.1" rel="stylesheet" />
+    <link href="~/css/usuarios.css?v=5.7" rel="stylesheet" />
     <link href="~/css/disenopantallas.css?v=1.0" rel="stylesheet" />
 }
 
 <div class="container-fluid mt-5">
-    <div class="container page-99" style="margin-top:40px">
+    <div class="container page-99 mt-layout-40">
         <div class="cc-header shadow-lg rounded-4 p-4 mb-4">
             <div class="d-flex align-items-center gap-3 flex-wrap">
                 <div class="d-flex align-items-center gap-3">
@@ -26,7 +26,7 @@
                 </div>
 
                 <div class="ms-auto d-flex gap-4 flex-wrap align-items-center">
-                    <div class="cc-stat">
+                    <div class="cc-stat kpi-solo-rol-finanzas">
                         <div class="label">Usuarios</div>
                         <div class="value"><strong id="kpiCantUsuarios">0</strong></div>
                     </div>
@@ -44,7 +44,7 @@
                         <ul class="dropdown-menu cc-dropdown-menu" aria-labelledby="dropdownColumnas" id="configColumnasMenu"></ul>
                     </div>
 
-                    <a class="btn btn-success d-flex align-items-center px-3 py-2 btnnuevo" onclick="nuevoUsuario()">
+                    <a href="#" class="btn btn-success d-flex align-items-center px-3 py-2 btnnuevo" data-modulo="Usuarios" data-permiso="crear" onclick="nuevoUsuario(); return false;">
                         <i class="fa fa-plus-square me-2"></i> Nuevo
                     </a>
                 </div>
@@ -56,7 +56,7 @@
                 <div class="card-glass p-3">
                     <div class="tabla-wrap position-relative">
                         <div class="dt-dark-wrap">
-                            <table class="dt-dark display nowrap compact" id="grd_Usuarios" style="width:100%">
+                            <table class="w-100 dt-dark display nowrap compact" id="grd_Usuarios">
                                 <thead>
                                     <tr>
                                         <th></th>
@@ -191,19 +191,20 @@
                                         <input type="text" class="form-control" id="txtDireccion">
                                     </div>
 
-                                    <!-- 🔥 Sucursales (TUYO) -->
-                                    <div class="col-md-3 position-relative">
-                                        <label>Sucursales</label>
-                                        <div id="btnSucursales" class="form-select rp-multiselect"
+                                    <!-- Sucursales: mismo patrón que Productos (talles / colores) -->
+                                    <div class="col-md-6 position-relative">
+                                        <label class="form-label">Sucursales</label>
+                                        <div id="btnSucursales" class="form-select text-truncate cursor-pointer" tabindex="0"
                                              onclick="toggleChecklist('btnSucursales','listaSucursales')">
-                                            Seleccionar
+                                            Seleccionar sucursales
                                         </div>
-                                        <div id="listaSucursales" class="select-checklist rp-dropdown d-none"></div>
+                                        <div id="listaSucursales" class="select-checklist shadow p-2 d-none"></div>
+                                        <small class="text-muted">Podés seleccionar múltiples sucursales</small>
                                     </div>
 
                                     <!-- ROLES -->
                                     <div class="col-md-3">
-                                        <label>UsuariosRol</label>
+                                        <label>Rol</label>
                                         <select id="Roles" class="form-control select2" required></select>
                                     </div>
 
@@ -409,7 +410,7 @@
 @section Scripts {
     <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.2.2/js/dataTables.buttons.min.js"></script>
-    <script src="~/js/site.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js"></script>
     <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.html5.min.js"></script>
@@ -420,5 +421,5 @@
     <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.print.min.js"></script>
     <script src="https://cdn.datatables.net/fixedheader/3.2.2/js/dataTables.fixedHeader.min.js"></script>
 
-    <script src="~/js/Usuarios.js?v=5.1"></script>
+    <script src="~/js/Usuarios.js?v=5.7"></script>
 }

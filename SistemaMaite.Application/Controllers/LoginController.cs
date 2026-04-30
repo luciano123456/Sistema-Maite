@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
@@ -49,7 +49,7 @@ namespace SistemaBronx.Application.Controllers
 
                 if (user == null)
                 {
-                    return Unauthorized(new { success = false, message = "Usuario o contraseña incorrectos." });
+                    return Unauthorized(new { success = false, message = "El usuario no existe." });
                 }
 
                 if (user.IdEstado == 2)

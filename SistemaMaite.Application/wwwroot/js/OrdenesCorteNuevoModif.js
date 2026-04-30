@@ -1,4 +1,9 @@
-﻿
+/** JWT: mismo origen que site.js (`token` en localStorage `JwtToken`). No usar `window.token` (no existe). */
+function _ocJwt() {
+    if (typeof token !== "undefined" && token) return token;
+    return localStorage.getItem("JwtToken") || "";
+}
+
 let gridProductos = null, gridInsumos = null, gridEtapas = null;
 let wasSubmitOC = false, wasSubmitItem = false, wasSubmitInsumo = false, wasSubmitEtapa = false;
 let isSaving = false;
@@ -15,6 +20,35 @@ const State = {
     productos: [], personal: [], estadosOC: [], insumosCat: [], talleres: [], etapasEstados: [],
     editItemIndex: -1, editInsumoIndex: -1, editEtapaIndex: -1
 };
+
+/** Modo solo lectura: permiso Ver sin Editar (ver `Permisos.aplicarUINuevoModif` + `permitirConsultaSinEditar`). */
+function ocEsSoloConsulta() {
+    return document.documentElement.dataset.nmSoloConsulta === "1";
+}
+
+function aplicarModoSoloConsultaOC() {
+    if (!ocEsSoloConsulta()) return;
+    document.body.classList.add("oc-solo-consulta");
+    const sub = document.querySelector(".page-header small.text-muted");
+    if (sub && (State.idOC || 0) > 0) sub.textContent = "Solo lectura";
+    ["btnGuardarOC", "btnEliminarOC", "btnCrearEstadoOC", "btnPlusPersonalOC", "btnPlusProductoOC", "btnNuevoInsumoABM", "btnPlusEtapaEstadoOC"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add("d-none");
+    });
+    document.querySelectorAll('button[onclick="abrirModalProducto()"], button[onclick="abrirModalInsumo()"], button[onclick="abrirModalEtapa()"]').forEach(b => b.classList.add("d-none"));
+    const form = document.getElementById("formOC");
+    if (form) {
+        form.querySelectorAll("input, select, textarea").forEach(el => {
+            el.disabled = true;
+        });
+    }
+    if (window.jQuery && $.fn.select2) {
+        $("#formOC select").prop("disabled", true).trigger("change.select2");
+    }
+    if (gridProductos) refreshProductos();
+    if (gridInsumos) refreshInsumos();
+    if (gridEtapas) refreshEtapas();
+}
 
 /* ---------------- helpers numéricos/fechas ---------------- */
 function _fmtNumber(n) { const v = parseFloat(n || 0); return new Intl.NumberFormat("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(v); }
@@ -60,11 +94,26 @@ function syncSaveButton() {
 function initSelect2Base(sel, opts = {}) {
     if (!window.jQuery || !$.fn.select2) return;
     const $el = $(sel); if (!$el.length) return;
-    const $parentModal = $el.closest('.modal');
+    const dpAttr = ($el.attr("data-s2-parent") || "").trim();
+    let $dropdownParent = null;
+    if (dpAttr === "body") {
+        $dropdownParent = $(document.body);
+    } else if (dpAttr) {
+        $dropdownParent = $(dpAttr);
+        if (!$dropdownParent.length) {
+            $dropdownParent = null;
+        } else if ($dropdownParent.hasClass("modal")) {
+            // Anclar al .modal recorta el desplegable (overflow / stacking). Body + z-index en CSS.
+            $dropdownParent = $(document.body);
+        }
+    }
+    if (!$dropdownParent || !$dropdownParent.length) {
+        $dropdownParent = $(document.body);
+    }
     const def = {
         theme: "bootstrap-5", width: "100%", placeholder: "Seleccione",
         language: { noResults: () => "No hay resultados", searching: () => "Buscando..." },
-        dropdownParent: $parentModal.length ? $parentModal : $(document.body)
+        dropdownParent: $dropdownParent
     };
     if ($el.hasClass("select2-hidden-accessible")) $el.select2('destroy');
     $el.select2({ ...def, ...opts });
@@ -80,42 +129,7 @@ function removeEmptyOptionOnSelect(sel) {
     };
     el.addEventListener("change", onChange);
 }
-function isSelect2(el) { return !!(window.jQuery && $(el).hasClass("select2-hidden-accessible") && $(el).next(".select2").length); }
-function getSelect2Selection(el) { return $(el).next(".select2").find(".select2-selection").get(0) || null; }
-function getFeedbackAnchor(el) { return isSelect2(el) ? $(el).next(".select2").get(0) : el; }
-function ensureInvalidFeedback(el) {
-    if (!el) return null;
-    const anchor = getFeedbackAnchor(el);
-    let fb = anchor?.nextElementSibling;
-    if (!(fb && fb.classList?.contains("invalid-feedback"))) {
-        fb = document.createElement("div"); fb.className = "invalid-feedback"; fb.style.display = "none";
-        anchor?.parentNode?.insertBefore(fb, anchor.nextSibling);
-    }
-    return fb;
-}
-function setInvalid(selector, msg = "Campo obligatorio") {
-    const el = typeof selector === "string" ? document.querySelector(selector) : selector;
-    if (!el) return false;
-    let target = el; if (isSelect2(el)) { const s2 = getSelect2Selection(el); if (s2) target = s2; }
-    target.classList.remove("is-valid"); target.classList.add("is-invalid");
-    const fb = ensureInvalidFeedback(el); if (fb) { fb.textContent = msg; fb.style.display = "block"; }
-    return false;
-}
-function setValid(selector) {
-    const el = typeof selector === "string" ? document.querySelector(selector) : selector;
-    if (!el) return true;
-    let target = el; if (isSelect2(el)) { const s2 = getSelect2Selection(el); if (s2) target = s2; }
-    target.classList.remove("is-invalid"); target.classList.add("is-valid");
-    const fb = getFeedbackAnchor(el)?.nextElementSibling; if (fb && fb.classList?.contains("invalid-feedback")) fb.style.display = "none";
-    return true;
-}
-function clearValidation(selector) {
-    const el = typeof selector === "string" ? document.querySelector(selector) : selector;
-    if (!el) return;
-    let target = el; if (isSelect2(el)) { const s2 = getSelect2Selection(el); if (s2) target = s2; }
-    target.classList.remove("is-invalid", "is-valid");
-    const fb = getFeedbackAnchor(el)?.nextElementSibling; if (fb && fb.classList?.contains("invalid-feedback")) fb.style.display = "none";
-}
+/* Validación Select2 + mensajes: usar siempre los helpers globales de site.js (no redefinir setInvalid/setValid/clearValidation: pisan al resto del inyectable Personal / ABM). */
 
 /* ---------------- Marcado visual editable vs auto ---------------- */
 function markAutoEditable() {
@@ -150,7 +164,26 @@ function debounce(fn, wait = 120) { let t = null; return (...a) => { clearTimeou
 
 /* ---------------- Init ---------------- */
 document.addEventListener("DOMContentLoaded", async () => {
+    Permisos.init();
+    Permisos.aplicarUINuevoModif("OrdenesCorte", { permitirConsultaSinEditar: true });
     State.idOC = parseInt((document.getElementById("txtId")?.value || "0"), 10) || 0;
+
+    window.__MInsumosMaiteRefill = async function (detail) {
+        try {
+            await _loadCatsAndProvsForABM();
+            if (!detail || !window.jQuery) return;
+            const nid = Number(detail.nuevoId ?? detail.NuevoId ?? 0);
+            if (!Number.isFinite(nid) || nid <= 0) return;
+            const t = (detail.tipo || "").trim();
+            if (t === "InsumosCategoria") {
+                window.jQuery("#insABM_Categoria").val(String(nid)).trigger("change.select2");
+            } else if (t === "Proveedores") {
+                window.jQuery("#insABM_Proveedor").val(String(nid)).trigger("change.select2");
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    };
     const dtp = document.getElementById("dtpFechaInicio"); if (dtp && !dtp.value) dtp.value = hoyISO();
 
     // Select2
@@ -184,8 +217,27 @@ document.addEventListener("DOMContentLoaded", async () => {
     await hideInitial();
     recomputeAll(); // coherencia inicial
 
+    aplicarModoSoloConsultaOC();
+
     registrarEventosEstadoOC();
     registrarListenerConfiguracionesGlobales();
+    wirePlusPersonalOrdenesCorte();
+    wirePlusProductoOrdenesCorte();
+    wirePlusEtapaEstadoOrdenesCorte();
+
+    const modalAbmIns = document.getElementById("modalInsumoABM");
+    if (modalAbmIns) {
+        modalAbmIns.addEventListener("shown.bs.modal", () => {
+            _initSelect2PreferProject("#insABM_Categoria");
+            _initSelect2PreferProject("#insABM_Proveedor");
+        });
+    }
+
+    document.getElementById("btnNuevoInsumoABM")?.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        abrirModalInsumoABM();
+    });
 
 });
 
@@ -212,7 +264,7 @@ async function fetchFirstOk(urls, opts) {
     }
     return null;
 }
-const authHeaders = () => ({ headers: { Authorization: "Bearer " + (window.token || "") } });
+const authHeaders = () => ({ headers: { Authorization: "Bearer " + _ocJwt() } });
 
 /* ---------------- Catálogos ---------------- */
 async function loadEstados() {
@@ -301,6 +353,7 @@ function setModalFooterAction(modalSel, editing) {
     btn.innerHTML = editing ? `<i class="fa fa-check me-1"></i> Guardar` : `<i class="fa fa-check me-1"></i> Registrar`;
 }
 function abrirModalProducto() {
+    if (ocEsSoloConsulta()) return;
     State.editItemIndex = -1; wasSubmitItem = false;
     setModalFooterAction("#modalProducto", false);
 
@@ -317,19 +370,20 @@ function abrirModalProducto() {
     const wrap = document.getElementById("variantesWrap");
     const cont = document.getElementById("variantesContainer");
     const empty = document.getElementById("variantesEmpty");
-    wrap.innerHTML = ""; cont.style.display = "none"; empty.hidden = true;
+    wrap.innerHTML = ""; cont.classList.add("d-none"); empty.hidden = true;
 
     clearValidation("#cmbProdModal"); clearValidation("#txtProdCantModal");
     document.getElementById("errorCamposItem")?.classList.add("d-none");
 
     cmb.onchange = async () => {
         const idProd = parseInt(cmb.value || 0, 10);
-        wrap.innerHTML = ""; cont.style.display = "none"; empty.hidden = true;
+        wrap.innerHTML = ""; cont.classList.add("d-none"); empty.hidden = true;
         if (btnSave) btnSave.disabled = true;
         if (!idProd) return;
 
         const vars = await obtenerVariantesProducto(idProd);
-        cont.style.display = "block";
+        /* Quitar d-none: el inline display:block no gana a .d-none { display:none !important } */
+        cont.classList.remove("d-none");
         if (vars.length === 0) {
             // NO se permite producto sin variantes
             empty.hidden = false;
@@ -374,6 +428,7 @@ function validarItem() {
     return ok;
 }
 function guardarProducto() {
+    if (ocEsSoloConsulta()) return;
     wasSubmitItem = true; if (!validarItem()) return;
 
     const id = parseInt(document.getElementById("cmbProdModal").value, 10);
@@ -398,6 +453,7 @@ function guardarProducto() {
     bootstrap.Modal.getInstance(document.getElementById("modalProducto"))?.hide();
 }
 function editarProducto(idx) {
+    if (ocEsSoloConsulta()) return;
     const it = State.items[idx]; if (!it) return;
     State.editItemIndex = idx; wasSubmitItem = false;
     setModalFooterAction("#modalProducto", true);
@@ -416,7 +472,7 @@ function editarProducto(idx) {
         const vars = await obtenerVariantesProducto(it.idProducto);
         const cont = document.getElementById("variantesContainer"); const empty = document.getElementById("variantesEmpty");
         const wrap = document.getElementById("variantesWrap");
-        wrap.innerHTML = ""; cont.style.display = "block"; empty.hidden = true;
+        wrap.innerHTML = ""; cont.classList.remove("d-none"); empty.hidden = true;
 
         if (vars.length === 0) {
             empty.hidden = false;
@@ -445,6 +501,7 @@ function editarProducto(idx) {
     new bootstrap.Modal(document.getElementById("modalProducto")).show();
 }
 async function eliminarProducto(idx) {
+    if (ocEsSoloConsulta()) return;
     const ok = await confirmarModal("¿Eliminar el producto de la orden?"); if (!ok) return;
     State.items.splice(idx, 1);
     refreshProductos();
@@ -452,13 +509,15 @@ async function eliminarProducto(idx) {
 }
 function renderChipsVariantes(variantes, rowIndex) {
     if (!Array.isArray(variantes) || variantes.length === 0) return '<span class="text-muted">—</span>';
+    const solo = ocEsSoloConsulta();
     return variantes.map((v, i) => `
     <span class="var-chip" title="${v.nombre}">
       <span class="chip-label">${v.nombre} <span class="qty">×${_fmtNumber(v.cantidad)}</span></span>
-      <button class="chip-x" onclick="quitarVar(${rowIndex},${i});return false;">×</button>
+      ${solo ? "" : `<button class="chip-x" onclick="quitarVar(${rowIndex},${i});return false;">×</button>`}
     </span>`).join("");
 }
 window.quitarVar = function (rowIndex, varIndex) {
+    if (ocEsSoloConsulta()) return;
     const it = State.items[rowIndex]; if (!it) return;
     it.variantes.splice(varIndex, 1);
     const sum = it.variantes.reduce((a, v) => a + (parseFloat(v.cantidad) || 0), 0);
@@ -474,7 +533,7 @@ function configTablaProductos() {
         columns: [
             {
                 data: null, orderable: false, width: "60px", className: "text-center",
-                render: (_, _2, _3, meta) => `
+                render: (_, _2, _3, meta) => ocEsSoloConsulta() ? "" : `
                 <button class="btn btn-link p-0 me-2 text-success" title="Editar" onclick="editarProducto(${meta.row})"><i class="fa fa-pencil"></i></button>
                 <button class="btn btn-link p-0 text-danger" title="Eliminar" onclick="eliminarProducto(${meta.row})"><i class="fa fa-trash"></i></button>`
             },
@@ -485,6 +544,9 @@ function configTablaProductos() {
         order: [[1, "asc"]], dom: "t", pageLength: 1000,
         createdRow: (row) => { $("td", row).eq(2).css({ "white-space": "normal" }); }
     });
+    if (typeof bindDataTableSeleccionFila === "function") {
+        bindDataTableSeleccionFila("#grd_Productos", "ocProd");
+    }
 }
 function refreshProductos() { if (!gridProductos) return; gridProductos.clear().rows.add(State.items).draw(); }
 
@@ -507,7 +569,7 @@ function configTablaInsumos() {
         columns: [
             {
                 data: null, orderable: false, width: "60px", className: "text-center",
-                render: (_, _2, _3, meta) => `
+                render: (_, _2, _3, meta) => ocEsSoloConsulta() ? "" : `
                 <button class="btn btn-link p-0 me-2 text-success" title="Editar" onclick="editarInsumo(${meta.row})"><i class="fa fa-pencil"></i></button>
                 <button class="btn btn-link p-0 text-danger" title="Eliminar" onclick="eliminarInsumo(${meta.row})"><i class="fa fa-trash"></i></button>`
             },
@@ -516,6 +578,9 @@ function configTablaInsumos() {
         ],
         order: [[1, "asc"]], dom: "t", pageLength: 1000
     });
+    if (typeof bindDataTableSeleccionFila === "function") {
+        bindDataTableSeleccionFila("#grd_Insumos", "ocIns");
+    }
 }
 function refreshInsumos() { if (!gridInsumos) return; gridInsumos.clear().rows.add(State.insumos).draw(); }
 
@@ -526,6 +591,7 @@ function setModalFooterActionById(modalId, editing) {
 }
 
 function abrirModalInsumo() {
+    if (ocEsSoloConsulta()) return;
     State.editInsumoIndex = -1; wasSubmitInsumo = false;
     setModalFooterActionById("#modalInsumo", false);
 
@@ -538,12 +604,18 @@ function abrirModalInsumo() {
     new bootstrap.Modal(document.getElementById("modalInsumo")).show();
 }
 function attachInsumoLiveValidation() {
-    const apply = () => { if (!wasSubmitInsumo) return; validarInsumo(); };
-    ["cmbInsumo", "txtInsumoCant"].forEach(id => {
-        const el = document.getElementById(id); if (!el) return;
-        ["input", "change"].forEach(evt => el.addEventListener(evt, apply));
-    });
-    if ($.fn.select2) $("#cmbInsumo").on("select2:select select2:clear", apply);
+    const $ = window.jQuery;
+    if (!$) return;
+    const apply = () => {
+        if (!wasSubmitInsumo) return;
+        validarInsumo();
+    };
+    $("#cmbInsumo").off(".ocInsLive").on("change.ocInsLive", apply);
+    if ($.fn.select2) {
+        $("#cmbInsumo").off("select2:select.ocInsLive select2:clear.ocInsLive")
+            .on("select2:select.ocInsLive select2:clear.ocInsLive", apply);
+    }
+    $("#txtInsumoCant").off(".ocInsLive").on("input.ocInsLive change.ocInsLive", apply);
 }
 function validarInsumo() {
     const id = parseInt(document.getElementById("cmbInsumo").value || 0, 10);
@@ -555,6 +627,7 @@ function validarInsumo() {
     return ok;
 }
 function guardarInsumo() {
+    if (ocEsSoloConsulta()) return;
     wasSubmitInsumo = true; if (!validarInsumo()) return;
     const id = parseInt(document.getElementById("cmbInsumo").value, 10);
     const nombre = document.getElementById("cmbInsumo").selectedOptions[0]?.textContent || "";
@@ -565,6 +638,7 @@ function guardarInsumo() {
     refreshInsumos(); bootstrap.Modal.getInstance(document.getElementById("modalInsumo"))?.hide();
 }
 function editarInsumo(i) {
+    if (ocEsSoloConsulta()) return;
     const it = State.insumos[i]; if (!it) return;
     State.editInsumoIndex = i; wasSubmitInsumo = false;
     setModalFooterActionById("#modalInsumo", true);
@@ -576,7 +650,7 @@ function editarInsumo(i) {
     attachInsumoLiveValidation();
     new bootstrap.Modal(document.getElementById("modalInsumo")).show();
 }
-async function eliminarInsumo(i) { const ok = await confirmarModal("¿Eliminar insumo?"); if (!ok) return; State.insumos.splice(i, 1); refreshInsumos(); }
+async function eliminarInsumo(i) { if (ocEsSoloConsulta()) return; const ok = await confirmarModal("¿Eliminar insumo?"); if (!ok) return; State.insumos.splice(i, 1); refreshInsumos(); }
 
 /* ---------------- Etapas ---------------- */
 function getTallerInfo(idTaller) {
@@ -620,7 +694,7 @@ function configTablaEtapas() {
         columns: [
             {
                 data: null, orderable: false, width: "60px", className: "text-center",
-                render: (_, _2, _3, meta) => `
+                render: (_, _2, _3, meta) => ocEsSoloConsulta() ? "" : `
                 <button class="btn btn-link p-0 me-2 text-success" title="Editar" onclick="editarEtapa(${meta.row})"><i class="fa fa-pencil"></i></button>
                 <button class="btn btn-link p-0 text-danger" title="Eliminar" onclick="eliminarEtapa(${meta.row})"><i class="fa fa-trash"></i></button>`
             },
@@ -646,6 +720,9 @@ function configTablaEtapas() {
         order: [[2, "desc"]], dom: "t", pageLength: 1000,
         createdRow: (row) => { $("td", row).eq(9).css({ "white-space": "normal" }); }
     });
+    if (typeof bindDataTableSeleccionFila === "function") {
+        bindDataTableSeleccionFila("#grd_Etapas", "ocEtapas");
+    }
 }
 function refreshEtapas() { if (!gridEtapas) return; gridEtapas.clear().rows.add(State.etapas).draw(); }
 
@@ -710,6 +787,7 @@ function recalcEtapaAutos() {
 }
 
 function abrirModalEtapa() {
+    if (ocEsSoloConsulta()) return;
     // 🔒 No permitir agregar etapa sin productos
     if ((State.items || []).length === 0) {
         errorModal?.("Agregá al menos un producto antes de crear etapas.");
@@ -762,6 +840,7 @@ function validarEtapa() {
     return ok;
 }
 function guardarEtapa() {
+    if (ocEsSoloConsulta()) return;
     wasSubmitEtapa = true; if (!validarEtapa()) return;
 
     const entrada = document.getElementById("dtpEtEntrada").value || null;
@@ -795,6 +874,7 @@ function guardarEtapa() {
     bootstrap.Modal.getInstance(document.getElementById("modalEtapa"))?.hide();
 }
 function editarEtapa(i) {
+    if (ocEsSoloConsulta()) return;
     const it = State.etapas[i]; if (!it) return; State.editEtapaIndex = i; wasSubmitEtapa = false;
     setModalFooterActionById("#modalEtapa", true);
 
@@ -836,7 +916,7 @@ function editarEtapa(i) {
     recalcEtapaAutos();
     new bootstrap.Modal(document.getElementById("modalEtapa")).show();
 }
-async function eliminarEtapa(i) { const ok = await confirmarModal("¿Eliminar etapa?"); if (!ok) return; State.etapas.splice(i, 1); refreshEtapas(); recomputeAll(); }
+async function eliminarEtapa(i) { if (ocEsSoloConsulta()) return; const ok = await confirmarModal("¿Eliminar etapa?"); if (!ok) return; State.etapas.splice(i, 1); refreshEtapas(); recomputeAll(); }
 
 /* ---------------- Re-cálculos de cabecera ---------------- */
 function computeTotals() {
@@ -938,6 +1018,7 @@ function camposValidos() {
 function updateBanner() { const ok = camposValidos(); document.getElementById("errorCamposOC")?.classList.toggle("d-none", ok); return ok; }
 
 async function guardarOC() {
+    if (ocEsSoloConsulta()) return;
     if (isSaving) return;
     wasSubmitOC = true; if (!updateBanner()) return;
     if ((State.items || []).length === 0) { return errorModal?.("Agregá al menos un producto."); }
@@ -1001,6 +1082,7 @@ async function guardarOC() {
 }
 
 async function eliminarOC() {
+    if (ocEsSoloConsulta()) return;
     if (!State.idOC) return;
     const ok = await confirmarModal("¿Eliminar esta orden de corte?"); if (!ok) return;
     try {
@@ -1150,7 +1232,7 @@ function _insABM_set(id, v) { const el = _insABM_el(id); if (el) el.value = (v ?
 // ----------------- AUTH HEADERS -----------------
 function _authHeadersJson() {
     return {
-        Authorization: "Bearer " + (window.token || ""),
+        Authorization: "Bearer " + _ocJwt(),
         "Content-Type": "application/json;charset=utf-8"
     };
 }
@@ -1160,8 +1242,7 @@ function _insABM_initSelect2(sel) {
     if (!window.jQuery || !$.fn.select2) return;
     const $el = $(sel); if (!$el.length) return;
 
-    const $parentModal = $el.closest(".modal");
-    const dropdownParent = $parentModal.length ? $parentModal : $(document.body);
+    const dropdownParent = $(document.body);
 
     if ($el.hasClass("select2-hidden-accessible")) $el.select2("destroy");
 
@@ -1217,10 +1298,10 @@ function _txtProv(x) { return (x.Nombre || x.RazonSocial || x.Descripcion || `Pr
 async function _loadCatsAndProvsForABM() {
     // ambos en paralelo
     const [cats, provs] = await Promise.all([
-        fetch(URL_INS_CATEGORIAS, { headers: { Authorization: "Bearer " + (window.token || "") } })
+        fetch(URL_INS_CATEGORIAS, { headers: { Authorization: "Bearer " + _ocJwt() } })
             .then(r => (r.ok ? r.json() : []))
             .catch(() => []),
-        fetch(URL_PROVEEDORES, { headers: { Authorization: "Bearer " + (window.token || "") } })
+        fetch(URL_PROVEEDORES, { headers: { Authorization: "Bearer " + _ocJwt() } })
             .then(r => (r.ok ? r.json() : []))
             .catch(() => [])
     ]);
@@ -1251,6 +1332,7 @@ async function _loadCatsAndProvsForABM() {
 
 // ----------------- ABRIR MODAL ABM (SIEMPRE NUEVO) -----------------
 function abrirModalInsumoABM() {
+    if (ocEsSoloConsulta()) return;
     wasSubmitInsumoABM = false;
 
     // Título y botón
@@ -1366,12 +1448,16 @@ function _selectInsumoEnModal(idInsumo) {
     // Selecciona en el modal normal de insumo (#modalInsumo)
     const sel = document.getElementById("cmbInsumo");
     if (!sel) return;
+    const sid = String(idInsumo ?? "");
     if (window.jQuery && $.fn.select2) {
-        $("#cmbInsumo").val(String(idInsumo)).trigger("change.select2");
+        // "change" actualiza Select2 y dispara listeners; change.select2 solo no alcanza para revalidar con .on("change", …)
+        $("#cmbInsumo").val(sid).trigger("change");
     } else {
-        sel.value = String(idInsumo);
+        sel.value = sid;
         sel.dispatchEvent(new Event("change", { bubbles: true }));
     }
+    // Tras alta ABM el usuario pudo haber intentado Registrar antes: reevaluar y limpiar "Campo obligatorio" del combo
+    if (wasSubmitInsumo) validarInsumo();
 }
 
 // ----------------- GUARDAR ABM (SIEMPRE INSERTA + selecciona nuevo) -----------------
@@ -1439,7 +1525,10 @@ async function guardarInsumoABM() {
             if (typeof showToast === "function") showToast("Insumo creado. Seleccionalo en la lista.", "info");
         }
 
-        bootstrap.Modal.getInstance(document.getElementById("modalInsumoABM"))?.hide();
+        const elAbm = document.getElementById("modalInsumoABM");
+        if (elAbm && window.bootstrap?.Modal) {
+            window.bootstrap.Modal.getInstance(elAbm)?.hide();
+        }
 
     } catch (e) {
         console.error(e);
@@ -1450,28 +1539,86 @@ async function guardarInsumoABM() {
     }
 }
 
-// ----------------- WIRING: botón + abre ABM -----------------
-document.addEventListener("DOMContentLoaded", () => {
-    const btn = document.getElementById("btnNuevoInsumoABM");
-    if (btn) {
-        btn.addEventListener("click", (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            abrirModalInsumoABM();
+function wirePlusPersonalOrdenesCorte() {
+    if (!window.jQuery) return;
+    const $ = window.jQuery;
+    $(document).off("click.ocNmPersonal", "#btnPlusPersonalOC").on("click.ocNmPersonal", "#btnPlusPersonalOC", async function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof nuevoPersonal !== "function") {
+            if (typeof errorModal === "function") await errorModal("No se pudo abrir el alta de personal.");
+            return;
+        }
+        window.__personalMaiteAltaCallback = async function (nuevoId) {
+            try {
+                await loadPersonal();
+                const nid = Number(nuevoId);
+                if (Number.isFinite(nid) && nid > 0) {
+                    $("#cmbPersonal").val(String(nid)).trigger("change.select2");
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        };
+        nuevoPersonal();
+    });
+}
+
+function wirePlusProductoOrdenesCorte() {
+    if (!window.jQuery) return;
+    const $ = window.jQuery;
+    $(document).off("click.ocNmProd", "#btnPlusProductoOC").on("click.ocNmProd", "#btnPlusProductoOC", async function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!window.MProductoMaite || typeof window.MProductoMaite.abrir !== "function") {
+            if (typeof errorModal === "function") await errorModal("No se pudo abrir el alta de producto.");
+            return;
+        }
+        await window.MProductoMaite.abrir({
+            onSuccess: async (newId) => {
+                try {
+                    await loadProductos();
+                    const modal = document.getElementById("modalProducto");
+                    const cmb = document.getElementById("cmbProdModal");
+                    if (!cmb) return;
+                    if (modal && modal.classList.contains("show")) {
+                        cmb.innerHTML = `<option value="">Seleccione</option>` + (State.productos || []).map(p =>
+                            `<option value="${p.Id}">${p.Descripcion || ""}</option>`).join("");
+                        initSelect2Base("#cmbProdModal");
+                        const nid = Number(newId) || 0;
+                        if (nid > 0) {
+                            $(cmb).val(String(nid)).trigger("change");
+                            if (typeof cmb.onchange === "function") await cmb.onchange();
+                        }
+                    }
+                } catch (err) {
+                    console.error(err);
+                }
+            }
         });
-    }
+    });
+}
 
-    // Inicializar select2 dentro del ABM cuando el modal se muestre (por si bootstrap re-render)
-    const modalEl = document.getElementById("modalInsumoABM");
-    if (modalEl) {
-        modalEl.addEventListener("shown.bs.modal", () => {
-            _initSelect2PreferProject("#insABM_Categoria");
-            _initSelect2PreferProject("#insABM_Proveedor");
-        });
-    }
-});
-
-
+function wirePlusEtapaEstadoOrdenesCorte() {
+    if (!window.jQuery) return;
+    window.jQuery(document).off("click.ocNmEtEst", "#btnPlusEtapaEstadoOC").on("click.ocNmEtEst", "#btnPlusEtapaEstadoOC", async function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof abrirConfiguracion !== "function") return;
+        try {
+            await abrirConfiguracion(
+                "Etapas Estados Ordenes de Corte",
+                "OrdenesCorteEtapasEstados",
+                null,
+                null,
+                null,
+                true
+            );
+        } catch (err) {
+            console.error(err);
+        }
+    });
+}
 
 function registrarEventosEstadoOC() {
     const btnCrearEstado = document.getElementById("btnCrearEstadoOC");
@@ -1497,14 +1644,19 @@ function registrarEventosEstadoOC() {
 
 
 function registrarListenerConfiguracionesGlobales() {
+    if (document.documentElement.dataset.ocNmConfigListener) return;
+    document.documentElement.dataset.ocNmConfigListener = "1";
     document.addEventListener("configuracionActualizada", async function (e) {
         try {
             const detail = e.detail || {};
             const tipo = detail.tipo || "";
-            const nuevoId = detail.nuevoId || null;
+            const nuevoId = detail.nuevoId ?? detail.NuevoId ?? null;
 
             if (tipo === "OrdenesCorteEstados") {
                 await recargarEstadosOC(true, nuevoId);
+            }
+            if (tipo === "OrdenesCorteEtapasEstados") {
+                await recargarEtapasEstadosOC(true, nuevoId);
             }
         } catch (err) {
             console.error("Error procesando configuracionActualizada", err);
@@ -1555,5 +1707,39 @@ async function recargarEstadosOC(mantenerSeleccion = true, idSeleccionar = null)
 
     } catch (e) {
         console.error("Error recargando estados OC", e);
+    }
+}
+
+async function recargarEtapasEstadosOC(mantenerSeleccion = true, idSeleccionar = null) {
+    try {
+        const select = document.getElementById("cmbEtEstado");
+        if (!select) return;
+
+        const valorActual = mantenerSeleccion ? select.value : "";
+
+        await loadEtapasEstados();
+
+        select.innerHTML =
+            `<option value="">Seleccione</option>` +
+            (State.etapasEstados || []).map(x =>
+                `<option value="${x.Id}">${x.Nombre}</option>`
+            ).join("");
+
+        if (idSeleccionar) {
+            select.value = String(idSeleccionar);
+        } else if (valorActual) {
+            const existe = (State.etapasEstados || []).some(x => String(x.Id) === String(valorActual));
+            if (existe) select.value = String(valorActual);
+        }
+
+        if (window.jQuery && $(select)?.hasClass("select2-hidden-accessible")) {
+            $(select).trigger("change.select2");
+        } else if (window.jQuery) {
+            $(select).trigger("change");
+        } else {
+            select.dispatchEvent(new Event("change", { bubbles: true }));
+        }
+    } catch (e) {
+        console.error("Error recargando estados de etapa OC", e);
     }
 }

@@ -13,6 +13,7 @@ namespace SistemaMaite.Application.Controllers
 		private readonly IInventarioService _srv;
 		public InventarioController(IInventarioService srv) => _srv = srv;
 
+		[AllowAnonymous]
 		public IActionResult Index() => View();
 
 		// ======================= Existencias =======================

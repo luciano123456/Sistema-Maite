@@ -1,4 +1,4 @@
-﻿@{
+@{
     ViewData["Title"] = "Inventario";
 }
 
@@ -16,7 +16,7 @@
     <link rel="stylesheet" href="~/css/Inventario.css?v=1.7" />
 }
 
-<div class="container page-99" style="margin-top: 100px">
+<div class="container page-99 mt-layout-100">
 
     <!-- Header -->
     <div class="cc-header shadow-lg rounded-4 p-4 mb-4">
@@ -29,7 +29,7 @@
                 </div>
             </div>
 
-            <div class="ms-auto d-flex gap-3 flex-wrap">
+            <div class="ms-auto d-flex gap-3 flex-wrap kpi-solo-rol-finanzas">
                 <div class="cc-stat">
                     <div class="label">Stock actual</div>
                     <div class="value" id="kpiStockTotal">0</div>
@@ -126,7 +126,7 @@
 
                     <div class="tabla-footer d-flex align-items-center justify-content-between">
                         <div class="left">
-                            <button class="btn btn-outline-info d-flex align-items-center" id="btnExportPdf" type="button">
+                            <button class="btn btn-outline-info d-flex align-items-center" id="btnExportPdf" type="button" data-modulo="Inventario" data-permiso="exportar">
                                 <i class="fa fa-file-pdf-o me-2"></i> Exportar PDF
                             </button>
                         </div>
@@ -135,16 +135,16 @@
             </div>
 
             <div class="acciones-externas d-flex justify-content-end mt-3 gap-2 flex-wrap">
-                <button class="btn btn-success" id="btnAjuste" type="button">
+                <button class="btn btn-success" id="btnAjuste" type="button" data-modulo="Inventario" data-permiso="crear">
                     <i class="fa fa-balance-scale"></i> Ajuste de inventario
                 </button>
-                <button class="btn btn-purple" id="btnTransfer" type="button">
+                <button class="btn btn-purple" id="btnTransfer" type="button" data-modulo="Inventario" data-permiso="crear">
                     <i class="fa fa-exchange"></i> Nueva transferencia
                 </button>
-                <button class="btn btn-primary" id="btnIngresoOC" type="button">
+                <button class="btn btn-primary" id="btnIngresoOC" type="button" data-modulo="Inventario" data-permiso="crear">
                     <i class="fa fa-plus-square"></i> Nuevo ingreso OC
                 </button>
-                <button class="btn btn-outline-danger" id="btnRevertOC" type="button">
+                <button class="btn btn-outline-danger" id="btnRevertOC" type="button" data-modulo="Inventario" data-permiso="eliminar">
                     <i class="fa fa-undo"></i> Revertir ingreso OC
                 </button>
             </div>
@@ -307,7 +307,7 @@
                         </div>
 
                         <!-- scroller para que no explote la altura -->
-                        <div id="trVariantesWrap" class="variantes-wrap" style="max-height: 280px; overflow:auto;"></div>
+                        <div id="trVariantesWrap" class="variantes-wrap"></div>
 
                         <div id="trVariantesEmpty" class="alert alert-secondary py-2 mt-2 d-none">
                             Este producto no tiene variantes definidas.
@@ -475,5 +475,5 @@
     <script src="~/js/utils/moment.js"></script>
 
     <!-- lógica -->
-    <script src="~/js/Inventario.js?v=2.2"></script>
+    <script src="~/js/Inventario.js?v=2.4"></script>
 }

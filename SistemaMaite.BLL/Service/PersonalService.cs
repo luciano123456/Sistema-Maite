@@ -1,4 +1,4 @@
-﻿using SistemaMaite.DAL.Repository;
+using SistemaMaite.DAL.Repository;
 using SistemaMaite.Models;
 
 namespace SistemaMaite.BLL.Service
@@ -22,7 +22,7 @@ namespace SistemaMaite.BLL.Service
             return await _contactRepo.Eliminar(id);
         }
 
-        public async Task<bool> Insertar(Personal model)
+        public async Task<int> Insertar(Personal model)
         {
             return await _contactRepo.Insertar(model);
         }

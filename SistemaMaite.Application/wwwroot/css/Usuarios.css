@@ -1,4 +1,4 @@
-﻿.modal-edicion {
+.modal-edicion {
     max-width: 60%; /* o lo que necesites */
 }
 
@@ -1145,4 +1145,55 @@ body {
     padding: 10px 12px 10px 40px !important;
     line-height: normal;
     font-size: 14px;
+}
+
+/* Sucursales: panel claro como Productos; el modal fuerza texto/input oscuro vía .modal .form-control y color heredado */
+#modalEdicion #listaSucursales.select-checklist {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 100%;
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: .5rem;
+    max-height: 240px;
+    overflow: auto;
+    z-index: 1055;
+    color: #212529 !important;
+}
+
+#modalEdicion #listaSucursales.select-checklist .form-check {
+    margin-bottom: .25rem;
+}
+
+#modalEdicion #listaSucursales.select-checklist .form-check-label {
+    color: #212529 !important;
+}
+
+#modalEdicion #listaSucursales.select-checklist .form-check-input {
+    background-color: #fff !important;
+    border-color: #adb5bd !important;
+    color: #212529 !important;
+}
+
+#modalEdicion #listaSucursales.select-checklist .form-check-input:checked {
+    background-color: #0d6efd !important;
+    border-color: #0d6efd !important;
+}
+
+#modalEdicion #listaSucursales.select-checklist hr {
+    border-color: #dee2e6;
+    opacity: 1;
+}
+
+/* Configuración de usuario (Views/Usuarios/Configuracion.cshtml) */
+.usuarios-config-shell {
+    min-height: 100vh;
+}
+
+.usuarios-config-card {
+    background-color: rgba(230, 240, 240, 0.92);
+    box-shadow: 0 4px 10px rgba(238, 48, 12, 1);
+    width: 100%;
+    max-width: 700px;
 }

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SistemaMaite.Application.Models;
 using SistemaMaite.Application.Models.ViewModels;
@@ -62,7 +62,7 @@ namespace SistemaMaite.Application.Controllers
             bool ok = await _ProductosService.Insertar(
                 entidad, model.IdTalles, model.IdColores, model.GenerarVariantes, precios);
 
-            return Ok(new { valor = ok });
+            return Ok(new { valor = ok, id = ok ? entidad.Id : 0 });
         }
 
         [HttpPut]

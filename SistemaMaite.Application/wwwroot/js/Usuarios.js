@@ -1,4 +1,4 @@
-﻿let gridUsuarios;
+let gridUsuarios;
 let personalSelectorData = [];
 let personalSeleccionado = null;
 
@@ -6,6 +6,9 @@ let permisosUsuarioCache = [];
 let permisosUsuarioOriginal = [];
 let usuarioPermisosModo = "nuevo"; // nuevo | editar | ver
 let moduloPermisoSeleccionadoId = 0;
+
+let sucursalesUsuarioCatalog = [];
+const sucursalesUsuarioSelected = new Set();
 
 const PERMISOS_COLUMNAS = ["VER", "CREAR", "EDITAR", "ELIMINAR", "EXPORTAR"];
 
@@ -79,6 +82,7 @@ async function guardarCambios() {
         "Correo": $("#txtCorreo").val(),
         "IdRol": $("#Roles").val(),
         "IdEstado": $("#Estados").val(),
+        "IdSucursales": [...sucursalesUsuarioSelected].map(x => Number(x)).filter(n => n > 0),
         "Contrasena": idUsuario === "" ? $("#txtContrasena").val() : "",
         "ContrasenaNueva": $("#txtContrasenaNueva").val(),
         "CambioAdmin": 1
@@ -177,7 +181,7 @@ async function guardarCambios() {
         errorModal("Error al guardar usuario y permisos.");
     }
 }
-function nuevoUsuario() {
+async function nuevoUsuario() {
     limpiarModal();
     listaEstados();
     listaRoles();
@@ -191,6 +195,8 @@ function nuevoUsuario() {
 
     document.getElementById("divContrasena").removeAttribute("hidden");
     document.getElementById("divContrasenaNueva").setAttribute("hidden", "hidden");
+
+    await iniciarSucursalesUsuarioChecklist([]);
 
     prepararPermisosEnModalNuevo();
 }
@@ -213,6 +219,9 @@ async function mostrarModal(modelo) {
     if (modelo.IdRol != null) $("#Roles").val(modelo.IdRol);
     if (modelo.IdEstado != null) $("#Estados").val(modelo.IdEstado);
 
+    const idsSuc = modelo.IdSucursales ?? modelo.idSucursales ?? [];
+    await iniciarSucursalesUsuarioChecklist(Array.isArray(idsSuc) ? idsSuc : []);
+
     $('#modalEdicion').modal('show');
 
     $("#btnGuardar").html(`<i class="fa fa-check"></i> Guardar`);
@@ -227,7 +236,11 @@ async function mostrarModal(modelo) {
 }
 
 const editarUsuario = id => {
-    $('.rp-actions-dropdown').hide();
+    Permisos.init();
+    if (!Permisos.tiene("Usuarios", "Editar")) {
+        errorModal("No tenés permisos.");
+        return;
+    }
 
     fetch("/Usuarios/EditarInfo?id=" + id, {
         method: 'GET',
@@ -248,7 +261,11 @@ const editarUsuario = id => {
 };
 
 async function eliminarUsuario(id) {
-    $('.rp-actions-dropdown').hide();
+    Permisos.init();
+    if (!Permisos.tiene("Usuarios", "Eliminar")) {
+        errorModal("No tenés permisos.");
+        return;
+    }
 
     const confirmado = await confirmarModal("¿Desea eliminar este usuario?");
     if (!confirmado) return;
@@ -322,20 +339,11 @@ async function configurarDataTable(data) {
                 {   // Acciones
                     data: "Id", title: '', width: "1%",
                     render: function (data) {
-                        return `
-                        <div class="acciones-menu" data-id="${data}">
-                            <button class='btn btn-sm btnacciones' type='button' onclick='toggleAcciones(${data})' title='Acciones'>
-                                <i class='fa fa-ellipsis-v fa-lg text-white' aria-hidden='true'></i>
-                            </button>
-                            <div class="acciones-dropdown" style="display:none;">
-                                <button class='btn btn-sm btneditar' type='button' onclick='editarUsuario(${data})' title='Editar'>
-                                    <i class='fa fa-pencil-square-o fa-lg text-success'></i> Editar
-                                </button>
-                                <button class='btn btn-sm btneliminar' type='button' onclick='eliminarUsuario(${data})' title='Eliminar'>
-                                    <i class='fa fa-trash-o fa-lg text-danger'></i> Eliminar
-                                </button>
-                            </div>
-                        </div>`;
+                        return renderAccionesGrid(data, {
+                            ver: "verUsuario",
+                            editar: "editarUsuario",
+                            eliminar: "eliminarUsuario"
+                        }, "Usuarios");
                     },
                     orderable: false, searchable: false
                 },
@@ -349,7 +357,7 @@ async function configurarDataTable(data) {
                 { data: 'Estado', title: 'Estado', render: (d) => d === "Bloqueado" ? `<span style="color:red">${d}</span>` : d } // 8
             ],
             dom: 'Bfrtip',
-            buttons: [
+            buttons: dataTableButtonsExportCondicional("Usuarios", [
                 {
                     extend: 'excelHtml5',
                     text: 'Exportar Excel',
@@ -413,8 +421,7 @@ async function configurarDataTable(data) {
                     exportOptions: { columns: [1, 2, 3, 4, 5, 6, 7, 8] },
                     className: 'btn-exportar-print'
                 },
-                'pageLength'
-            ],
+            ]),
             orderCellsTop: true,
             fixedHeader: true,
             initComplete: async function () {
@@ -463,7 +470,15 @@ async function configurarDataTable(data) {
 
                 $('.filters th').eq(0).html('');
 
-                configurarOpcionesColumnas();
+                if (typeof configurarOpcionesColumnas === "function") {
+                    configurarOpcionesColumnas("#grd_Usuarios", "#configColumnasMenu", "Usuarios_Columnas", {
+                        getTitle: (col, index) => (index === 6 ? "Direccion" : (col.data || "Col"))
+                    });
+                }
+
+                if (typeof bindDataTableSeleccionFila === "function") {
+                    bindDataTableSeleccionFila("#grd_Usuarios", "usuarios");
+                }
 
                 setTimeout(() => gridUsuarios.columns.adjust(), 10);
 
@@ -544,68 +559,105 @@ async function listaRolesFilter() {
 }
 
 /* =========================
-   CONFIG COLUMNAS
+   SUCURSALES (checklist modal usuario)
 ========================= */
 
-function configurarOpcionesColumnas() {
-    const grid = $('#grd_Usuarios').DataTable();
-    const columnas = grid.settings().init().columns;
-    const container = $('#configColumnasMenu');
-
-    const storageKey = `Usuarios_Columnas`;
-    const savedConfig = JSON.parse(localStorage.getItem(storageKey)) || {};
-
-    container.empty();
-
-    columnas.forEach((col, index) => {
-        if (col.data && col.data !== "Id") {
-            const isChecked = savedConfig[`col_${index}`] !== undefined ? savedConfig[`col_${index}`] : true;
-            grid.column(index).visible(isChecked);
-
-            const name = (index === 6) ? "Direccion" : (col.data || "Col");
-
-            container.append(`
-                <li class="rp-dd-item">
-                    <label class="rp-dd-label">
-                        <input type="checkbox" class="toggle-column" data-column="${index}" ${isChecked ? 'checked' : ''}>
-                        <span>${name}</span>
-                    </label>
-                </li>
-            `);
-        }
-    });
-
-    $('.toggle-column').off('change').on('change', function () {
-        const columnIdx = parseInt($(this).data('column'), 10);
-        const isChecked = $(this).is(':checked');
-
-        savedConfig[`col_${columnIdx}`] = isChecked;
-        localStorage.setItem(storageKey, JSON.stringify(savedConfig));
-
-        grid.column(columnIdx).visible(isChecked);
-    });
-}
-
-/* =========================
-   ACCIONES DROPDOWN
-========================= */
-
-function toggleAcciones(id) {
-    const $dropdown = $(`.acciones-menu[data-id="${id}"] .acciones-dropdown`);
-
-    if ($dropdown.is(":visible")) {
-        $dropdown.hide();
-    } else {
-        $(".acciones-dropdown").hide();
-        $dropdown.show();
+async function cargarCatalogoSucursalesUsuario() {
+    try {
+        const res = await fetch("/Sucursales/Lista", {
+            headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" }
+        });
+        if (!res.ok) throw new Error();
+        sucursalesUsuarioCatalog = await res.json();
+    } catch {
+        sucursalesUsuarioCatalog = [];
     }
 }
 
-$(document).on('click', function (e) {
-    if (!$(e.target).closest('.acciones-menu').length) {
-        $(".acciones-dropdown").hide();
+/** Mismo criterio que Productos.js → renderChecklist / updateChecklistButtonLabel (talles, colores). */
+function actualizarLabelSucursalesUsuario() {
+    const btn = document.getElementById("btnSucursales");
+    if (!btn) return;
+    const map = new Map((sucursalesUsuarioCatalog || []).map(s => [Number(s.Id), s.Nombre]));
+    const textos = [...sucursalesUsuarioSelected].map(id => map.get(Number(id))).filter(Boolean);
+    btn.textContent = textos.length ? textos.join(", ") : "Seleccionar sucursales";
+    btn.title = textos.join(", ");
+}
+
+function renderSucursalesUsuarioChecklist() {
+    const panelId = "listaSucursales";
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
+
+    const items = (sucursalesUsuarioCatalog || []).filter(it => Number(it.Id) > 0);
+    const selected = sucursalesUsuarioSelected;
+
+    const allChecked = items.length > 0 && items.every(it => selected.has(Number(it.Id)));
+    const html = [];
+    html.push(`
+    <div class="form-check">
+      <input class="form-check-input" type="checkbox" id="${panelId}-all" ${allChecked ? "checked" : ""}>
+      <label class="form-check-label" for="${panelId}-all">Seleccionar todos</label>
+    </div>
+    <hr class="my-2" />
+  `);
+
+    for (const it of items) {
+        const id = Number(it.Id);
+        const checked = selected.has(id) ? "checked" : "";
+        html.push(`
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" id="${panelId}-opt-${id}" data-id="${id}" ${checked}>
+        <label class="form-check-label" for="${panelId}-opt-${id}">${escapeHtml(it.Nombre || "")}</label>
+      </div>
+    `);
     }
-});
+    panel.innerHTML = html.join("");
+
+    const allBox = document.getElementById(`${panelId}-all`);
+    if (allBox) {
+        allBox.addEventListener("change", ev => {
+            selected.clear();
+            if (ev.target.checked) {
+                items.forEach(x => selected.add(Number(x.Id)));
+            }
+            items.forEach(x => {
+                const cb = document.getElementById(`${panelId}-opt-${x.Id}`);
+                if (cb) cb.checked = !!ev.target.checked;
+            });
+            actualizarLabelSucursalesUsuario();
+        });
+    }
+
+    items.forEach(it => {
+        const id = Number(it.Id);
+        const cb = document.getElementById(`${panelId}-opt-${id}`);
+        if (!cb) return;
+        cb.addEventListener("change", ev => {
+            const sid = Number(ev.target.getAttribute("data-id"));
+            if (ev.target.checked) selected.add(sid);
+            else selected.delete(sid);
+            actualizarLabelSucursalesUsuario();
+            const allC = items.length > 0 && items.every(x => selected.has(Number(x.Id)));
+            const ab = document.getElementById(`${panelId}-all`);
+            if (ab) ab.checked = allC;
+        });
+    });
+
+    actualizarLabelSucursalesUsuario();
+}
+
+async function iniciarSucursalesUsuarioChecklist(idsIniciales) {
+    await cargarCatalogoSucursalesUsuario();
+    sucursalesUsuarioSelected.clear();
+    (idsIniciales || []).forEach(x => {
+        const n = Number(x);
+        if (n > 0) sucursalesUsuarioSelected.add(n);
+    });
+    renderSucursalesUsuarioChecklist();
+    const panel = document.getElementById("listaSucursales");
+    if (panel) panel.classList.add("d-none");
+}
 
 /* =========================
    VALIDACIONES
@@ -638,6 +690,21 @@ function limpiarModal() {
     permisosUsuarioCache = [];
     permisosUsuarioOriginal = [];
     moduloPermisoSeleccionadoId = 0;
+
+    sucursalesUsuarioCatalog = [];
+    sucursalesUsuarioSelected.clear();
+    const panelSuc = document.getElementById("listaSucursales");
+    if (panelSuc) {
+        panelSuc.innerHTML = "";
+        panelSuc.classList.add("d-none");
+    }
+    const btnSuc = document.getElementById("btnSucursales");
+    if (btnSuc) {
+        btnSuc.textContent = "Seleccionar sucursales";
+        btnSuc.title = "";
+        btnSuc.classList.remove("disabled");
+        btnSuc.style.pointerEvents = "";
+    }
 
     actualizarBadgeUsuarioPermisos();
     renderPermisosPlaceholder("Guardá el usuario para administrar permisos.");
@@ -762,9 +829,26 @@ function setModalSoloLectura(soloLectura) {
     });
 
     $("#btnGuardar").prop("disabled", !!soloLectura);
+
+    const btnSuc = document.getElementById("btnSucursales");
+    if (btnSuc) {
+        if (soloLectura) {
+            btnSuc.classList.add("disabled");
+            btnSuc.style.pointerEvents = "none";
+        } else {
+            btnSuc.classList.remove("disabled");
+            btnSuc.style.pointerEvents = "";
+        }
+    }
 }
 
 const verUsuario = id => {
+    Permisos.init();
+    if (!Permisos.tiene("Usuarios", "Ver")) {
+        errorModal("No tenés permisos.");
+        return;
+    }
+
     fetch("/Usuarios/EditarInfo?id=" + id, {
         method: 'GET',
         headers: {
