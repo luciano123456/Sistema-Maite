@@ -1,11 +1,13 @@
-﻿// SistemaMaite.DAL/Repository/IVentasRepository.cs
+// SistemaMaite.DAL/Repository/IVentasRepository.cs
 using SistemaMaite.Models;
 
 namespace SistemaMaite.DAL.Repository
 {
     public interface IVentasRepository<TEntity> where TEntity : class
     {
-        Task<List<Venta>> Listar(DateTime? desde, DateTime? hasta, int? idCliente, int? idVendedor, string? estado, string? texto);
+        Task<List<Venta>> Listar(DateTime? desde, DateTime? hasta, int? idCliente, int? idVendedor, int? idSucursal, string? estado, string? texto,
+            int? restringirUsuarioRegistraId,
+            IReadOnlyList<int>? idsSucursalesPermitidas);
         Task<Venta?> Obtener(int id);
 
         Task<bool> InsertarConDetallesYPagos(Venta venta, IEnumerable<VentasProducto> items, IEnumerable<VentasProductosVariante> variantes,
@@ -19,5 +21,8 @@ namespace SistemaMaite.DAL.Repository
 
         Task<decimal?> ObtenerPrecioPorLista(int idProducto, int idListaPrecio);
         Task<List<ProductosVariante>> ObtenerVariantesPorProducto(int idProducto);
+
+        /// <summary>Textos distintos de <see cref="Venta.Estado"/> ya guardados en ventas, más PENDIENTE/FINALIZADA.</summary>
+        Task<List<string>> ListarEstadosDistintos();
     }
 }

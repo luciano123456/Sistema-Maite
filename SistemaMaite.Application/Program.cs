@@ -178,7 +178,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
    });
 
 
-// Definir el esquema de autenticación predeterminado
+// Definir el esquema de autenticacin predeterminado
 builder.Services.AddAuthorization(options =>
 {
     options.DefaultPolicy = new AuthorizationPolicyBuilder()
@@ -210,7 +210,7 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-app.UseSession();       // <-- AGREGAR AQUÍ
+app.UseSession();       // <-- AGREGAR AQU
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -221,7 +221,7 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Login}/{action=Index}/{id?}");
 
-// Asegúrate de que las rutas de login estén excluidas del middleware de autenticación
+// Asegrate de que las rutas de login estn excluidas del middleware de autenticacin
 app.MapControllerRoute(
     name: "login",
     pattern: "Login/{action=Index}",

@@ -13,8 +13,10 @@ namespace SistemaMaite.Application.Controllers
         private readonly IComprasService _srv;
         public ComprasController(IComprasService srv) { _srv = srv; }
 
+        [AllowAnonymous]
         public IActionResult Index() => View();
 
+        [AllowAnonymous]
         public IActionResult NuevoModif(int? id)
         {
             if (id.HasValue) ViewBag.Data = id.Value;

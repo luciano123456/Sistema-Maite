@@ -1,4 +1,4 @@
-﻿using SistemaMaite.Models;
+using SistemaMaite.Models;
 
 namespace SistemaMaite.BLL.Service
 {
@@ -6,7 +6,7 @@ namespace SistemaMaite.BLL.Service
     {
         Task<bool> Eliminar(int id);
         Task<bool> Actualizar(Cuenta model);
-        Task<bool> Insertar(Cuenta model);
+        Task<int> Insertar(Cuenta model);
 
         Task<Cuenta> Obtener(int id);
 

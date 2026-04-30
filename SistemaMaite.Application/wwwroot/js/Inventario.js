@@ -441,6 +441,8 @@ const columnConfig = [
 ];
 
 $(document).ready(async () => {
+    Permisos.init();
+    Permisos.aplicarUI("Inventario");
     await Promise.all([cargarSucursalesFiltros(), cargarProductos()]);
     bindUI();
     initFiltersToggle();

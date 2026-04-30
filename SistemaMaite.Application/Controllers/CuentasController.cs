@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SistemaMaite.Application.Models;
 using SistemaMaite.Application.Models.ViewModels;
@@ -43,9 +43,9 @@ namespace SistemaMaite.Application.Controllers
                 Nombre = model.Nombre,
             };
 
-            bool respuesta = await _CuentasService.Insertar(result);
+            var nuevoId = await _CuentasService.Insertar(result);
 
-            return Ok(new { valor = respuesta });
+            return Ok(new { valor = nuevoId > 0, id = nuevoId });
         }
 
         [HttpPut]

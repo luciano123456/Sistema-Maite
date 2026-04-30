@@ -16,6 +16,7 @@ namespace SistemaMaite.Application.Controllers
             _service = service;
         }
 
+        [AllowAnonymous]
         public IActionResult Index() => View();
 
         // ---- Proveedores (panel izquierdo)

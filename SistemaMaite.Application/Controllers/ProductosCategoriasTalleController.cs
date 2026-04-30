@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SistemaMaite.Application.Models;
 using SistemaMaite.Application.Models.ViewModels;
@@ -63,7 +63,7 @@ namespace SistemaMaite.Application.Controllers
 
             bool respuesta = await _ProductosCategoriasTalleService.Insertar(result);
 
-            return Ok(new { valor = respuesta });
+            return Ok(new { valor = respuesta, id = result.Id });
         }
 
         [HttpPut]

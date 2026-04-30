@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using SistemaMaite.Application.Models.ViewModels;
 using SistemaMaite.BLL.Service;
 
@@ -13,6 +14,7 @@ namespace SistemaMaite.Controllers
             _service = service;
         }
 
+        [AllowAnonymous]
         public IActionResult Index()
         {
             return View();
