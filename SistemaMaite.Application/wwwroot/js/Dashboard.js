@@ -72,36 +72,24 @@ function claveCodigoModulo(cod) {
     return (cod || "").trim().toLowerCase();
 }
 
-/** Módulos de solo catálogo (acceso por navbar → Extras); no en el grid del Dashboard. Usuarios NO va acá: debe verse en Extras. */
-const MODULOS_EXCLUIR_DASHBOARD = new Set(
-    [
-        "listasprecios",
-        "roles",
-        "sucursales",
-        "cuentas",
-        "bancos",
-        "colores",
-        "personalpuestos",
-        "gastoscategorias",
-        "productoscategoria",
-        "insumoscategoria",
-        "productoscategoriastalle",
-        "ordenescorteestados",
-        "ordenescortetapasestados"
-    ].map(claveCodigoModulo)
-);
-
-function esModuloSoloCatalogoDashboard(m) {
-    const c = claveCodigoModulo(m.CodigoModulo || "");
-    const n = claveCodigoModulo(m.Modulo || "");
-    return (c && MODULOS_EXCLUIR_DASHBOARD.has(c)) || (n && MODULOS_EXCLUIR_DASHBOARD.has(n));
-}
-
-/** Hub “Configuraciones” en usuarios_modulos: solo navbar, nunca tile en Dashboard. */
+/** Hub “Configuraciones” en usuarios_modulos: sin tile propio; el acceso es el tile maestro (modal). */
 function esModuloHubConfiguraciones(m) {
     const c = claveCodigoModulo(m.CodigoModulo || "").replace(/\s+/g, "");
     const n = claveCodigoModulo(m.Modulo || "").replace(/\s+/g, "");
     return c === "configuraciones" || n === "configuraciones";
+}
+
+/** Misma idea que NavBar → Extras: catálogos bajo grupo “Extras” en el dashboard. */
+const CONTROLLERS_CATALOGO_EXTRAS = new Set([
+    "ListasPrecios", "Roles", "Sucursales", "Cuentas", "Bancos", "Colores",
+    "PersonalPuestos", "GastosCategorias", "ProductosCategoria", "InsumosCategoria",
+    "ProductosCategoriasTalle", "OrdenesCorteEstados", "OrdenesCorteEtapasEstados"
+]);
+
+function grupoDashboardDesdeModulo(m) {
+    const ctrl = controllerIndexDesdeModuloSesion(m);
+    if (ctrl && CONTROLLERS_CATALOGO_EXTRAS.has(ctrl)) return "Extras";
+    return (m.Grupo || "General").trim() || "General";
 }
 
 function esModuloUsuarios(m) {
@@ -287,7 +275,22 @@ const ICONO_POR_CONTROLLER = {
     Cajas: "fa-money",
     Gastos: "fa-line-chart",
     PersonalSueldos: "fa-credit-card",
-    Usuarios: "fa-user"
+    Usuarios: "fa-user",
+    /* Catálogos / configuración (mismos que Extras en NavBar) */
+    ListasPrecios: "fa-tags",
+    Roles: "fa-shield",
+    Sucursales: "fa-building",
+    Cuentas: "fa-bank",
+    Bancos: "fa-university",
+    Colores: "fa-paint-brush",
+    PersonalPuestos: "fa-briefcase",
+    GastosCategorias: "fa-folder-open",
+    ProductosCategoria: "fa-sitemap",
+    InsumosCategoria: "fa-leaf",
+    ProductosCategoriasTalle: "fa-text-height",
+    OrdenesCorteEstados: "fa-flag",
+    OrdenesCorteEtapasEstados: "fa-tasks",
+    Configuraciones: "fa-cogs"
 };
 
 function controllerParaUi(codRaw) {
@@ -317,6 +320,15 @@ function moduloPuedeVerDashboard(m) {
     const nom = (m.Modulo || "").trim();
     if (cod && Permisos.tiene(cod, "Ver")) return true;
     if (nom && Permisos.tiene(nom, "Ver")) return true;
+    return false;
+}
+
+/** Un solo tile "Configuraciones" (modal maestro); hub o cualquier catálogo Extras con Ver. */
+function puedeVerAlgunaConfiguracionMaestroDashboard() {
+    if (Permisos.tiene("Configuraciones", "Ver")) return true;
+    for (const ctrl of CONTROLLERS_CATALOGO_EXTRAS) {
+        if (Permisos.tiene(ctrl, "Ver")) return true;
+    }
     return false;
 }
 
@@ -365,13 +377,28 @@ function renderDashboard() {
 
         if (esModuloHubConfiguraciones(m)) continue;
 
-        if (esModuloSoloCatalogoDashboard(m)) continue;
+        const ctrlSkip = controllerIndexDesdeModuloSesion(m);
+        if (ctrlSkip && CONTROLLERS_CATALOGO_EXTRAS.has(ctrlSkip)) continue;
 
         const url = urlDashboardDesdeModulo(m);
         if (!url) continue;
 
         vistos.add(clave);
         modulos.push(m);
+    }
+
+    if (puedeVerAlgunaConfiguracionMaestroDashboard()) {
+        const claveM = "dash:maestroConfig";
+        if (!vistos.has(claveM)) {
+            vistos.add(claveM);
+            modulos.push({
+                CodigoModulo: "Configuraciones",
+                Modulo: "Configuraciones",
+                OrdenModulo: 50,
+                Grupo: "Extras",
+                _dashAbrirConfig: true
+            });
+        }
     }
 
     if (modulos.length === 0) {
@@ -384,7 +411,7 @@ function renderDashboard() {
 
     modulos.forEach(m => {
 
-        const grupo = m.Grupo || "General";
+        const grupo = grupoDashboardDesdeModulo(m);
 
         if (!grupos[grupo]) {
             grupos[grupo] = [];
@@ -422,12 +449,14 @@ function renderDashboard() {
 
                 const cod = (m.CodigoModulo || "").trim();
                 const nom = (m.Modulo || "").trim();
-                const url = urlDashboardDesdeModulo(m) || "";
+                const esTileConfigMaestro = m._dashAbrirConfig === true;
+                const url = esTileConfigMaestro ? "" : (urlDashboardDesdeModulo(m) || "");
                 const nombre = nom || cod;
                 const ctrlUi = controllerIndexDesdeModuloSesion(m) || cod || nom;
+                const clickCfg = "if(typeof window.abrirConfiguraciones==='function')window.abrirConfiguraciones();";
 
                 return `
-                                <div class="dash-tile" onclick="goTo('${url}')">
+                                <div class="dash-tile" onclick="${esTileConfigMaestro ? clickCfg : `goTo('${url.replace(/'/g, "\\'")}')`}">
 
                                     <div class="dash-tile-icon">
                                         <i class="fa ${iconoPorCodigoModulo(ctrlUi)}"></i>

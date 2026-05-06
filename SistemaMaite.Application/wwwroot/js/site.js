@@ -38,10 +38,38 @@ function formatNumber(number) {
     return "$ " + parts.join(",");
 }
 
+/**
+ * NavBarLogin eleva #modalConfiguracion a ~32000; estos modales deben ir por encima (y su backdrop).
+ */
+const Z_INDEX_MODAL_FEEDBACK = 45000;
+const Z_INDEX_MODAL_FEEDBACK_BACKDROP = 44980;
+
+function aplicarZIndexModalFeedback(modalEl) {
+    if (!modalEl) return function noop() { };
+    modalEl.style.setProperty("z-index", String(Z_INDEX_MODAL_FEEDBACK), "important");
+    let backdrop = null;
+    const subirBackdrop = () => {
+        const backs = document.querySelectorAll(".modal-backdrop");
+        backdrop = backs[backs.length - 1];
+        if (backdrop) backdrop.style.setProperty("z-index", String(Z_INDEX_MODAL_FEEDBACK_BACKDROP), "important");
+    };
+    setTimeout(subirBackdrop, 0);
+    requestAnimationFrame(subirBackdrop);
+    return function limpiarZIndexModalFeedback() {
+        modalEl.style.removeProperty("z-index");
+        if (backdrop && backdrop.isConnected) backdrop.style.removeProperty("z-index");
+    };
+}
+
 function mostrarModalConContador(modal, texto, tiempo) {
     $(`#${modal}Text`).text(texto);
-    $(`#${modal}`).modal('show');
-    setTimeout(function () { $(`#${modal}`).modal('hide'); }, tiempo);
+    $(`#${modal}`).modal("show");
+    const el = document.getElementById(modal);
+    const limpiar = aplicarZIndexModalFeedback(el);
+    setTimeout(function () {
+        $(`#${modal}`).modal("hide");
+        limpiar();
+    }, tiempo);
 }
 function exitoModal(texto) { mostrarModalConContador('exitoModal', texto, 1000); }
 function errorModal(texto) { mostrarModalConContador('ErrorModal', texto, 3000); }
@@ -67,6 +95,7 @@ function confirmarModal(mensaje) {
         const nuevoBtnAceptar = document.getElementById('btnModalConfirmarAceptar');
 
         const nuevoModal = new bootstrap.Modal(nuevoModalEl, { backdrop: 'static', keyboard: false });
+        let limpiarZFeedback = function noop() { };
 
         nuevoBtnAceptar.onclick = function () {
             if (resuelto) return;
@@ -76,12 +105,14 @@ function confirmarModal(mensaje) {
         };
 
         nuevoModalEl.addEventListener('hidden.bs.modal', () => {
+            limpiarZFeedback();
             if (resuelto) return;
             resuelto = true;
             resolve(false);
         }, { once: true });
 
         nuevoModal.show();
+        limpiarZFeedback = aplicarZIndexModalFeedback(nuevoModalEl);
     });
 }
 

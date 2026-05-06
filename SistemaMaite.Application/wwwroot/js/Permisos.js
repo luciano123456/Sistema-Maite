@@ -45,6 +45,28 @@ var Permisos = (() => {
         talleres: ["taller"]
     };
 
+    /**
+     * Claves normalizadas (claveModuloSesion) de los catálogos del menú Extras / dashboard.
+     * Si el rol solo tiene el módulo hub "Configuraciones", estos permisos se toman de esa fila.
+     * Sincronizar con NavBarLogin.js (CATALOGOS_EXTRAS_CLAVE_MENU).
+     */
+    const CATALOGOS_EXTRAS_CLAVE_SESION = new Set([
+        "listasprecios", "roles", "sucursales", "cuentas", "bancos", "colores",
+        "personalpuestos", "gastoscategorias", "productoscategoria", "insumoscategoria",
+        "productoscategoriastalle", "ordenescorteestados", "ordenescortetapasestados"
+    ]);
+
+    function hubConfiguracionesTienePermiso(permWantUpper) {
+        return permisos.some(x => {
+            const c = claveModuloSesion(x.CodigoModulo || "");
+            const n = claveModuloSesion(x.Modulo || "");
+            if (c !== "configuraciones" && n !== "configuraciones") return false;
+            return (x.Permisos || []).some(p =>
+                (p.Codigo || "").toString().trim().toUpperCase() === permWantUpper && p.Activo === true
+            );
+        });
+    }
+
     function clavesCompatibles(norm) {
         const set = new Set([norm]);
         for (const [k, alts] of Object.entries(SINONIMOS_MENU_CODIGO_BD)) {
@@ -170,15 +192,23 @@ var Permisos = (() => {
     function tiene(modulo, accion) {
         init();
 
-        const m = getModulo(modulo);
-        if (!m || !m.Permisos) return false;
-
         const want = normalizarAccion(accion);
-        const permiso = m.Permisos.find(p =>
-            (p.Codigo || "").toString().trim().toUpperCase() === want
-        );
+        const m = getModulo(modulo);
+        if (m) {
+            const perms = m.Permisos;
+            if (!Array.isArray(perms) || perms.length === 0) return false;
+            const permiso = perms.find(p =>
+                (p.Codigo || "").toString().trim().toUpperCase() === want
+            );
+            return !!permiso?.Activo;
+        }
 
-        return !!permiso?.Activo;
+        const modNorm = claveModuloSesion(modulo);
+        if (modNorm && CATALOGOS_EXTRAS_CLAVE_SESION.has(modNorm) && hubConfiguracionesTienePermiso(want)) {
+            return true;
+        }
+
+        return false;
     }
 
     function selectorPermiso(modulo, perm) {

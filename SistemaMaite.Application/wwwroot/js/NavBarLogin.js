@@ -1,7 +1,7 @@
 ﻿/* =========================================================
    NAVBAR LOGIN - COMPLETO
    - Menú dinámico por permisos
-   - Catálogos de configuración en menú Extras (cada ítem según VER)
+   - Extras → Configuraciones: modal maestro y listas internas (permisos por catálogo o hub)
    - Reutiliza abrirConfiguracion / editar / eliminar / guardar
 ========================================================= */
 
@@ -96,6 +96,16 @@ function buildMenuPorPermisos() {
     }
 
     /**
+     * Misma lista que Permisos.js (CATALOGOS_EXTRAS_CLAVE_SESION): catálogos del submenú Extras.
+     * El hub "Configuraciones" en rol puede otorgar VER (y demás) si no hay fila propia del catálogo.
+     */
+    const CATALOGOS_EXTRAS_CLAVE_MENU = new Set([
+        "listasprecios", "roles", "sucursales", "cuentas", "bancos", "colores",
+        "personalpuestos", "gastoscategorias", "productoscategoria", "insumoscategoria",
+        "productoscategoriastalle", "ordenescorteestados", "ordenescortetapasestados"
+    ]);
+
+    /**
      * CC Talleres (CuentasCorrientesTalleres). Se discrimina por CodigoModulo en sesión
      * (p. ej. "CC Talleres", "CuentasCorrientesTalleres") — no confundir con maestro "Talleres".
      */
@@ -143,7 +153,7 @@ function buildMenuPorPermisos() {
         if (!codigoModuloNorm) return false;
         const keys = clavesCompatibles(codigoModuloNorm);
         const permNorm = (codigoPerm || "VER").toString().trim().toUpperCase();
-        return permisos.some(mod => {
+        const directo = permisos.some(mod => {
             if (esMaestroTalleresCodigoDuplicadoOrdenesCorte(mod) && esSolicitudSoloOrdenesCorte(codigoModuloNorm)) {
                 return false;
             }
@@ -161,6 +171,14 @@ function buildMenuPorPermisos() {
                 (p.Codigo || "").toString().trim().toUpperCase() === permNorm && p.Activo === true
             );
         });
+        if (directo) return true;
+        if (CATALOGOS_EXTRAS_CLAVE_MENU.has(codigoModuloNorm) && window.Permisos && typeof Permisos.tiene === "function") {
+            try {
+                Permisos.init();
+                if (Permisos.tiene(codigoModuloNorm, permNorm)) return true;
+            } catch (e) { /* noop */ }
+        }
+        return false;
     }
 
     /** Primer segmento de ruta (ej. /Personal/Sueldos → personal), sin ambigüedad tipo personal ⊂ personalsueldos */
@@ -394,7 +412,7 @@ function buildMenuPorPermisos() {
         },
 
         // =========================================
-        // 🧩 EXTRAS (incluye catálogos de configuración; cada ítem se filtra por permiso VER)
+        // 🧩 EXTRAS (Configuraciones = modal maestro con listas internas; permiso hub o por catálogo)
         // =========================================
         {
             id: "extras",
@@ -402,23 +420,19 @@ function buildMenuPorPermisos() {
             icon: "fa-puzzle-piece",
             roles: ["Administracion"],
             items: [
-                makeActionItem("Listas de Precios", () => abrirConfiguracion("Lista de Precios", "ListasPrecios"), "ListasPrecios"),
-                makeActionItem("Roles", () => abrirConfiguracion("UsuariosRol", "Roles"), "Roles"),
-                makeActionItem("Sucursales", () => abrirConfiguracion("Sucursal", "Sucursales"), "Sucursales"),
-                makeActionItem("Cuentas", () => abrirConfiguracion("Cuenta", "Cuentas"), "Cuentas"),
-                makeActionItem("Bancos", () => abrirConfiguracion("Banco", "Bancos"), "Bancos"),
-                makeActionItem("Colores", () => abrirConfiguracion("Color", "Colores"), "Colores"),
-                makeActionItem("Personal Puestos", () => abrirConfiguracion("Personal Puesto", "PersonalPuestos"), "PersonalPuestos"),
-                makeActionItem("Gastos Categorías", () => abrirConfiguracion("Gastos Categorias", "GastosCategorias"), "GastosCategorias"),
-                makeActionItem("Productos Categorías", () => abrirConfiguracion("Productos Categorias", "ProductosCategoria"), "ProductosCategoria"),
-                makeActionItem("Insumos Categorías", () => abrirConfiguracion("Insumos Categorias", "InsumosCategoria"), "InsumosCategoria"),
-                makeActionItem("Productos Categorías Talles", () => abrirConfiguracion("Productos Categorias Talles", "ProductosCategoriasTalle", "Productos Categoria", "ProductosCategoria", "Categoria"), "ProductosCategoriasTalle"),
-                makeActionItem("Estados Órdenes de Corte", () => abrirConfiguracion("Estados Ordenes de Corte", "OrdenesCorteEstados"), "OrdenesCorteEstados"),
-                makeActionItem("Etapas Estados Órdenes de Corte", () => abrirConfiguracion("Etapas Estados Ordenes de Corte", "OrdenesCorteEtapasEstados"), "OrdenesCorteEtapasEstados"),
+                makeActionItem("Configuraciones", () => abrirConfiguraciones(), [
+                    "Configuraciones",
+                    "ListasPrecios", "Roles", "Sucursales", "Cuentas", "Bancos", "Colores",
+                    "PersonalPuestos", "GastosCategorias", "ProductosCategoria", "InsumosCategoria",
+                    "ProductosCategoriasTalle", "OrdenesCorteEstados", "OrdenesCorteEtapasEstados"
+                ]),
                 makeLinkItem("Usuarios", "/Usuarios", "VER", "Usuarios"),
                 makeActionItem("Análisis de datos", () => {
-                    if (window.errorModal) errorModal("Análisis de datos aún no disponible");
-                    else alert("Análisis de datos aún no disponible");
+                    if (typeof window.advertenciaModal === "function") {
+                        advertenciaModal("Análisis de datos aún no disponible");
+                    } else if (typeof window.errorModal === "function") {
+                        errorModal("Análisis de datos aún no disponible");
+                    }
                 })
             ]
         }
@@ -956,9 +970,154 @@ function buildMenuPorPermisos() {
             $('#cmbConfiguracion').css('border-color', 'red');
         }
     }
+
+    /** Definición del modal maestro (mismos argumentos que abrirConfiguracion). */
+    function obtenerEntradasMaestroConfiguracion() {
+        return [
+            { label: "Listas de Precios", perm: "ListasPrecios", args: ["Lista de Precios", "ListasPrecios"] },
+            { label: "Roles", perm: "Roles", args: ["UsuariosRol", "Roles"] },
+            { label: "Sucursales", perm: "Sucursales", args: ["Sucursal", "Sucursales"] },
+            { label: "Cuentas", perm: "Cuentas", args: ["Cuenta", "Cuentas"] },
+            { label: "Bancos", perm: "Bancos", args: ["Banco", "Bancos"] },
+            { label: "Colores", perm: "Colores", args: ["Color", "Colores"] },
+            { label: "Personal Puestos", perm: "PersonalPuestos", args: ["Personal Puesto", "PersonalPuestos"] },
+            { label: "Gastos Categorías", perm: "GastosCategorias", args: ["Gastos Categorias", "GastosCategorias"] },
+            { label: "Productos Categorías", perm: "ProductosCategoria", args: ["Productos Categorias", "ProductosCategoria"] },
+            { label: "Insumos Categorías", perm: "InsumosCategoria", args: ["Insumos Categorias", "InsumosCategoria"] },
+            {
+                label: "Productos Categorías Talles",
+                perm: "ProductosCategoriasTalle",
+                args: ["Productos Categorias Talles", "ProductosCategoriasTalle", "Productos Categoria", "ProductosCategoria", "Categoria"]
+            },
+            { label: "Estados Órdenes de Corte", perm: "OrdenesCorteEstados", args: ["Estados Ordenes de Corte", "OrdenesCorteEstados"] },
+            {
+                label: "Etapas Estados Órdenes de Corte",
+                perm: "OrdenesCorteEtapasEstados",
+                args: ["Etapas Estados Ordenes de Corte", "OrdenesCorteEtapasEstados"]
+            }
+        ];
+    }
+
+    function puedeVerEntradaMaestroConfig(perm) {
+        if (!window.Permisos || typeof Permisos.tiene !== "function") return false;
+        try {
+            Permisos.init();
+            return Permisos.tiene(perm, "Ver");
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function filtrarMaestroConfiguraciones() {
+        const input = document.getElementById("txtBuscarMaestroConfig");
+        const lista = document.getElementById("maestro-configuracion-list");
+        const lblVacio = document.getElementById("lblMaestroConfigVacio");
+        if (!input || !lista) return;
+        const texto = String(input.value || "")
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .trim()
+            .toLowerCase();
+        const items = lista.querySelectorAll(".rp-list-item");
+        let visibles = 0;
+        items.forEach(item => {
+            const t = (item.getAttribute("data-texto") || "").toLowerCase();
+            const ok = !texto || t.includes(texto);
+            item.style.display = ok ? "" : "none";
+            if (ok) visibles++;
+        });
+        if (!lblVacio) return;
+        if (items.length > 0 && visibles === 0) {
+            lblVacio.innerText = "No se encontraron resultados.";
+            lblVacio.removeAttribute("hidden");
+        } else {
+            lblVacio.innerText = "";
+            lblVacio.setAttribute("hidden", "hidden");
+        }
+    }
+
     function abrirConfiguraciones() {
-        // Compat.: antes abría un modal maestro inexistente. Los catálogos están en menú Extras.
-        vieneDeModalConfiguraciones = false;
+        const Bs = window.bootstrap;
+        if (!Bs || typeof Bs.Modal !== "function") {
+            if (typeof window.errorModal === "function") {
+                errorModal("No se pudo abrir configuraciones: recargá la página (Bootstrap no está listo).");
+            }
+            return;
+        }
+
+        vieneDeModalConfiguraciones = true;
+        cerrarDropdownsBootstrap();
+        if (window.Permisos && typeof Permisos.init === "function") Permisos.init();
+
+        const entradas = obtenerEntradasMaestroConfiguracion().filter(e => puedeVerEntradaMaestroConfig(e.perm));
+        if (!entradas.length) {
+            vieneDeModalConfiguraciones = false;
+            if (typeof window.errorModal === "function") {
+                errorModal("No tenés permisos para ninguna configuración.");
+            }
+            return;
+        }
+
+        const listaEl = document.getElementById("maestro-configuracion-list");
+        const modalEl = document.getElementById("modalMaestroConfiguraciones");
+        if (!listaEl || !modalEl) {
+            vieneDeModalConfiguraciones = false;
+            if (typeof window.errorModal === "function") {
+                errorModal("No se encontró el modal de configuraciones en esta página.");
+            }
+            return;
+        }
+
+        listaEl.innerHTML = entradas
+            .map((ent, idx) => {
+                const textoBuscar = String(ent.label || "")
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "")
+                    .toLowerCase()
+                    .replace(/"/g, "&quot;");
+                return `
+            <div class="rp-list-item maestro-cfg-row" data-idx="${idx}" data-texto="${textoBuscar}">
+                <div class="rp-item-left">
+                    <div class="rp-item-icon"><i class="fa fa-cog"></i></div>
+                    <div class="rp-item-text">${escapeHtml(ent.label)}</div>
+                </div>
+                <div class="rp-list-actions"><i class="fa fa-angle-right text-muted"></i></div>
+            </div>`;
+            })
+            .join("");
+
+        listaEl.querySelectorAll(".maestro-cfg-row").forEach(row => {
+            row.addEventListener("click", () => {
+                const idx = Number(row.getAttribute("data-idx"), 10);
+                const ent = entradas[idx];
+                if (!ent || !Array.isArray(ent.args)) return;
+                const mInst = bootstrap.Modal.getInstance(modalEl);
+                if (mInst) mInst.hide();
+                setTimeout(() => {
+                    try {
+                        abrirConfiguracion(...ent.args);
+                    } catch (err) {
+                        console.error(err);
+                    }
+                }, 280);
+            });
+        });
+
+        const buscador = document.getElementById("txtBuscarMaestroConfig");
+        if (buscador) {
+            buscador.value = "";
+            buscador.removeEventListener("input", filtrarMaestroConfiguraciones);
+            buscador.addEventListener("input", filtrarMaestroConfiguraciones);
+        }
+        const lblVacio = document.getElementById("lblMaestroConfigVacio");
+        if (lblVacio) {
+            lblVacio.innerText = "";
+            lblVacio.setAttribute("hidden", "hidden");
+        }
+        filtrarMaestroConfiguraciones();
+
+        const modal = Bs.Modal.getOrCreateInstance(modalEl);
+        modal.show();
     }
 
     function filtrarConfiguraciones() {
@@ -1009,12 +1168,12 @@ function buildMenuPorPermisos() {
     ========================================================= */
     function mostrarExito(msg) {
         if (typeof window.exitoModal === "function") return window.exitoModal(msg);
-        alert(msg);
+        console.info(msg);
     }
 
     function mostrarError(msg) {
         if (typeof window.errorModal === "function") return window.errorModal(msg);
-        alert(msg);
+        console.error(msg);
     }
 
     function confirmarAccion(msg) {
@@ -1064,6 +1223,14 @@ function buildMenuPorPermisos() {
         modalEl.addEventListener("show.bs.modal", alFrente);
         modalEl.addEventListener("shown.bs.modal", alFrente);
         modalEl.addEventListener("hidden.bs.modal", limpiarZ);
+    })();
+
+    (function setupModalMaestroConfiguraciones() {
+        const el = document.getElementById("modalMaestroConfiguraciones");
+        if (!el) return;
+        el.addEventListener("hidden.bs.modal", () => {
+            vieneDeModalConfiguraciones = false;
+        });
     })();
 
     /* =========================================================

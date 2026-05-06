@@ -1002,10 +1002,6 @@ function agregarConfiguracion() {
     }
 }
 
-function abrirConfiguraciones() {
-    /* Compat.: el modal maestro ya no existe; los accesos están en navbar → Extras. */
-}
-
 LS.CARD_SIZE = id => `ui.card.size.${id}`; // 'full' | 'normal'
 
 function getCardSizePref(card) {
