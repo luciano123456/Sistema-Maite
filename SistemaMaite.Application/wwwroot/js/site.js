@@ -81,6 +81,11 @@ function confirmarModal(mensaje) {
         const mensajeEl = document.getElementById('modalConfirmarMensaje');
         const btnAceptar = document.getElementById('btnModalConfirmarAceptar');
 
+        if (!modalEl || !mensajeEl || !btnAceptar) {
+            resolve(window.confirm(mensaje || '¿Confirmar?'));
+            return;
+        }
+
         mensajeEl.innerText = mensaje;
 
         const modal = new bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: false });

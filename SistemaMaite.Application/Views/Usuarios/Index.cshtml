@@ -9,7 +9,7 @@
 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
 
-    <link href="~/css/usuarios.css?v=5.7" rel="stylesheet" />
+    <link href="~/css/usuarios.css?v=5.8" rel="stylesheet" />
     <link href="~/css/disenopantallas.css?v=1.0" rel="stylesheet" />
 }
 
@@ -163,32 +163,34 @@
 
                                     <div class="col-md-3">
                                         <label>Usuario</label>
-                                        <input type="text" class="form-control" id="txtUsuario" required>
+                                        <input type="text" class="form-control" id="txtUsuario" autocomplete="off">
+                                        <div class="invalid-feedback">Campo obligatorio</div>
                                     </div>
 
                                     <div class="col-md-3">
                                         <label>Nombre</label>
-                                        <input type="text" class="form-control" id="txtNombre" required>
+                                        <input type="text" class="form-control" id="txtNombre" autocomplete="off">
+                                        <div class="invalid-feedback">Campo obligatorio</div>
                                     </div>
 
                                     <div class="col-md-3">
                                         <label>Apellido</label>
-                                        <input type="text" class="form-control" id="txtApellido">
+                                        <input type="text" class="form-control" id="txtApellido" autocomplete="off">
                                     </div>
 
                                     <div class="col-md-3">
                                         <label>DNI</label>
-                                        <input type="text" class="form-control" id="txtDni">
+                                        <input type="text" class="form-control" id="txtDni" autocomplete="off">
                                     </div>
 
                                     <div class="col-md-3">
                                         <label>Teléfono</label>
-                                        <input type="text" class="form-control" id="txtTelefono">
+                                        <input type="text" class="form-control" id="txtTelefono" autocomplete="off">
                                     </div>
 
                                     <div class="col-md-3">
                                         <label>Dirección</label>
-                                        <input type="text" class="form-control" id="txtDireccion">
+                                        <input type="text" class="form-control" id="txtDireccion" autocomplete="off">
                                     </div>
 
                                     <!-- Sucursales: mismo patrón que Productos (talles / colores) -->
@@ -205,24 +207,27 @@
                                     <!-- ROLES -->
                                     <div class="col-md-3">
                                         <label>Rol</label>
-                                        <select id="Roles" class="form-control select2" required></select>
+                                        <select id="Roles" class="form-control select2"></select>
+                                        <div class="invalid-feedback">Campo obligatorio</div>
                                     </div>
 
                                     <!-- ESTADOS -->
                                     <div class="col-md-3">
                                         <label>Estado</label>
-                                        <select id="Estados" class="form-control select2" required></select>
+                                        <select id="Estados" class="form-control select2"></select>
+                                        <div class="invalid-feedback">Campo obligatorio</div>
                                     </div>
 
                                     <!-- PASSWORD -->
                                     <div class="col-md-3" id="divContrasena">
                                         <label>Contraseña</label>
-                                        <input type="password" class="form-control" id="txtContrasena">
+                                        <input type="password" class="form-control" id="txtContrasena" autocomplete="new-password">
+                                        <div class="invalid-feedback">Campo obligatorio</div>
                                     </div>
 
                                     <div class="col-md-3" id="divContrasenaNueva" hidden>
                                         <label>Nueva contraseña</label>
-                                        <input type="password" class="form-control" id="txtContrasenaNueva">
+                                        <input type="password" class="form-control" id="txtContrasenaNueva" autocomplete="new-password">
                                     </div>
 
                                 </form>
@@ -405,7 +410,7 @@
     </div>
 </div>
 
-
+<partial name="~/Views/Utils/Modals.cshtml" />
 
 @section Scripts {
     <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
@@ -421,5 +426,5 @@
     <script src="https://cdn.datatables.net/buttons/2.2.2/js/buttons.print.min.js"></script>
     <script src="https://cdn.datatables.net/fixedheader/3.2.2/js/dataTables.fixedHeader.min.js"></script>
 
-    <script src="~/js/Usuarios.js?v=5.7"></script>
+    <script src="~/js/Usuarios.js?v=5.9"></script>
 }

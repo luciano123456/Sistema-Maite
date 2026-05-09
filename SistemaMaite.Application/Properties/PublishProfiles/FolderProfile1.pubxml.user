@@ -3,7 +3,7 @@
 <Project>
   <PropertyGroup>
     <_PublishTargetUrl>D:\Publicaciones Webs\Sistema Maite</_PublishTargetUrl>
-    <History>True|2026-01-22T06:12:53.7600131Z||;True|2025-09-27T06:08:10.4070522-03:00||;True|2025-09-27T06:02:46.7535666-03:00||;True|2025-09-23T23:58:22.5741819-03:00||;True|2025-08-27T16:46:51.5437406-03:00||;True|2025-08-27T15:56:49.6501082-03:00||;True|2025-08-21T03:47:50.6988622-03:00||;True|2025-08-21T03:35:32.8726451-03:00||;True|2025-08-20T04:21:33.6499260-03:00||;True|2025-08-18T03:19:32.3723767-03:00||;True|2025-08-18T03:16:01.7993740-03:00||;True|2025-08-18T03:09:19.3695566-03:00||;True|2025-08-18T03:06:10.4638872-03:00||;True|2025-08-15T23:00:55.4995320-03:00||;</History>
+    <History>True|2026-05-06T12:48:32.3024483Z||;True|2026-05-06T01:39:48.5121967-03:00||;True|2026-05-06T01:17:43.3619781-03:00||;True|2026-05-06T01:15:01.9290982-03:00||;True|2026-01-22T03:12:53.7600131-03:00||;True|2025-09-27T06:08:10.4070522-03:00||;True|2025-09-27T06:02:46.7535666-03:00||;True|2025-09-23T23:58:22.5741819-03:00||;True|2025-08-27T16:46:51.5437406-03:00||;True|2025-08-27T15:56:49.6501082-03:00||;True|2025-08-21T03:47:50.6988622-03:00||;True|2025-08-21T03:35:32.8726451-03:00||;True|2025-08-20T04:21:33.6499260-03:00||;True|2025-08-18T03:19:32.3723767-03:00||;True|2025-08-18T03:16:01.7993740-03:00||;True|2025-08-18T03:09:19.3695566-03:00||;True|2025-08-18T03:06:10.4638872-03:00||;True|2025-08-15T23:00:55.4995320-03:00||;</History>
     <LastFailureDetails />
   </PropertyGroup>
   <ItemGroup>
@@ -11,64 +11,67 @@
       <publishTime>08/11/2025 23:47:33</publishTime>
     </File>
     <File Include="Views/Cajas/Index.cshtml">
-      <publishTime>01/22/2026 03:09:23</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="Views/Clientes/Index.cshtml">
-      <publishTime>01/22/2026 03:09:27</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="Views/Compras/Index.cshtml">
-      <publishTime>01/22/2026 03:09:33</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="Views/Compras/NuevoModif.cshtml">
-      <publishTime>01/22/2026 03:09:39</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="Views/CuentasCorrientes/Index.cshtml">
-      <publishTime>01/22/2026 01:49:42</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="Views/CuentasCorrientesProveedores/Index.cshtml">
-      <publishTime>01/22/2026 01:49:42</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="Views/CuentasCorrientesTalleres/Index.cshtml">
-      <publishTime>01/22/2026 01:49:42</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
+    </File>
+    <File Include="Views/Dashboard/Index.cshtml">
+      <publishTime>05/05/2026 22:13:28</publishTime>
     </File>
     <File Include="Views/Gastos/Index.cshtml">
-      <publishTime>01/22/2026 01:49:42</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="Views/Home/Index.cshtml">
-      <publishTime>01/22/2026 01:49:42</publishTime>
+      <publishTime>05/05/2026 22:09:52</publishTime>
     </File>
     <File Include="Views/Home/Privacy.cshtml">
-      <publishTime>01/22/2026 01:49:42</publishTime>
+      <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="Views/Insumos/Index.cshtml">
-      <publishTime>01/22/2026 01:49:42</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="Views/Inventario/Index.cshtml">
-      <publishTime>01/22/2026 03:09:53</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="Views/Login/Index.cshtml">
-      <publishTime>01/22/2026 01:49:42</publishTime>
+      <publishTime>05/05/2026 18:36:13</publishTime>
     </File>
     <File Include="Views/OrdenesCorte/Index.cshtml">
-      <publishTime>01/22/2026 03:09:58</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="Views/OrdenesCorte/NuevoModif.cshtml">
-      <publishTime>01/22/2026 03:10:10</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="Views/Personal/Index.cshtml">
-      <publishTime>01/22/2026 01:49:42</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="Views/PersonalSueldos/Index.cshtml">
-      <publishTime>01/22/2026 01:49:42</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="Views/PersonalSueldos/NuevoModif.cshtml">
-      <publishTime>01/22/2026 01:49:42</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="Views/Productos/Index.cshtml">
-      <publishTime>01/22/2026 01:49:42</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="Views/Proveedores/Index.cshtml">
-      <publishTime>01/22/2026 01:49:42</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="Views/Shared/Error.cshtml">
       <publishTime>08/11/2025 23:47:33</publishTime>
@@ -76,11 +79,23 @@
     <File Include="Views/Shared/Partials/BotonMenu.cshtml">
       <publishTime>08/12/2025 01:08:53</publishTime>
     </File>
+    <File Include="Views/Shared/Partials/ModalsConfiguracionSistema.cshtml">
+      <publishTime>05/05/2026 22:09:21</publishTime>
+    </File>
+    <File Include="Views/Shared/Partials/M_Insumos.cshtml">
+      <publishTime>05/05/2026 18:36:13</publishTime>
+    </File>
+    <File Include="Views/Shared/Partials/M_Personal.cshtml">
+      <publishTime>05/05/2026 18:36:13</publishTime>
+    </File>
+    <File Include="Views/Shared/Partials/M_Producto.cshtml">
+      <publishTime>05/05/2026 18:36:13</publishTime>
+    </File>
     <File Include="Views/Shared/Partials/NavBarLogin.cshtml">
-      <publishTime>01/22/2026 01:49:42</publishTime>
+      <publishTime>05/05/2026 22:13:36</publishTime>
     </File>
     <File Include="Views/Shared/_Layout.cshtml">
-      <publishTime>01/22/2026 01:49:42</publishTime>
+      <publishTime>05/05/2026 18:36:13</publishTime>
     </File>
     <File Include="Views/Shared/_Layout.cshtml.css">
       <publishTime>08/11/2025 23:47:33</publishTime>
@@ -89,22 +104,22 @@
       <publishTime>08/11/2025 23:47:33</publishTime>
     </File>
     <File Include="Views/Talleres/Index.cshtml">
-      <publishTime>01/22/2026 01:49:42</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="Views/Usuarios/Configuracion.cshtml">
-      <publishTime>01/22/2026 01:49:42</publishTime>
+      <publishTime>05/05/2026 18:36:13</publishTime>
     </File>
     <File Include="Views/Usuarios/Index.cshtml">
-      <publishTime>01/22/2026 01:49:42</publishTime>
+      <publishTime>05/06/2026 01:38:58</publishTime>
     </File>
     <File Include="Views/Utils/Modals.cshtml">
-      <publishTime>08/12/2025 01:08:53</publishTime>
+      <publishTime>05/05/2026 18:36:13</publishTime>
     </File>
     <File Include="Views/Ventas/Index.cshtml">
-      <publishTime>01/22/2026 01:50:03</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="Views/Ventas/NuevoModif.cshtml">
-      <publishTime>01/22/2026 01:50:03</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="Views/_ViewImports.cshtml">
       <publishTime>08/11/2025 23:47:33</publishTime>
@@ -116,46 +131,61 @@
       <publishTime>11/08/2025 23:47:33</publishTime>
     </File>
     <File Include="wwwroot/css/Cajas.css">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 18:36:13</publishTime>
     </File>
     <File Include="wwwroot/css/Clientes.css">
       <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
+    <File Include="wwwroot/css/ComprasNuevoModif.css">
+      <publishTime>05/05/2026 18:36:13</publishTime>
+    </File>
     <File Include="wwwroot/css/CuentasCorrientes.css">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 18:36:13</publishTime>
     </File>
     <File Include="wwwroot/css/CuentasCorrientesProveedores.css">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 18:36:13</publishTime>
     </File>
     <File Include="wwwroot/css/CuentasCorrientesTalleres.css">
+      <publishTime>05/05/2026 18:36:13</publishTime>
+    </File>
+    <File Include="wwwroot/css/Dashboard.css">
       <publishTime>01/01/0001 00:00:00</publishTime>
+    </File>
+    <File Include="wwwroot/css/DisenoPantallas.css">
+      <publishTime>05/05/2026 18:36:13</publishTime>
     </File>
     <File Include="wwwroot/css/Home.css">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 18:36:13</publishTime>
     </File>
     <File Include="wwwroot/css/Inventario.css">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 18:36:13</publishTime>
     </File>
     <File Include="wwwroot/css/Login.css">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 18:36:13</publishTime>
+    </File>
+    <File Include="wwwroot/css/ModalsShared.css">
+      <publishTime>05/05/2026 18:36:13</publishTime>
     </File>
     <File Include="wwwroot/css/NavBarLogin.css">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 18:36:13</publishTime>
+    </File>
+    <File Include="wwwroot/css/OrdenesCorteNuevoModif.css">
+      <publishTime>05/05/2026 18:36:13</publishTime>
     </File>
     <File Include="wwwroot/css/PagosSueldosNuevoModif.css">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 18:36:13</publishTime>
     </File>
     <File Include="wwwroot/css/Personal.css">
       <publishTime>01/01/0001 00:00:00</publishTime>
     </File>
     <File Include="wwwroot/css/Productos.css">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 18:36:13</publishTime>
     </File>
     <File Include="wwwroot/css/site.css">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="wwwroot/css/Usuarios.css">
-      <publishTime>03/09/2025 01:59:49</publishTime>
+      <publishTime>06/05/2026 01:32:48</publishTime>
     </File>
     <File Include="wwwroot/css/VentasNuevoModif.css">
       <publishTime>01/01/0001 00:00:00</publishTime>
@@ -236,19 +266,19 @@
       <publishTime>11/08/2025 23:47:33</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Logo.png">
-      <publishTime>11/08/2025 23:47:33</publishTime>
+      <publishTime>08/11/2025 23:47:33</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Monedas.png">
       <publishTime>11/08/2025 23:47:33</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Nueva Venta.png">
-      <publishTime>11/08/2025 23:47:33</publishTime>
+      <publishTime>08/11/2025 23:47:33</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Nueva Zona.png">
       <publishTime>11/08/2025 23:47:33</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Nuevo Cliente.png">
-      <publishTime>11/08/2025 23:47:33</publishTime>
+      <publishTime>08/11/2025 23:47:33</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/Menu Principal/Nuevo Pedido.png">
       <publishTime>11/08/2025 23:47:33</publishTime>
@@ -293,7 +323,7 @@
       <publishTime>11/08/2025 23:47:33</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/productos.png">
-      <publishTime>11/08/2025 23:47:33</publishTime>
+      <publishTime>08/11/2025 23:47:33</publishTime>
     </File>
     <File Include="wwwroot/Imagenes/proveedores.png">
       <publishTime>11/08/2025 23:47:33</publishTime>
@@ -317,85 +347,100 @@
       <publishTime>11/08/2025 23:47:33</publishTime>
     </File>
     <File Include="wwwroot/js/Cajas.js">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="wwwroot/js/Clientes.js">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="wwwroot/js/Compras.js">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="wwwroot/js/ComprasNuevoModif.js">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="wwwroot/js/CuentasCorrientes.js">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="wwwroot/js/CuentasCorrientesProveedores.js">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="wwwroot/js/CuentasCorrientesTalleres.js">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
+    </File>
+    <File Include="wwwroot/js/Dashboard.js">
+      <publishTime>05/05/2026 22:09:40</publishTime>
+    </File>
+    <File Include="wwwroot/js/Entities/M_Insumos.js">
+      <publishTime>05/05/2026 18:36:13</publishTime>
+    </File>
+    <File Include="wwwroot/js/Entities/M_Personal.js">
+      <publishTime>05/05/2026 18:36:13</publishTime>
+    </File>
+    <File Include="wwwroot/js/Entities/M_Producto.js">
+      <publishTime>05/05/2026 18:36:13</publishTime>
     </File>
     <File Include="wwwroot/js/Gastos.js">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="wwwroot/js/Home.js">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 22:09:42</publishTime>
     </File>
     <File Include="wwwroot/js/Insumos.js">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="wwwroot/js/Inventario.js">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="wwwroot/js/Login.js">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 18:36:13</publishTime>
     </File>
     <File Include="wwwroot/js/NavBarLogin.js">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 22:13:35</publishTime>
     </File>
     <File Include="wwwroot/js/OrdenesCorte.js">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="wwwroot/js/OrdenesCorteNuevoModif.js">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="wwwroot/js/PagosSueldos.js">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="wwwroot/js/PagosSueldosNuevoModif.js">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
+    </File>
+    <File Include="wwwroot/js/Permisos.js">
+      <publishTime>05/05/2026 21:56:42</publishTime>
     </File>
     <File Include="wwwroot/js/Personal.js">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="wwwroot/js/Productos.js">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="wwwroot/js/Proveedores.js">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="wwwroot/js/site.js">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/06/2026 01:36:25</publishTime>
     </File>
     <File Include="wwwroot/js/Talleres.js">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="wwwroot/js/Usuarios.js">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/06/2026 01:38:55</publishTime>
     </File>
     <File Include="wwwroot/js/UsuariosConfiguracion.js">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>01/22/2026 01:49:42</publishTime>
     </File>
     <File Include="wwwroot/js/Utils/moment.js">
-      <publishTime>11/08/2025 23:47:33</publishTime>
+      <publishTime>08/11/2025 23:47:33</publishTime>
     </File>
     <File Include="wwwroot/js/Ventas.js">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="wwwroot/js/VentasNuevoModif.js">
-      <publishTime>01/01/0001 00:00:00</publishTime>
+      <publishTime>05/05/2026 21:43:15</publishTime>
     </File>
     <File Include="wwwroot/lib/bootstrap/dist/css/bootstrap-grid.css">
       <publishTime>11/08/2025 23:47:33</publishTime>

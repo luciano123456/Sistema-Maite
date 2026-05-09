@@ -1147,42 +1147,40 @@ body {
     font-size: 14px;
 }
 
-/* Sucursales: panel claro como Productos; el modal fuerza texto/input oscuro vía .modal .form-control y color heredado */
+/* Sucursales: mismo panel oscuro que site.css (#modalEdicion .select-checklist); no pisar con tema claro */
 #modalEdicion #listaSucursales.select-checklist {
     position: absolute;
     left: 0;
     right: 0;
     top: 100%;
-    background: #fff;
-    border: 1px solid #dee2e6;
-    border-radius: .5rem;
-    max-height: 240px;
+    margin-top: 4px;
+    z-index: 10050;
+    background: #1e293b;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    border-radius: 10px;
+    max-height: 260px;
     overflow: auto;
-    z-index: 1055;
-    color: #212529 !important;
-}
-
-#modalEdicion #listaSucursales.select-checklist .form-check {
-    margin-bottom: .25rem;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+    color: #e8eef7;
 }
 
 #modalEdicion #listaSucursales.select-checklist .form-check-label {
-    color: #212529 !important;
+    color: #e8eef7;
+    font-size: 0.9rem;
 }
 
 #modalEdicion #listaSucursales.select-checklist .form-check-input {
-    background-color: #fff !important;
-    border-color: #adb5bd !important;
-    color: #212529 !important;
+    border-color: rgba(148, 163, 184, 0.55);
+    background-color: rgba(15, 23, 42, 0.6);
 }
 
 #modalEdicion #listaSucursales.select-checklist .form-check-input:checked {
-    background-color: #0d6efd !important;
-    border-color: #0d6efd !important;
+    background-color: #3b82f6;
+    border-color: #3b82f6;
 }
 
 #modalEdicion #listaSucursales.select-checklist hr {
-    border-color: #dee2e6;
+    border-color: rgba(148, 163, 184, 0.2);
     opacity: 1;
 }
 

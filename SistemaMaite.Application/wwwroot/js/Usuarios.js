@@ -37,8 +37,9 @@ $(document).ready(() => {
         el.addEventListener("blur", () => validarCampoIndividual(el));
     });
 
-    $("#Roles").on("change", function () {
-        actualizarBadgeUsuarioPermisos();
+    $("#Roles, #Estados").on("change", function () {
+        validarCampoIndividual(this);
+        if (this.id === "Roles") actualizarBadgeUsuarioPermisos();
     });
 
     $("#txtUsuario, #txtNombre, #txtApellido").on("input", function () {
@@ -107,8 +108,24 @@ async function guardarCambios() {
 
         const dataJson = await response.json();
 
-        if (dataJson.valor === 'Contrasena') {
+        if (dataJson.valor === "Contrasena") {
             errorModal("Contraseña incorrecta");
+            return;
+        }
+        if (dataJson.valor === "Usuario") {
+            errorModal("El nombre de usuario ya está en uso.");
+            return;
+        }
+        if (dataJson.valor === false || dataJson.valor === "Error") {
+            errorModal(dataJson.mensaje || "No se pudo guardar el usuario.");
+            return;
+        }
+        if (idUsuario === "" && dataJson.valor !== true) {
+            errorModal("No se pudo registrar el usuario.");
+            return;
+        }
+        if (idUsuario !== "" && dataJson.valor !== "OK") {
+            errorModal("No se pudo actualizar el usuario.");
             return;
         }
 
@@ -171,8 +188,8 @@ async function guardarCambios() {
         $('#modalEdicion').modal('hide');
 
         exitoModal(idUsuario === ""
-            ? "Usuario creado con permisos correctamente"
-            : "Usuario actualizado con permisos correctamente");
+            ? "El usuario se registró correctamente."
+            : "Los datos del usuario se guardaron correctamente.");
 
         await listaUsuarios();
 
@@ -282,10 +299,12 @@ async function eliminarUsuario(id) {
         if (!response.ok) throw new Error("Error al eliminar el Usuario.");
 
         const dataJson = await response.json();
-        if (dataJson.valor) {
+        if (dataJson.valor === true) {
             listaUsuarios();
             exitoModal("Usuario eliminado correctamente");
+            return;
         }
+        errorModal(dataJson.mensaje || "No se pudo eliminar el usuario.");
     } catch (e) {
         console.error("Ha ocurrido un error:", e);
         errorModal("Ha ocurrido un error.");
@@ -541,7 +560,7 @@ async function listaEstados() {
 }
 
 async function listaEstadosFilter() {
-    const res = await fetch("/Roles/Lista", {
+    const res = await fetch("/EstadosUsuarios/Lista", {
         headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" }
     });
     const data = await res.json();
@@ -712,27 +731,42 @@ function limpiarModal() {
     actualizarResumenPermisos();
 }
 
+function obtenerInvalidFeedback(el) {
+    if (!el) return null;
+    let sib = el.nextElementSibling;
+    while (sib) {
+        if (sib.classList && sib.classList.contains("invalid-feedback")) return sib;
+        sib = sib.nextElementSibling;
+    }
+    const parent = el.parentElement;
+    return parent ? parent.querySelector(".invalid-feedback") : null;
+}
+
 function validarCampoIndividual(el) {
+    if (!el || !el.id) return;
+
+    if (el.id === "txtTelefono" || el.id === "txtDireccion") {
+        el.classList.remove("is-invalid", "is-valid");
+        verificarErroresGenerales();
+        return;
+    }
+
+    const esNuevo = !$("#txtId").val();
     const obligatorios = [
         "txtNombre",
         "txtUsuario",
-        "txtApellido",
-        "txtDni",
-        "txtContrasena",
         "Roles",
         "Estados"
     ];
+    if (esNuevo) obligatorios.push("txtContrasena");
 
     if (!obligatorios.includes(el.id)) return;
 
-    const valor = el.value ? el.value.trim() : "";
-    const feedback = el.nextElementSibling;
+    const valor = el.value != null ? String(el.value).trim() : "";
+    const feedback = obtenerInvalidFeedback(el);
+    if (feedback) feedback.textContent = "Campo obligatorio";
 
-    if (feedback && feedback.classList.contains("invalid-feedback")) {
-        feedback.textContent = "Campo obligatorio";
-    }
-
-    if (valor === "" || valor === "Seleccionar" || valor === null) {
+    if (valor === "" || valor === "Seleccionar") {
         el.classList.remove("is-valid");
         el.classList.add("is-invalid");
     } else {
@@ -748,7 +782,9 @@ function verificarErroresGenerales() {
     const hayInvalidos = document.querySelectorAll("#modalEdicion .is-invalid").length > 0;
     if (!errorMsg) return;
 
-    if (!hayInvalidos) {
+    if (hayInvalidos) {
+        errorMsg.classList.remove("d-none");
+    } else {
         errorMsg.classList.add("d-none");
     }
 }
@@ -759,8 +795,6 @@ function validarCampos() {
     const campos = [
         "#txtNombre",
         "#txtUsuario",
-        "#txtApellido",
-        "#txtDni",
         "#Roles",
         "#Estados"
     ];
@@ -775,17 +809,13 @@ function validarCampos() {
         const campo = document.querySelector(selector);
         if (!campo) return;
 
-        const valor = campo.value ? campo.value.trim() : "";
-        const feedback = campo.nextElementSibling;
+        const valor = campo.value != null ? String(campo.value).trim() : "";
+        const feedback = obtenerInvalidFeedback(campo);
+        if (feedback) feedback.textContent = "Campo obligatorio";
 
         if (!valor || valor === "Seleccionar") {
             campo.classList.add("is-invalid");
             campo.classList.remove("is-valid");
-
-            if (feedback && feedback.classList.contains("invalid-feedback")) {
-                feedback.textContent = "Campo obligatorio";
-            }
-
             valido = false;
         } else {
             campo.classList.remove("is-invalid");
@@ -795,6 +825,7 @@ function validarCampos() {
 
     const panel = document.getElementById("errorCampos");
     if (panel) panel.classList.toggle("d-none", valido);
+    verificarErroresGenerales();
 
     return valido;
 }
